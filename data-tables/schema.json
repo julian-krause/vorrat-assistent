@@ -1,0 +1,71 @@
+{
+  "_hinweis": "n8n Data Tables im persönlichen Projekt. Die Workflows referenzieren die Tabellen per ID – bei einer neuen n8n-Instanz Tabellen neu anlegen und IDs in den Workflows ersetzen.",
+  "tables": [
+    {
+      "name": "vorrat_profil",
+      "id": "cT54sdECXIGtpqDT",
+      "columns": {
+        "schluessel": "string",
+        "chat_id": "string",
+        "kcal": "number",
+        "protein_g": "number",
+        "fett_g": "number",
+        "kh_g": "number",
+        "mahlzeiten_pro_tag": "number",
+        "vorlieben": "string",
+        "grocy_url": "string"
+      },
+      "seed": [
+        { "schluessel": "main", "chat_id": "", "kcal": 0, "protein_g": 0, "fett_g": 0, "kh_g": 0, "mahlzeiten_pro_tag": 3, "vorlieben": "gesund, einfach, max. 30 Minuten Zubereitung", "grocy_url": "" }
+      ]
+    },
+    {
+      "name": "vorrat_rezepte",
+      "id": "64b9tBoz3sRJsuGW",
+      "columns": {
+        "titel": "string",
+        "typ": "string",
+        "geplant_fuer": "date",
+        "mahlzeit": "string",
+        "portionen": "number",
+        "kcal": "number",
+        "protein_g": "number",
+        "fett_g": "number",
+        "kh_g": "number",
+        "zutaten_json": "string",
+        "anleitung": "string",
+        "status": "string"
+      }
+    },
+    {
+      "name": "vorrat_bons",
+      "id": "OOZDOg97S47jSMkc",
+      "columns": {
+        "message_id": "string",
+        "datum": "date",
+        "summe": "number",
+        "anzahl_artikel": "number"
+      }
+    },
+    {
+      "name": "vorrat_produkte",
+      "id": "kil5ZUYaG9x3uGat",
+      "columns": {
+        "grocy_product_id": "number",
+        "name": "string",
+        "einheit": "string",
+        "kategorie": "string",
+        "kcal_100": "number",
+        "protein_100": "number",
+        "fett_100": "number",
+        "kh_100": "number",
+        "gramm_pro_stk": "number",
+        "nutriscore": "string",
+        "nova": "number",
+        "off_code": "string",
+        "off_name": "string",
+        "quelle": "string"
+      }
+    }
+  ]
+}

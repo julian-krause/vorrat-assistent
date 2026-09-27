@@ -1,0 +1,545 @@
+[
+  {
+    "updatedAt": "2026-09-27T15:25:31.745Z",
+    "createdAt": "2026-09-27T15:07:50.119Z",
+    "id": "Zo6OQr9lp55H9cjS",
+    "name": "Vorrat · MHD-Wächter",
+    "description": "Täglich 8 Uhr: Grocy-Produkte, die bald ablaufen („Iss das zuerst“), Abgelaufenes mit Buttons und heutige Wochenplan-Mahlzeiten per Telegram.",
+    "active": false,
+    "isArchived": false,
+    "nodes": [
+      {
+        "id": "559be291-5a24-4515-a533-f152d9bb0d2f",
+        "name": "Jeden Morgen 8 Uhr",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1.4,
+        "position": [
+          0,
+          192
+        ],
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "days",
+                "daysInterval": 1,
+                "triggerAtHour": 8,
+                "triggerAtMinute": 0
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "2f9cca46-e401-49ef-afd6-ecc9e4dde772",
+        "name": "Profil laden",
+        "type": "n8n-nodes-base.dataTable",
+        "typeVersion": 1.1,
+        "position": [
+          224,
+          192
+        ],
+        "parameters": {
+          "resource": "row",
+          "operation": "get",
+          "dataTableId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "cT54sdECXIGtpqDT",
+            "cachedResultName": "vorrat_profil"
+          },
+          "filters": {
+            "conditions": [
+              {
+                "keyName": "schluessel",
+                "condition": "eq",
+                "keyValue": "main"
+              }
+            ]
+          },
+          "limit": 1
+        },
+        "executeOnce": true
+      },
+      {
+        "id": "c144380d-8c04-40e0-b29b-16d13998330c",
+        "name": "Grocy: bald fällig & abgelaufen",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          448,
+          192
+        ],
+        "parameters": {
+          "method": "GET",
+          "url": "={{ $('Profil laden').first().json.grocy_url }}/api/stock/volatile?due_soon_days=2",
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpTemplatedCustomAuth",
+          "options": {}
+        },
+        "executeOnce": true
+      },
+      {
+        "id": "e5df6211-fbc3-44d0-8204-bc0e1b2cf5b1",
+        "name": "Grocy-Einheiten laden",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          672,
+          192
+        ],
+        "parameters": {
+          "method": "GET",
+          "url": "={{ $('Profil laden').first().json.grocy_url }}/api/objects/quantity_units",
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpTemplatedCustomAuth",
+          "options": {}
+        },
+        "executeOnce": true
+      },
+      {
+        "id": "3edceac8-c354-4d46-9054-7bf6273abd63",
+        "name": "Wochenplan laden",
+        "type": "n8n-nodes-base.dataTable",
+        "typeVersion": 1.1,
+        "position": [
+          896,
+          192
+        ],
+        "parameters": {
+          "resource": "row",
+          "operation": "get",
+          "dataTableId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "64b9tBoz3sRJsuGW",
+            "cachedResultName": "vorrat_rezepte"
+          },
+          "matchType": "allConditions",
+          "filters": {
+            "conditions": [
+              {
+                "keyName": "typ",
+                "condition": "eq",
+                "keyValue": "wochenplan"
+              },
+              {
+                "keyName": "status",
+                "condition": "eq",
+                "keyValue": "vorgeschlagen"
+              }
+            ]
+          },
+          "returnAll": true
+        },
+        "executeOnce": true,
+        "alwaysOutputData": true
+      },
+      {
+        "id": "7ca9fc5c-69f9-4660-a899-4500aec9614d",
+        "name": "Tagesbericht bauen",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1120,
+          192
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "language": "javaScript",
+          "jsCode": "const profil = $('Profil laden').first().json || {};\nconst chat_id = String(profil.chat_id || '');\nif (!chat_id) return [];\nconst zone = 'Europe/Berlin';\nconst heute = DateTime.now().setZone(zone).startOf('day');\nconst esc = t => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nconst qu = {};\nfor (const i of $('Grocy-Einheiten laden').all()) if (i.json && i.json.id) qu[i.json.id] = i.json.name;\nconst v = $('Grocy: bald fällig & abgelaufen').first().json || {};\nconst tageBis = d => Math.round(DateTime.fromISO(String(d).slice(0, 10), { zone }).diff(heute, 'days').days);\nconst menge = p => (Math.round(Number(p.amount) * 10) / 10) + ' ' + (qu[(p.product || {}).qu_id_stock] || '');\nconst out = [];\n\nconst bald = (v.due_products || []).filter(p => Number(p.amount) > 0).sort((a, b) => String(a.best_before_date).localeCompare(String(b.best_before_date)));\nif (bald.length) {\n  const wann = t => t <= 0 ? '<b>heute</b>' : t === 1 ? 'morgen' : 'übermorgen';\n  const zeilen = bald.map(p => '• ' + esc((p.product || {}).name) + ' (' + esc(menge(p)) + ') – ' + wann(tageBis(p.best_before_date)));\n  out.push({ json: { typ: 'bericht', chat_id, text: '🍽️ <b>Iss am besten bald – sonst läuft es ab:</b>\\n' + zeilen.join('\\n') + '\\n\\nSoll ich dir Rezepte genau damit vorschlagen?' } });\n}\n\nconst alt = [...(v.overdue_products || []), ...(v.expired_products || [])].filter(p => Number(p.amount) > 0);\nconst gesehen = {};\nfor (const p of alt) {\n  if (gesehen[p.product_id]) continue;\n  gesehen[p.product_id] = true;\n  const t = -tageBis(p.best_before_date);\n  out.push({ json: { typ: 'abgelaufen', chat_id, product_id: p.product_id, text: '⏰ <b>' + esc((p.product || {}).name) + '</b> (' + esc(menge(p)) + ') ist laut MHD seit ' + (t <= 1 ? 'gestern' : t + ' Tagen') + ' abgelaufen. Noch da und gut?' } });\n  if (out.filter(o => o.json.typ === 'abgelaufen').length >= 8) break;\n}\n\nconst reihenfolge = { 'Frühstück': 0, 'Mittag': 1, 'Abend': 2, 'Snack': 3, 'Snack 2': 4 };\nconst plan = $('Wochenplan laden').all().map(i => i.json).filter(r => r && r.id && r.geplant_fuer && DateTime.fromJSDate(new Date(r.geplant_fuer)).setZone(zone).toISODate() === heute.toISODate())\n  .sort((a, b) => (reihenfolge[a.mahlzeit] ?? 9) - (reihenfolge[b.mahlzeit] ?? 9));\nfor (const r of plan) {\n  let zutaten = [];\n  try { zutaten = JSON.parse(r.zutaten_json || '[]'); } catch (e) { zutaten = []; }\n  const zText = zutaten.map(z => '• ' + (z.menge ? (Math.round(Number(z.menge) * 10) / 10) + ' ' + esc(z.einheit) + ' ' : '') + esc(z.name) + (z.product_id == null ? ' 🛒' : '')).join('\\n');\n  const text = '📅 <b>Heute ' + esc(r.mahlzeit) + ': ' + esc(r.titel) + '</b>\\n' + (r.kcal || 0) + ' kcal · P ' + (r.protein_g || 0) + ' g · F ' + (r.fett_g || 0) + ' g · KH ' + (r.kh_g || 0) + ' g'\n    + '\\n\\n<b>Zutaten</b>\\n' + zText + '\\n\\n<b>Zubereitung</b>\\n' + esc(r.anleitung || '');\n  out.push({ json: { typ: 'mahlzeit', chat_id, rezept_id: r.id, text: text.slice(0, 4000) } });\n}\nreturn out;"
+        }
+      },
+      {
+        "id": "c717ff9c-cbf2-4e83-9c57-a853e9a37c40",
+        "name": "Nachrichtentyp",
+        "type": "n8n-nodes-base.switch",
+        "typeVersion": 3.2,
+        "position": [
+          1344,
+          176
+        ],
+        "parameters": {
+          "rules": {
+            "values": [
+              {
+                "renameOutput": true,
+                "outputKey": "Bald fällig",
+                "conditions": {
+                  "options": {
+                    "caseSensitive": true,
+                    "leftValue": "",
+                    "typeValidation": "strict"
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{ $json.typ }}",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      },
+                      "rightValue": "bericht"
+                    }
+                  ],
+                  "combinator": "and"
+                }
+              },
+              {
+                "renameOutput": true,
+                "outputKey": "Abgelaufen",
+                "conditions": {
+                  "options": {
+                    "caseSensitive": true,
+                    "leftValue": "",
+                    "typeValidation": "strict"
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{ $json.typ }}",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      },
+                      "rightValue": "abgelaufen"
+                    }
+                  ],
+                  "combinator": "and"
+                }
+              },
+              {
+                "renameOutput": true,
+                "outputKey": "Heute geplant",
+                "conditions": {
+                  "options": {
+                    "caseSensitive": true,
+                    "leftValue": "",
+                    "typeValidation": "strict"
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{ $json.typ }}",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      },
+                      "rightValue": "mahlzeit"
+                    }
+                  ],
+                  "combinator": "and"
+                }
+              }
+            ]
+          },
+          "options": {}
+        }
+      },
+      {
+        "id": "4e7daac8-2c96-4688-acca-b32f9e698b69",
+        "name": "Hinweis „Iss das zuerst“",
+        "type": "n8n-nodes-base.telegram",
+        "typeVersion": 1.2,
+        "position": [
+          1568,
+          0
+        ],
+        "parameters": {
+          "resource": "message",
+          "operation": "sendMessage",
+          "chatId": "={{ $json.chat_id }}",
+          "text": "={{ $json.text }}",
+          "replyMarkup": "inlineKeyboard",
+          "inlineKeyboard": {
+            "rows": [
+              {
+                "row": {
+                  "buttons": [
+                    {
+                      "text": "🍳 Rezepte damit",
+                      "additionalFields": {
+                        "callback_data": "cmd:rezepte"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "additionalFields": {
+            "appendAttribution": false,
+            "parse_mode": "HTML"
+          }
+        },
+        "webhookId": "16794bd6-4815-4643-8e4e-2c3ac44da990"
+      },
+      {
+        "id": "1fe3c656-61ac-4f40-9dd6-2b0a7f9d96fc",
+        "name": "Abgelaufen nachfragen",
+        "type": "n8n-nodes-base.telegram",
+        "typeVersion": 1.2,
+        "position": [
+          1568,
+          192
+        ],
+        "parameters": {
+          "resource": "message",
+          "operation": "sendMessage",
+          "chatId": "={{ $json.chat_id }}",
+          "text": "={{ $json.text }}",
+          "replyMarkup": "inlineKeyboard",
+          "inlineKeyboard": {
+            "rows": [
+              {
+                "row": {
+                  "buttons": [
+                    {
+                      "text": "🍽️ Verbraucht",
+                      "additionalFields": {
+                        "callback_data": "=inv:{{ $json.product_id }}:verbraucht"
+                      }
+                    },
+                    {
+                      "text": "🗑️ Weggeworfen",
+                      "additionalFields": {
+                        "callback_data": "=inv:{{ $json.product_id }}:weg"
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "row": {
+                  "buttons": [
+                    {
+                      "text": "👍 Noch gut (+3 Tage)",
+                      "additionalFields": {
+                        "callback_data": "=inv:{{ $json.product_id }}:plus3"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "additionalFields": {
+            "appendAttribution": false,
+            "parse_mode": "HTML",
+            "disable_notification": true
+          }
+        },
+        "webhookId": "7d3905bd-1e4d-46c6-9376-29a10cbefb7b"
+      },
+      {
+        "id": "43ed8fa2-1b55-43cb-90bf-0fd3ba3e1e46",
+        "name": "Heutige Mahlzeit senden",
+        "type": "n8n-nodes-base.telegram",
+        "typeVersion": 1.2,
+        "position": [
+          1568,
+          384
+        ],
+        "parameters": {
+          "resource": "message",
+          "operation": "sendMessage",
+          "chatId": "={{ $json.chat_id }}",
+          "text": "={{ $json.text }}",
+          "replyMarkup": "inlineKeyboard",
+          "inlineKeyboard": {
+            "rows": [
+              {
+                "row": {
+                  "buttons": [
+                    {
+                      "text": "✅ Gekocht",
+                      "additionalFields": {
+                        "callback_data": "=cook:{{ $json.rezept_id }}"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "additionalFields": {
+            "appendAttribution": false,
+            "parse_mode": "HTML",
+            "disable_notification": true
+          }
+        },
+        "webhookId": "2e60102f-1b72-49b4-bec2-801d6cb4d761"
+      },
+      {
+        "id": "c90e4b3d-25cd-45c7-a4f6-defcdd2e9c98",
+        "name": "Sticky Note bdaaf495",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          720,
+          384
+        ],
+        "parameters": {
+          "content": "## MHD-Wächter\nJeden Morgen um 8 Uhr:\n• „Iss das zuerst“ für alles, was heute bis übermorgen fällig ist (Button → Rezeptideen)\n• Nachfrage für Abgelaufenes: Verbraucht / Weggeworfen / Noch gut (+3 Tage) – wird im Telegram-Bot direkt in Grocy gebucht\n• Die heute geplanten Mahlzeiten aus dem Wochenplan mit „✅ Gekocht“-Button",
+          "color": 4
+        }
+      }
+    ],
+    "connections": {
+      "Jeden Morgen 8 Uhr": {
+        "main": [
+          [
+            {
+              "node": "Profil laden",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Profil laden": {
+        "main": [
+          [
+            {
+              "node": "Grocy: bald fällig & abgelaufen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Grocy: bald fällig & abgelaufen": {
+        "main": [
+          [
+            {
+              "node": "Grocy-Einheiten laden",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Grocy-Einheiten laden": {
+        "main": [
+          [
+            {
+              "node": "Wochenplan laden",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Wochenplan laden": {
+        "main": [
+          [
+            {
+              "node": "Tagesbericht bauen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Tagesbericht bauen": {
+        "main": [
+          [
+            {
+              "node": "Nachrichtentyp",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Nachrichtentyp": {
+        "main": [
+          [
+            {
+              "node": "Hinweis „Iss das zuerst“",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Abgelaufen nachfragen",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Heutige Mahlzeit senden",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1",
+      "availableInMCP": true,
+      "timezone": "Europe/Berlin"
+    },
+    "staticData": null,
+    "meta": {
+      "aiBuilderAssisted": true,
+      "builderVariant": "mcp"
+    },
+    "nodeGroups": [
+      {
+        "id": "ec6c8cba-c246-4ee4-9a2c-cdf51431631b",
+        "name": "Daten sammeln",
+        "nodeIds": [
+          "2f9cca46-e401-49ef-afd6-ecc9e4dde772",
+          "c144380d-8c04-40e0-b29b-16d13998330c",
+          "e5df6211-fbc3-44d0-8204-bc0e1b2cf5b1",
+          "3edceac8-c354-4d46-9054-7bf6273abd63",
+          "7ca9fc5c-69f9-4660-a899-4500aec9614d"
+        ],
+        "description": "Holt fällige und abgelaufene Produkte aus Grocy und die heute geplanten Mahlzeiten"
+      },
+      {
+        "id": "59eab704-0bb6-4acd-9241-462ce62a039d",
+        "name": "Telegram-Nachrichten",
+        "nodeIds": [
+          "c717ff9c-cbf2-4e83-9c57-a853e9a37c40",
+          "4e7daac8-2c96-4688-acca-b32f9e698b69",
+          "1fe3c656-61ac-4f40-9dd6-2b0a7f9d96fc",
+          "43ed8fa2-1b55-43cb-90bf-0fd3ba3e1e46"
+        ],
+        "description": "Hinweis „Iss das zuerst“, Nachfrage zu Abgelaufenem und die Mahlzeiten des Tages mit Buttons"
+      }
+    ],
+    "pinData": null,
+    "versionId": "75e8de8d-f357-49eb-b341-068c9df2779e",
+    "activeVersionId": null,
+    "versionCounter": 2,
+    "triggerCount": 0,
+    "sourceWorkflowId": null,
+    "tags": [],
+    "shared": [
+      {
+        "updatedAt": "2026-09-27T15:07:50.124Z",
+        "createdAt": "2026-09-27T15:07:50.124Z",
+        "role": "workflow:owner",
+        "workflowId": "Zo6OQr9lp55H9cjS",
+        "projectId": "nzlXKBBRrLp3C73r",
+        "project": {
+          "updatedAt": "2026-09-27T10:46:36.945Z",
+          "createdAt": "2026-09-27T10:43:38.721Z",
+          "id": "nzlXKBBRrLp3C73r",
+          "name": "Julian Krause <cjuliankrause@icloud.com>",
+          "type": "personal",
+          "icon": null,
+          "description": null,
+          "customTelemetryTags": [],
+          "creatorId": "d119e51b-5188-40f3-82ab-3c4e7b4f489e"
+        }
+      }
+    ],
+    "versionMetadata": {
+      "name": "MHD-Wächter mit Grocy",
+      "description": "Created with 11 nodes: Jeden Morgen 8 Uhr, Profil laden, Grocy: bald fällig & abgelaufen, Grocy-Einheiten laden, Wochenplan laden and 6 more"
+    }
+  }
+]

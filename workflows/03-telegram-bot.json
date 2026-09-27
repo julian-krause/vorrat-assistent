@@ -1,0 +1,1874 @@
+[
+  {
+    "updatedAt": "2026-09-27T15:07:02.162Z",
+    "createdAt": "2026-09-27T15:07:02.162Z",
+    "id": "JStsSgy75x6xLQzD",
+    "name": "Vorrat · Telegram-Bot",
+    "description": "Telegram-Bot: Gekocht-Buttons buchen Zutaten in Grocy aus, MHD-Buttons, /rezepte /wochenplan /inventar, KI-Chat mit Grocy-Werkzeugen und Makrozielen.",
+    "active": false,
+    "isArchived": false,
+    "nodes": [
+      {
+        "id": "3525e080-01e1-4b99-b388-f2ce7f7e4973",
+        "name": "Telegram Trigger",
+        "type": "n8n-nodes-base.telegramTrigger",
+        "typeVersion": 1.5,
+        "position": [
+          0,
+          960
+        ],
+        "parameters": {
+          "updates": [
+            "message",
+            "callback_query"
+          ],
+          "additionalFields": {}
+        },
+        "webhookId": "be4e6b03-97fb-4127-be03-2e30655599f6"
+      },
+      {
+        "id": "600406ef-14fc-4cbb-8113-3d480526815d",
+        "name": "Profil laden",
+        "type": "n8n-nodes-base.dataTable",
+        "typeVersion": 1.1,
+        "position": [
+          224,
+          960
+        ],
+        "parameters": {
+          "resource": "row",
+          "operation": "get",
+          "dataTableId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "cT54sdECXIGtpqDT",
+            "cachedResultName": "vorrat_profil"
+          },
+          "filters": {
+            "conditions": [
+              {
+                "keyName": "schluessel",
+                "condition": "eq",
+                "keyValue": "main"
+              }
+            ]
+          },
+          "limit": 1
+        },
+        "executeOnce": true,
+        "alwaysOutputData": true
+      },
+      {
+        "id": "d5e2f788-834d-4bad-beda-cc860e89eae1",
+        "name": "Update auswerten",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          448,
+          960
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "language": "javaScript",
+          "jsCode": "const u = $('Telegram Trigger').first().json;\nconst profil = $input.first().json || {};\nconst cb = u.callback_query;\nconst msg = u.message || (cb && cb.message) || {};\nconst chatId = String((msg.chat && msg.chat.id) || '');\nconst text = String((u.message && u.message.text) || '').trim();\nif (!chatId) return [];\nif (profil.chat_id && String(profil.chat_id) !== chatId) return [];\n\nlet aktion = 'chat';\nlet param = '';\nconst lower = text.toLowerCase();\nconst rest = text.includes(' ') ? text.slice(text.indexOf(' ') + 1).trim() : '';\nif (cb) {\n  const teile = String(cb.data || '').split(':');\n  const art = teile.shift();\n  param = teile.join(':');\n  if (art === 'cook') aktion = 'kochen';\n  else if (art === 'inv') aktion = 'inventar_aktion';\n  else if (art === 'cmd' && param === 'rezepte') aktion = 'rezepte';\n  else aktion = 'hilfe';\n} else if (lower.startsWith('/start')) aktion = 'start';\nelse if (lower.startsWith('/rezepte')) { aktion = 'rezepte'; param = rest; }\nelse if (lower.startsWith('/wochenplan')) { aktion = 'wochenplan'; param = rest; }\nelse if (lower.startsWith('/inventar') || lower.startsWith('/vorrat')) aktion = 'inventar';\nelse if (lower.startsWith('/hilfe') || lower.startsWith('/help')) aktion = 'hilfe';\nelse if (!text) aktion = 'hilfe';\n\nreturn [{ json: { aktion, param, chat_id: chatId, text, callback_id: cb ? String(cb.id) : '' } }];"
+        }
+      },
+      {
+        "id": "9f418d8e-ff58-4670-ad3d-0b9ff5cba75c",
+        "name": "Was ist zu tun?",
+        "type": "n8n-nodes-base.switch",
+        "typeVersion": 3.2,
+        "position": [
+          672,
+          864
+        ],
+        "parameters": {
+          "rules": {
+            "values": [
+              {
+                "renameOutput": true,
+                "outputKey": "Gekocht",
+                "conditions": {
+                  "options": {
+                    "caseSensitive": true,
+                    "leftValue": "",
+                    "typeValidation": "strict"
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{ $json.aktion }}",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      },
+                      "rightValue": "kochen"
+                    }
+                  ],
+                  "combinator": "and"
+                }
+              },
+              {
+                "renameOutput": true,
+                "outputKey": "Vorrat-Button",
+                "conditions": {
+                  "options": {
+                    "caseSensitive": true,
+                    "leftValue": "",
+                    "typeValidation": "strict"
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{ $json.aktion }}",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      },
+                      "rightValue": "inventar_aktion"
+                    }
+                  ],
+                  "combinator": "and"
+                }
+              },
+              {
+                "renameOutput": true,
+                "outputKey": "/start",
+                "conditions": {
+                  "options": {
+                    "caseSensitive": true,
+                    "leftValue": "",
+                    "typeValidation": "strict"
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{ $json.aktion }}",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      },
+                      "rightValue": "start"
+                    }
+                  ],
+                  "combinator": "and"
+                }
+              },
+              {
+                "renameOutput": true,
+                "outputKey": "/rezepte",
+                "conditions": {
+                  "options": {
+                    "caseSensitive": true,
+                    "leftValue": "",
+                    "typeValidation": "strict"
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{ $json.aktion }}",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      },
+                      "rightValue": "rezepte"
+                    }
+                  ],
+                  "combinator": "and"
+                }
+              },
+              {
+                "renameOutput": true,
+                "outputKey": "/wochenplan",
+                "conditions": {
+                  "options": {
+                    "caseSensitive": true,
+                    "leftValue": "",
+                    "typeValidation": "strict"
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{ $json.aktion }}",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      },
+                      "rightValue": "wochenplan"
+                    }
+                  ],
+                  "combinator": "and"
+                }
+              },
+              {
+                "renameOutput": true,
+                "outputKey": "/inventar",
+                "conditions": {
+                  "options": {
+                    "caseSensitive": true,
+                    "leftValue": "",
+                    "typeValidation": "strict"
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{ $json.aktion }}",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      },
+                      "rightValue": "inventar"
+                    }
+                  ],
+                  "combinator": "and"
+                }
+              },
+              {
+                "renameOutput": true,
+                "outputKey": "/hilfe",
+                "conditions": {
+                  "options": {
+                    "caseSensitive": true,
+                    "leftValue": "",
+                    "typeValidation": "strict"
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{ $json.aktion }}",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      },
+                      "rightValue": "hilfe"
+                    }
+                  ],
+                  "combinator": "and"
+                }
+              }
+            ]
+          },
+          "options": {
+            "fallbackOutput": "extra",
+            "renameFallbackOutput": "Freitext → KI"
+          }
+        }
+      },
+      {
+        "id": "24194e1a-9bc5-4fab-a496-0a8212ec271f",
+        "name": "Button bestätigen (Kochen)",
+        "type": "n8n-nodes-base.telegram",
+        "typeVersion": 1.2,
+        "position": [
+          1472,
+          96
+        ],
+        "parameters": {
+          "resource": "callback",
+          "operation": "answerQuery",
+          "queryId": "={{ $json.callback_id }}",
+          "additionalFields": {
+            "text": "👨‍🍳 Wird gebucht…"
+          }
+        },
+        "onError": "continueRegularOutput",
+        "webhookId": "0df58bb4-f2c9-484f-8d89-305622714369"
+      },
+      {
+        "id": "7d5cbce3-9860-4bbb-8175-a9edc31d4256",
+        "name": "Rezept laden",
+        "type": "n8n-nodes-base.dataTable",
+        "typeVersion": 1.1,
+        "position": [
+          2256,
+          96
+        ],
+        "parameters": {
+          "resource": "row",
+          "operation": "get",
+          "dataTableId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "64b9tBoz3sRJsuGW",
+            "cachedResultName": "vorrat_rezepte"
+          },
+          "filters": {
+            "conditions": [
+              {
+                "keyName": "id",
+                "condition": "eq",
+                "keyValue": "={{ $('Update auswerten').first().json.param }}"
+              }
+            ]
+          },
+          "limit": 1
+        },
+        "alwaysOutputData": true
+      },
+      {
+        "id": "57557f0d-6b0c-46d6-acc3-50d035cf0be0",
+        "name": "Grocy-Bestand laden (Kochen)",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          2480,
+          96
+        ],
+        "parameters": {
+          "method": "GET",
+          "url": "={{ $('Profil laden').first().json.grocy_url }}/api/stock",
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpTemplatedCustomAuth",
+          "options": {}
+        },
+        "executeOnce": true,
+        "alwaysOutputData": true
+      },
+      {
+        "id": "d0ee3190-589f-4c3c-bd45-fcca7fdabc08",
+        "name": "Grocy-Einheiten laden",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          2704,
+          96
+        ],
+        "parameters": {
+          "method": "GET",
+          "url": "={{ $('Profil laden').first().json.grocy_url }}/api/objects/quantity_units",
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpTemplatedCustomAuth",
+          "options": {}
+        },
+        "executeOnce": true
+      },
+      {
+        "id": "cc12a66b-f239-494c-9ab6-29a265620062",
+        "name": "Verbrauch berechnen",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          2928,
+          96
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "language": "javaScript",
+          "jsCode": "const ctx = $('Update auswerten').first().json;\nconst rezept = $('Rezept laden').first().json || {};\nconst esc = t => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nif (!rezept.id) return [{ json: { product_id: 0, rezept_id: 0, chat_id: ctx.chat_id, text: 'Dieses Rezept finde ich nicht mehr 🤔' } }];\nif (rezept.status === 'gekocht') return [{ json: { product_id: 0, rezept_id: rezept.id, chat_id: ctx.chat_id, text: '„' + esc(rezept.titel) + '“ ist schon als gekocht gebucht ✅' } }];\n\nconst klein = x => String(x || '').trim().toLowerCase();\nconst quCode = {};\nfor (const i of $('Grocy-Einheiten laden').all()) { const q = i.json; if (q && q.id) quCode[q.id] = klein(q.name) === 'gramm' ? 'g' : klein(q.name) === 'milliliter' ? 'ml' : klein(q.name) === 'stück' ? 'stk' : klein(q.name); }\nconst inv = {};\nfor (const i of $('Grocy-Bestand laden (Kochen)').all()) {\n  const r = i.json;\n  if (r && r.product_id) inv[r.product_id] = { id: Number(r.product_id), name: (r.product || {}).name, menge: Number(r.amount) || 0, einheit: quCode[(r.product || {}).qu_id_stock] || 'stk' };\n}\nlet zutaten = [];\ntry { zutaten = JSON.parse(rezept.zutaten_json || '[]'); } catch (e) { zutaten = []; }\n\nconst gruppen = { g: ['g', 1], kg: ['g', 1000], ml: ['ml', 1], l: ['ml', 1000] };\nconst umrechnen = (menge, von, nach) => {\n  von = String(von || '').toLowerCase(); nach = String(nach || '').toLowerCase();\n  if (von === nach) return menge;\n  const a = gruppen[von], b = gruppen[nach];\n  if (a && b && a[0] === b[0]) return menge * a[1] / b[1];\n  return null;\n};\n\nconst abbuchung = {};\nconst probleme = [];\nfor (const z of zutaten) {\n  const pid = z.product_id != null ? z.product_id : z.inventar_id;\n  if (pid == null) continue;\n  const v = inv[pid];\n  if (!v || v.menge <= 0) { probleme.push(esc(z.name) + ' (nicht mehr im Bestand)'); continue; }\n  const abzug = umrechnen(Number(z.menge) || 0, z.einheit, v.einheit);\n  if (abzug === null) { probleme.push(esc(z.name) + ' (Einheit passt nicht)'); continue; }\n  let menge = Math.min(v.menge, Math.round(abzug * 100) / 100);\n  if (v.einheit === 'stk' && v.menge - menge < 0.25) menge = v.menge;\n  if (menge <= 0) continue;\n  v.menge = Math.round((v.menge - menge) * 100) / 100;\n  abbuchung[v.id] = { product_id: v.id, amount: Math.round(((abbuchung[v.id] ? abbuchung[v.id].amount : 0) + menge) * 100) / 100, name: v.name, rest: v.menge, einheit: v.einheit };\n}\nconst zeilen = Object.values(abbuchung).map(u => '• ' + esc(u.name) + ': −' + u.amount + ' ' + esc(u.einheit) + (u.rest <= 0 ? ' (aufgebraucht)' : ', noch ' + u.rest + ' ' + esc(u.einheit)));\nlet text = '✅ <b>' + esc(rezept.titel) + '</b> als gekocht gebucht (' + (rezept.kcal || 0) + ' kcal · P ' + (rezept.protein_g || 0) + ' g)';\nif (zeilen.length) text += '\\n\\n<b>In Grocy verbraucht</b>\\n' + zeilen.join('\\n');\nif (probleme.length) text += '\\n\\n⚠️ Nicht abgebucht: ' + probleme.join(', ') + '. Schreib mir kurz, was du verbraucht hast.';\n\nconst list = Object.values(abbuchung);\nif (!list.length) return [{ json: { product_id: 0, rezept_id: rezept.id, chat_id: ctx.chat_id, text } }];\nreturn list.map(u => ({ json: { product_id: u.product_id, amount: u.amount, rezept_id: rezept.id, chat_id: ctx.chat_id, text } }));"
+        }
+      },
+      {
+        "id": "476fb503-d029-4a9d-986d-dbd5851e83bb",
+        "name": "Nur echte Abbuchungen",
+        "type": "n8n-nodes-base.filter",
+        "typeVersion": 2.2,
+        "position": [
+          3152,
+          0
+        ],
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose"
+            },
+            "conditions": [
+              {
+                "leftValue": "={{ $json.product_id }}",
+                "operator": {
+                  "type": "number",
+                  "operation": "gt"
+                },
+                "rightValue": 0
+              }
+            ],
+            "combinator": "and"
+          }
+        }
+      },
+      {
+        "id": "e0d448ad-2b50-4b59-9211-e4a73725f953",
+        "name": "In Grocy verbrauchen",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          3376,
+          0
+        ],
+        "parameters": {
+          "method": "POST",
+          "url": "={{ $('Profil laden').first().json.grocy_url }}/api/stock/products/{{ $json.product_id }}/consume",
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpTemplatedCustomAuth",
+          "sendBody": true,
+          "contentType": "json",
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ amount: $json.amount, spoiled: false, transaction_type: \"consume\" }) }}",
+          "options": {}
+        },
+        "onError": "continueRegularOutput"
+      },
+      {
+        "id": "3736cd7e-8657-4aa7-bbdb-1038b5a5649a",
+        "name": "Button bestätigen (Vorrat)",
+        "type": "n8n-nodes-base.telegram",
+        "typeVersion": 1.2,
+        "position": [
+          1472,
+          480
+        ],
+        "parameters": {
+          "resource": "callback",
+          "operation": "answerQuery",
+          "queryId": "={{ $json.callback_id }}",
+          "additionalFields": {
+            "text": "👍 Erledigt"
+          }
+        },
+        "onError": "continueRegularOutput",
+        "webhookId": "ba987559-402b-4484-8089-1a5f793ade30"
+      },
+      {
+        "id": "e3b001be-858d-4a5c-aff6-fe8aa0258e7a",
+        "name": "Produktdetails laden",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          2256,
+          480
+        ],
+        "parameters": {
+          "method": "GET",
+          "url": "={{ $('Profil laden').first().json.grocy_url }}/api/stock/products/{{ $('Update auswerten').first().json.param.split(':')[0] }}",
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpTemplatedCustomAuth",
+          "options": {}
+        }
+      },
+      {
+        "id": "64308dc2-3a63-47a9-bb1d-2dcc0639d84d",
+        "name": "Bestandseinträge laden",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          2480,
+          480
+        ],
+        "parameters": {
+          "method": "GET",
+          "url": "={{ $('Profil laden').first().json.grocy_url }}/api/stock/products/{{ $('Update auswerten').first().json.param.split(':')[0] }}/entries",
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpTemplatedCustomAuth",
+          "options": {}
+        },
+        "executeOnce": true,
+        "alwaysOutputData": true
+      },
+      {
+        "id": "149049d5-d22c-4624-9a6a-35a557fea151",
+        "name": "Vorrat-Aktion vorbereiten",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          2704,
+          480
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "language": "javaScript",
+          "jsCode": "const ctx = $('Update auswerten').first().json;\nconst teile = String(ctx.param).split(':');\nconst pid = teile[0];\nconst aktion = teile[1] || '';\nconst details = $('Produktdetails laden').first().json || {};\nconst entries = $('Bestandseinträge laden').all().map(i => i.json).filter(e => e && e.id);\nconst esc = t => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nconst name = esc((details.product && details.product.name) || 'Produkt');\nconst menge = Number(details.stock_amount) || 0;\nconst heute = DateTime.now().setZone('Europe/Berlin').startOf('day');\nif (menge <= 0) return [{ json: { method: 'NONE', chat_id: ctx.chat_id, text: name + ' ist schon nicht mehr im Bestand 👍' } }];\nif (aktion === 'verbraucht' || aktion === 'weg') {\n  const text = aktion === 'weg' ? '🗑️ ' + name + ' als weggeworfen gebucht. Nächstes Mal schaffen wir das! 💪' : '🍽️ ' + name + ' als verbraucht gebucht.';\n  return [{ json: { method: 'POST', pfad: '/api/stock/products/' + pid + '/consume', body: { amount: menge, spoiled: aktion === 'weg', transaction_type: 'consume' }, chat_id: ctx.chat_id, text } }];\n}\nconst neu = heute.plus({ days: 3 }).toISODate();\nconst text = '👍 ' + name + ' bleibt im Vorrat, neue Erinnerung ab ' + heute.plus({ days: 3 }).setLocale('de').toFormat('ccc dd.LL.') + '.';\nconst faellig = entries.filter(e => String(e.best_before_date || '') < neu);\nif (!faellig.length) return [{ json: { method: 'NONE', chat_id: ctx.chat_id, text } }];\nreturn faellig.map(e => ({ json: { method: 'PUT', pfad: '/api/stock/entry/' + e.id, body: { amount: e.amount, best_before_date: neu, location_id: e.location_id, purchased_date: e.purchased_date, price: e.price, open: e.open }, chat_id: ctx.chat_id, text } }));"
+        }
+      },
+      {
+        "id": "8435c40a-bd86-42de-aaf0-4fa9ceda6d08",
+        "name": "Nur echte Grocy-Anfragen",
+        "type": "n8n-nodes-base.filter",
+        "typeVersion": 2.2,
+        "position": [
+          2928,
+          384
+        ],
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "strict"
+            },
+            "conditions": [
+              {
+                "leftValue": "={{ $json.method }}",
+                "operator": {
+                  "type": "string",
+                  "operation": "notEquals"
+                },
+                "rightValue": "NONE"
+              }
+            ],
+            "combinator": "and"
+          }
+        }
+      },
+      {
+        "id": "d292fe83-ab3d-43dd-8930-81114b6586e0",
+        "name": "Grocy aktualisieren",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          3152,
+          384
+        ],
+        "parameters": {
+          "method": "={{ $json.method }}",
+          "url": "={{ $('Profil laden').first().json.grocy_url }}{{ $json.pfad }}",
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpTemplatedCustomAuth",
+          "sendBody": true,
+          "contentType": "json",
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify($json.body) }}",
+          "options": {}
+        },
+        "onError": "continueRegularOutput"
+      },
+      {
+        "id": "b3e879bb-e932-489b-9ee8-389f9649e598",
+        "name": "Chat-ID speichern",
+        "type": "n8n-nodes-base.dataTable",
+        "typeVersion": 1.1,
+        "position": [
+          1472,
+          672
+        ],
+        "parameters": {
+          "resource": "row",
+          "operation": "update",
+          "dataTableId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "cT54sdECXIGtpqDT",
+            "cachedResultName": "vorrat_profil"
+          },
+          "filters": {
+            "conditions": [
+              {
+                "keyName": "schluessel",
+                "condition": "eq",
+                "keyValue": "main"
+              }
+            ]
+          },
+          "columns": {
+            "mappingMode": "defineBelow",
+            "matchingColumns": [],
+            "value": {
+              "chat_id": "={{ $json.chat_id }}"
+            },
+            "schema": [
+              {
+                "id": "chat_id",
+                "displayName": "chat_id",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "d28e4e07-8186-4f55-8eba-16a28f82c595",
+        "name": "Willkommen senden",
+        "type": "n8n-nodes-base.telegram",
+        "typeVersion": 1.2,
+        "position": [
+          2256,
+          672
+        ],
+        "parameters": {
+          "resource": "message",
+          "operation": "sendMessage",
+          "chatId": "={{ $('Update auswerten').first().json.chat_id }}",
+          "text": "👋 <b>Hallo! Ich bin dein Vorrats- und Ernährungs-Assistent.</b>\n\nSobald ein REWE-eBon in deinem Postfach landet, buche ich alles in Grocy ein, hole Nährwerte von OpenFoodFacts und schätze die Haltbarkeit.\n\n<b>Als Erstes:</b> Schick mir deine Ziele, z.B.\n<i>„Meine Ziele: 2200 kcal, 160 g Protein, 70 g Fett, 220 g Kohlenhydrate, 3 Mahlzeiten, ich esse kein Schwein“</i>\n\n<b>Befehle</b>\n/rezepte – 3 Rezeptideen aus dem Vorrat (z.B. /rezepte vegetarisch)\n/wochenplan – Wochenplan + Einkaufsliste\n/inventar – was ist noch da?\n/hilfe – diese Übersicht\n\nAlles andere kannst du einfach schreiben: „2 Eier gegessen“, „Milch weggeworfen“, „Joghurt hält bis 15.10.“",
+          "additionalFields": {
+            "appendAttribution": false,
+            "parse_mode": "HTML"
+          }
+        },
+        "executeOnce": true,
+        "webhookId": "ba7e0453-6564-4eef-a85f-8a54820613fb"
+      },
+      {
+        "id": "c87a67a8-7f47-4823-8eb7-82de25d0ee69",
+        "name": "Rezepte: kurz warten",
+        "type": "n8n-nodes-base.telegram",
+        "typeVersion": 1.2,
+        "position": [
+          1472,
+          864
+        ],
+        "parameters": {
+          "resource": "message",
+          "operation": "sendMessage",
+          "chatId": "={{ $json.chat_id }}",
+          "text": "⏳ Ich schaue in deinen Vorrat und überlege mir 3 gesunde Rezepte…",
+          "additionalFields": {
+            "appendAttribution": false
+          }
+        },
+        "webhookId": "a0e40489-1c35-4d6b-a579-23f38adcd59f"
+      },
+      {
+        "id": "b4b3e97d-1dc4-481c-a3de-58fb1221ac09",
+        "name": "Planer: Rezepte",
+        "type": "n8n-nodes-base.executeWorkflow",
+        "typeVersion": 1.3,
+        "position": [
+          2256,
+          864
+        ],
+        "parameters": {
+          "mode": "once",
+          "source": "database",
+          "workflowId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "2dBOwb9KJDnwi1Id",
+            "cachedResultName": "Vorrat · Planer (Rezepte & Wochenplan)"
+          },
+          "workflowInputs": {
+            "mappingMode": "defineBelow",
+            "value": {
+              "modus": "rezepte",
+              "hinweis": "={{ $('Update auswerten').first().json.param }}"
+            },
+            "matchingColumns": [],
+            "schema": [
+              {
+                "id": "modus",
+                "displayName": "modus",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
+              },
+              {
+                "id": "hinweis",
+                "displayName": "hinweis",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
+              }
+            ],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": true
+          },
+          "options": {
+            "waitForSubWorkflow": false
+          }
+        }
+      },
+      {
+        "id": "e40cbea4-530a-42cf-af6b-bcb4d1c08e52",
+        "name": "Wochenplan: kurz warten",
+        "type": "n8n-nodes-base.telegram",
+        "typeVersion": 1.2,
+        "position": [
+          1472,
+          1056
+        ],
+        "parameters": {
+          "resource": "message",
+          "operation": "sendMessage",
+          "chatId": "={{ $json.chat_id }}",
+          "text": "⏳ Ich plane deine Woche passend zu deinen Zielen. Das dauert 1–2 Minuten…",
+          "additionalFields": {
+            "appendAttribution": false
+          }
+        },
+        "webhookId": "8aa87f05-076f-4201-a505-bcef071c251f"
+      },
+      {
+        "id": "48c8251d-a5bd-44ff-bb43-de7ec0e13213",
+        "name": "Planer: Wochenplan",
+        "type": "n8n-nodes-base.executeWorkflow",
+        "typeVersion": 1.3,
+        "position": [
+          2256,
+          1056
+        ],
+        "parameters": {
+          "mode": "once",
+          "source": "database",
+          "workflowId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "2dBOwb9KJDnwi1Id",
+            "cachedResultName": "Vorrat · Planer (Rezepte & Wochenplan)"
+          },
+          "workflowInputs": {
+            "mappingMode": "defineBelow",
+            "value": {
+              "modus": "wochenplan",
+              "hinweis": "={{ $('Update auswerten').first().json.param }}"
+            },
+            "matchingColumns": [],
+            "schema": [
+              {
+                "id": "modus",
+                "displayName": "modus",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
+              },
+              {
+                "id": "hinweis",
+                "displayName": "hinweis",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
+              }
+            ],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": true
+          },
+          "options": {
+            "waitForSubWorkflow": false
+          }
+        }
+      },
+      {
+        "id": "776097b7-a40d-4007-a226-5bcda7cfd3f9",
+        "name": "Grocy-Bestand laden (Liste)",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          1472,
+          1248
+        ],
+        "parameters": {
+          "method": "GET",
+          "url": "={{ $('Profil laden').first().json.grocy_url }}/api/stock",
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpTemplatedCustomAuth",
+          "options": {}
+        },
+        "alwaysOutputData": true
+      },
+      {
+        "id": "63d22d38-8aea-449d-9913-c9caf2dacb66",
+        "name": "Grocy-Lagerorte laden",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          2256,
+          1248
+        ],
+        "parameters": {
+          "method": "GET",
+          "url": "={{ $('Profil laden').first().json.grocy_url }}/api/objects/locations",
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpTemplatedCustomAuth",
+          "options": {}
+        },
+        "executeOnce": true
+      },
+      {
+        "id": "076752a6-c0a6-46b2-9d6e-f7c2d4c05d3e",
+        "name": "Grocy-Einheiten laden (Liste)",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          2480,
+          1248
+        ],
+        "parameters": {
+          "method": "GET",
+          "url": "={{ $('Profil laden').first().json.grocy_url }}/api/objects/quantity_units",
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpTemplatedCustomAuth",
+          "options": {}
+        },
+        "executeOnce": true
+      },
+      {
+        "id": "aac47abe-d777-40a5-869e-4cfaa632804a",
+        "name": "Vorrat formatieren",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          2704,
+          1248
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "language": "javaScript",
+          "jsCode": "const ctx = $('Update auswerten').first().json;\nconst zone = 'Europe/Berlin';\nconst heute = DateTime.now().setZone(zone).startOf('day');\nconst esc = t => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nconst orteMap = {};\nfor (const i of $('Grocy-Lagerorte laden').all()) if (i.json && i.json.id) orteMap[i.json.id] = i.json.name;\nconst qu = {};\nfor (const i of $('Grocy-Einheiten laden (Liste)').all()) if (i.json && i.json.id) qu[i.json.id] = i.json.name;\nconst rows = $('Grocy-Bestand laden (Liste)').all().map(i => i.json).filter(r => r && r.product_id && Number(r.amount) > 0);\nif (!rows.length) return [{ json: { chat_id: ctx.chat_id, text: '📦 Dein Grocy-Bestand ist leer. Sobald ein REWE-eBon kommt, fülle ich ihn auf.' } }];\nconst orte = {};\nfor (const r of rows) {\n  const p = r.product || {};\n  const bbd = String(r.best_before_date || '');\n  r.tage = bbd && !bbd.startsWith('2999') ? Math.round(DateTime.fromISO(bbd.slice(0, 10), { zone }).diff(heute, 'days').days) : 9999;\n  const ort = orteMap[p.location_id] || 'Sonstiges';\n  (orte[ort] = orte[ort] || []).push(r);\n}\nconst badge = t => t < 0 ? '🔴 abgelaufen' : t === 0 ? '🔴 heute' : t <= 2 ? '🟠 ' + t + ' T.' : t <= 6 ? '🟡 ' + t + ' T.' : t >= 9999 ? '' : '🟢 ' + t + ' T.';\nlet text = '📦 <b>Dein Vorrat in Grocy</b> (' + rows.length + ' Produkte)\\n';\nfor (const ort of Object.keys(orte).sort()) {\n  text += '\\n<b>' + esc(ort) + '</b>\\n' + orte[ort].sort((a, b) => a.tage - b.tage).map(r => '• ' + esc((r.product || {}).name) + ' – ' + (Math.round(Number(r.amount) * 10) / 10) + ' ' + esc(qu[(r.product || {}).qu_id_stock] || '') + ' ' + badge(r.tage)).join('\\n') + '\\n';\n}\nreturn [{ json: { chat_id: ctx.chat_id, text: text.slice(0, 4000) } }];"
+        }
+      },
+      {
+        "id": "937abee8-ecb4-4722-8de3-6fddf5ad095d",
+        "name": "Vorrat senden",
+        "type": "n8n-nodes-base.telegram",
+        "typeVersion": 1.2,
+        "position": [
+          2928,
+          1248
+        ],
+        "parameters": {
+          "resource": "message",
+          "operation": "sendMessage",
+          "chatId": "={{ $json.chat_id }}",
+          "text": "={{ $json.text }}",
+          "additionalFields": {
+            "appendAttribution": false,
+            "parse_mode": "HTML"
+          }
+        },
+        "webhookId": "65b115df-2fa3-4043-b9d7-5fe937308d99"
+      },
+      {
+        "id": "db1d5fea-ad22-4739-adf0-f19734ab7358",
+        "name": "Hilfe senden",
+        "type": "n8n-nodes-base.telegram",
+        "typeVersion": 1.2,
+        "position": [
+          1472,
+          1440
+        ],
+        "parameters": {
+          "resource": "message",
+          "operation": "sendMessage",
+          "chatId": "={{ $json.chat_id }}",
+          "text": "<b>So nutzt du mich</b>\n/rezepte – 3 Rezeptideen aus dem Vorrat (z.B. /rezepte schnell, vegetarisch)\n/wochenplan – Wochenplan passend zu deinen Makros + Einkaufsliste\n/inventar – was ist noch da und wie lange hält es?\n\nEinfach schreiben geht auch:\n• „Meine Ziele: 2000 kcal, 150 g Protein, 65 g Fett, 200 g KH“\n• „Hab 2 Eier und 100 g Käse gegessen“\n• „Die Milch hab ich weggeworfen“\n• „Der Joghurt hält noch bis 15.10.“\n• „Hab noch 1 kg Reis gekauft“ (wenn das Produkt in Grocy existiert)",
+          "additionalFields": {
+            "appendAttribution": false,
+            "parse_mode": "HTML"
+          }
+        },
+        "webhookId": "e244c4d9-4ef0-4ca8-9e3b-de28559b352a"
+      },
+      {
+        "id": "1cfae810-915e-4928-9ade-94d3fe097abb",
+        "name": "Vorrats-Assistent",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "typeVersion": 3.1,
+        "position": [
+          1408,
+          1744
+        ],
+        "parameters": {
+          "promptType": "define",
+          "text": "={{ $('Update auswerten').first().json.text }}",
+          "options": {
+            "systemMessage": "=Du bist ein freundlicher deutscher Vorrats- und Ernährungsassistent in Telegram. Der Vorrat wird in Grocy geführt. Heute ist {{ $now.setZone(\"Europe/Berlin\").toFormat(\"cccc, dd.LL.yyyy\") }}.\n\nWerkzeuge:\n- grocy_bestand: aktuellen Bestand abrufen. Rufe es IMMER zuerst auf, um die richtige product_id und Menge zu kennen.\n- grocy_verbrauchen: gegessen/verbraucht (spoiled false) oder weggeworfen (spoiled true) ausbuchen. Menge in die Lagereinheit des Produkts umrechnen und nie mehr als vorhanden.\n- grocy_einbuchen: Einkauf eines existierenden Produkts einbuchen (vorher mit grocy_produkt_suchen die id finden, MHD realistisch schätzen). Gibt es das Produkt noch nicht, bitte den Nutzer, es in Grocy per Barcode zu scannen.\n- grocy_eintraege + grocy_mhd_aendern: MHD korrigieren, z.B. „Joghurt hält bis 15.10.“.\n- profil_lesen und ziele_speichern: Ernährungsziele verwalten. Nennt der Nutzer nur kcal, schlage gesunde Makros vor (Protein ca. 1,6-2 g pro kg Körpergewicht bzw. ca. 30 Prozent, Fett 25-30 Prozent, Rest Kohlenhydrate) und speichere sie.\n\nRegeln: Wenn unklar ist, welches Produkt gemeint ist, frag nach. Antworte kurz auf Deutsch, bestätige konkret was du gebucht hast und nutze passende Emojis. Für Rezeptideen verweise auf /rezepte, für die Wochenplanung auf /wochenplan. Keine Markdown-Tabellen.",
+            "maxIterations": 12,
+            "enableStreaming": false
+          }
+        }
+      },
+      {
+        "id": "240fe722-0140-43f3-b539-c78e8d925726",
+        "name": "MiniMax Chat-Modell",
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "typeVersion": 1.3,
+        "position": [
+          896,
+          1968
+        ],
+        "parameters": {
+          "model": {
+            "__rl": true,
+            "mode": "id",
+            "value": "MiniMax-M2"
+          },
+          "responsesApiEnabled": false,
+          "options": {
+            "baseURL": "https://api.minimax.io/v1",
+            "temperature": 0.3,
+            "timeout": 120000
+          }
+        }
+      },
+      {
+        "id": "6c7f17ef-5c48-4020-9585-14acb2b29109",
+        "name": "Chat-Gedächtnis",
+        "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+        "typeVersion": 1.4,
+        "position": [
+          1024,
+          1968
+        ],
+        "parameters": {
+          "sessionIdType": "customKey",
+          "sessionKey": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+          "contextWindowLength": 10
+        }
+      },
+      {
+        "id": "979174d7-7067-42a8-b25c-254fcff5229b",
+        "name": "grocy_bestand",
+        "type": "n8n-nodes-base.httpRequestTool",
+        "typeVersion": 4.2,
+        "position": [
+          1152,
+          1968
+        ],
+        "parameters": {
+          "toolDescription": "Liest den kompletten aktuellen Grocy-Bestand: product_id, amount (in der Lagereinheit des Produkts), best_before_date (frühestes MHD) und Produktname.",
+          "method": "GET",
+          "url": "={{ $('Profil laden').first().json.grocy_url }}/api/stock",
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpTemplatedCustomAuth",
+          "optimizeResponse": true,
+          "responseType": "json",
+          "fieldsToInclude": "selected",
+          "fields": "product_id,amount,best_before_date,product.name,product.qu_id_stock",
+          "options": {}
+        }
+      },
+      {
+        "id": "5673cd5b-49bb-4509-9f2b-6d0153e553a0",
+        "name": "grocy_verbrauchen",
+        "type": "n8n-nodes-base.httpRequestTool",
+        "typeVersion": 4.2,
+        "position": [
+          1280,
+          1968
+        ],
+        "parameters": {
+          "toolDescription": "Bucht eine Menge eines Produkts als verbraucht (gegessen) oder mit spoiled=true als weggeworfen aus.",
+          "method": "POST",
+          "url": "={{ $('Profil laden').first().json.grocy_url }}/api/stock/products/{{ $fromAI('product_id', 'Grocy product_id', 'number') }}/consume",
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpTemplatedCustomAuth",
+          "sendBody": true,
+          "contentType": "json",
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ amount: $fromAI(\"amount\", \"Menge in der Lagereinheit des Produkts\", \"number\"), spoiled: $fromAI(\"spoiled\", \"true wenn weggeworfen, sonst false\", \"boolean\"), transaction_type: \"consume\" }) }}",
+          "options": {}
+        }
+      },
+      {
+        "id": "b9b94679-9e42-4cd6-9d36-acdb06999ad6",
+        "name": "grocy_einbuchen",
+        "type": "n8n-nodes-base.httpRequestTool",
+        "typeVersion": 4.2,
+        "position": [
+          1408,
+          1968
+        ],
+        "parameters": {
+          "toolDescription": "Bucht einen Einkauf eines BEREITS in Grocy existierenden Produkts ein.",
+          "method": "POST",
+          "url": "={{ $('Profil laden').first().json.grocy_url }}/api/stock/products/{{ $fromAI('product_id', 'Grocy product_id', 'number') }}/add",
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpTemplatedCustomAuth",
+          "sendBody": true,
+          "contentType": "json",
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ amount: $fromAI(\"amount\", \"Menge in der Lagereinheit\", \"number\"), best_before_date: $fromAI(\"best_before_date\", \"geschätztes MHD YYYY-MM-DD\", \"string\"), transaction_type: \"purchase\" }) }}",
+          "options": {}
+        }
+      },
+      {
+        "id": "aa392e91-945d-432d-a17c-fe402126a14c",
+        "name": "grocy_produkt_suchen",
+        "type": "n8n-nodes-base.httpRequestTool",
+        "typeVersion": 4.2,
+        "position": [
+          1536,
+          1968
+        ],
+        "parameters": {
+          "toolDescription": "Sucht Produkte in Grocy nach Namen (auch wenn gerade nicht im Bestand).",
+          "method": "GET",
+          "url": "={{ $('Profil laden').first().json.grocy_url }}/api/objects/products?query[]=name~{{ encodeURIComponent($fromAI('suchbegriff', 'Teil des Produktnamens', 'string')) }}",
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpTemplatedCustomAuth",
+          "optimizeResponse": true,
+          "responseType": "json",
+          "fieldsToInclude": "selected",
+          "fields": "id,name,qu_id_stock",
+          "options": {}
+        }
+      },
+      {
+        "id": "28ae1c1d-30aa-4ab3-9bac-0d245827c834",
+        "name": "grocy_eintraege",
+        "type": "n8n-nodes-base.httpRequestTool",
+        "typeVersion": 4.2,
+        "position": [
+          1664,
+          1968
+        ],
+        "parameters": {
+          "toolDescription": "Listet die einzelnen Bestandseinträge eines Produkts (id, amount, best_before_date, location_id, purchased_date) – nötig, um ein MHD zu ändern.",
+          "method": "GET",
+          "url": "={{ $('Profil laden').first().json.grocy_url }}/api/stock/products/{{ $fromAI('product_id', 'Grocy product_id', 'number') }}/entries",
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpTemplatedCustomAuth",
+          "options": {}
+        }
+      },
+      {
+        "id": "f6de2841-1a44-4cc0-aaa5-ce037757e384",
+        "name": "grocy_mhd_aendern",
+        "type": "n8n-nodes-base.httpRequestTool",
+        "typeVersion": 4.2,
+        "position": [
+          1792,
+          1968
+        ],
+        "parameters": {
+          "toolDescription": "Ändert das MHD eines Bestandseintrags. Werte für amount, location_id und purchased_date aus grocy_eintraege übernehmen.",
+          "method": "PUT",
+          "url": "={{ $('Profil laden').first().json.grocy_url }}/api/stock/entry/{{ $fromAI('entry_id', 'id des Bestandseintrags', 'number') }}",
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpTemplatedCustomAuth",
+          "sendBody": true,
+          "contentType": "json",
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ amount: $fromAI(\"amount\", \"Menge des Eintrags (unverändert)\", \"number\"), best_before_date: $fromAI(\"best_before_date\", \"neues MHD YYYY-MM-DD\", \"string\"), location_id: $fromAI(\"location_id\", \"location_id des Eintrags\", \"number\"), purchased_date: $fromAI(\"purchased_date\", \"purchased_date des Eintrags\", \"string\") }) }}",
+          "options": {}
+        }
+      },
+      {
+        "id": "1ce279db-81ed-4cd2-97b6-a68f2d6bbafb",
+        "name": "profil_lesen",
+        "type": "n8n-nodes-base.dataTableTool",
+        "typeVersion": 1.1,
+        "position": [
+          1920,
+          1968
+        ],
+        "parameters": {
+          "descriptionType": "manual",
+          "toolDescription": "Liest die aktuellen Ernährungsziele (kcal, protein_g, fett_g, kh_g, mahlzeiten_pro_tag, vorlieben).",
+          "resource": "row",
+          "operation": "get",
+          "dataTableId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "cT54sdECXIGtpqDT",
+            "cachedResultName": "vorrat_profil"
+          },
+          "filters": {
+            "conditions": [
+              {
+                "keyName": "schluessel",
+                "condition": "eq",
+                "keyValue": "main"
+              }
+            ]
+          },
+          "limit": 1
+        }
+      },
+      {
+        "id": "dc80d82d-efc1-4a8d-bb2f-a06d256202a8",
+        "name": "ziele_speichern",
+        "type": "n8n-nodes-base.dataTableTool",
+        "typeVersion": 1.1,
+        "position": [
+          2048,
+          1968
+        ],
+        "parameters": {
+          "descriptionType": "manual",
+          "toolDescription": "Speichert die Ernährungsziele. Immer ALLE Felder übergeben, unveränderte Werte vorher mit profil_lesen holen.",
+          "resource": "row",
+          "operation": "update",
+          "dataTableId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "cT54sdECXIGtpqDT",
+            "cachedResultName": "vorrat_profil"
+          },
+          "filters": {
+            "conditions": [
+              {
+                "keyName": "schluessel",
+                "condition": "eq",
+                "keyValue": "main"
+              }
+            ]
+          },
+          "columns": {
+            "mappingMode": "defineBelow",
+            "matchingColumns": [],
+            "value": {
+              "kcal": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('kcal', 'Kalorienziel pro Tag', 'number') }}",
+              "protein_g": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('protein_g', 'Protein in Gramm pro Tag', 'number') }}",
+              "fett_g": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fett_g', 'Fett in Gramm pro Tag', 'number') }}",
+              "kh_g": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('kh_g', 'Kohlenhydrate in Gramm pro Tag', 'number') }}",
+              "mahlzeiten_pro_tag": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('mahlzeiten_pro_tag', 'Anzahl Mahlzeiten pro Tag (1 bis 5)', 'number') }}",
+              "vorlieben": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('vorlieben', 'Vorlieben, Unverträglichkeiten, No-Gos als kurzer Text') }}"
+            },
+            "schema": [
+              {
+                "id": "kcal",
+                "displayName": "kcal",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "number",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "protein_g",
+                "displayName": "protein_g",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "number",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "fett_g",
+                "displayName": "fett_g",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "number",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "kh_g",
+                "displayName": "kh_g",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "number",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "mahlzeiten_pro_tag",
+                "displayName": "mahlzeiten_pro_tag",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "number",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "vorlieben",
+                "displayName": "vorlieben",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "59e8b4a1-41d8-49e1-ac02-8ff28fa27f8f",
+        "name": "Antwort säubern",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          2256,
+          1744
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "language": "javaScript",
+          "jsCode": "let s = String($input.first().json.output || '');\nif (s.includes('</think>')) s = s.split('</think>').pop();\ns = s.trim().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\ns = s.replace(/\\*\\*(.+?)\\*\\*/g, '<b>$1</b>').replace(/^#+\\s*(.+)$/gm, '<b>$1</b>');\nreturn [{ json: { chat_id: $('Update auswerten').first().json.chat_id, text: (s || 'Hm, dazu fällt mir gerade nichts ein 🤔').slice(0, 4000) } }];"
+        }
+      },
+      {
+        "id": "d4584be7-8e46-4028-955c-58b09032bd47",
+        "name": "Antwort senden",
+        "type": "n8n-nodes-base.telegram",
+        "typeVersion": 1.2,
+        "position": [
+          2480,
+          1744
+        ],
+        "parameters": {
+          "resource": "message",
+          "operation": "sendMessage",
+          "chatId": "={{ $json.chat_id }}",
+          "text": "={{ $json.text }}",
+          "additionalFields": {
+            "appendAttribution": false,
+            "parse_mode": "HTML"
+          }
+        },
+        "webhookId": "3e504e38-fd12-47b4-8d31-4af0ab0a9703"
+      },
+      {
+        "id": "7e22727f-47c5-45fc-9afe-e538aac932e2",
+        "name": "Rezept als gekocht markieren",
+        "type": "n8n-nodes-base.dataTable",
+        "typeVersion": 1.1,
+        "position": [
+          3152,
+          192
+        ],
+        "parameters": {
+          "resource": "row",
+          "operation": "update",
+          "dataTableId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "64b9tBoz3sRJsuGW",
+            "cachedResultName": "vorrat_rezepte"
+          },
+          "filters": {
+            "conditions": [
+              {
+                "keyName": "id",
+                "condition": "eq",
+                "keyValue": "={{ $('Verbrauch berechnen').first().json.rezept_id }}"
+              }
+            ]
+          },
+          "columns": {
+            "mappingMode": "defineBelow",
+            "matchingColumns": [],
+            "value": {
+              "status": "gekocht"
+            },
+            "schema": [
+              {
+                "id": "status",
+                "displayName": "status",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              }
+            ]
+          }
+        },
+        "executeOnce": true,
+        "alwaysOutputData": true
+      },
+      {
+        "id": "06e1c3a8-d9b9-4309-bf8c-54326a9ce808",
+        "name": "Gekocht melden",
+        "type": "n8n-nodes-base.telegram",
+        "typeVersion": 1.2,
+        "position": [
+          3376,
+          192
+        ],
+        "parameters": {
+          "resource": "message",
+          "operation": "sendMessage",
+          "chatId": "={{ $('Verbrauch berechnen').first().json.chat_id }}",
+          "text": "={{ $('Verbrauch berechnen').first().json.text }}",
+          "additionalFields": {
+            "appendAttribution": false,
+            "parse_mode": "HTML"
+          }
+        },
+        "executeOnce": true,
+        "webhookId": "2b64db8d-10c6-4d4a-9687-ec165d218124"
+      },
+      {
+        "id": "f80e8b48-ac5b-4a81-9436-833679659fc2",
+        "name": "Vorrat-Aktion melden",
+        "type": "n8n-nodes-base.telegram",
+        "typeVersion": 1.2,
+        "position": [
+          2928,
+          768
+        ],
+        "parameters": {
+          "resource": "message",
+          "operation": "sendMessage",
+          "chatId": "={{ $('Vorrat-Aktion vorbereiten').first().json.chat_id }}",
+          "text": "={{ $('Vorrat-Aktion vorbereiten').first().json.text }}",
+          "additionalFields": {
+            "appendAttribution": false,
+            "parse_mode": "HTML"
+          }
+        },
+        "executeOnce": true,
+        "webhookId": "683bab12-ed36-4b40-97b8-36a26d3cb9db"
+      },
+      {
+        "id": "b5e03ebf-bf51-49c6-bf4e-a55faab8cf5a",
+        "name": "Sticky Note b9e642f3",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          1616,
+          1952
+        ],
+        "parameters": {
+          "content": "## Telegram-Bot\nButtons: `cook:<rezept-id>` bucht ein Rezept in Grocy ab, `inv:<product-id>:verbraucht|weg|plus3` kommt vom MHD-Wächter.\nBefehle: /start /rezepte /wochenplan /inventar /hilfe\nFreitext → KI-Agent mit Grocy-Werkzeugen und Zielen.\n\n**Sicherheit:** Die erste Chat-ID, die /start sendet, wird gespeichert – andere Chats werden ignoriert.",
+          "color": 4
+        }
+      }
+    ],
+    "connections": {
+      "Telegram Trigger": {
+        "main": [
+          [
+            {
+              "node": "Profil laden",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Profil laden": {
+        "main": [
+          [
+            {
+              "node": "Update auswerten",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Update auswerten": {
+        "main": [
+          [
+            {
+              "node": "Was ist zu tun?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Was ist zu tun?": {
+        "main": [
+          [
+            {
+              "node": "Button bestätigen (Kochen)",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Button bestätigen (Vorrat)",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Chat-ID speichern",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Rezepte: kurz warten",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Wochenplan: kurz warten",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Grocy-Bestand laden (Liste)",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Hilfe senden",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Vorrats-Assistent",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Button bestätigen (Kochen)": {
+        "main": [
+          [
+            {
+              "node": "Rezept laden",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Rezept laden": {
+        "main": [
+          [
+            {
+              "node": "Grocy-Bestand laden (Kochen)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Grocy-Bestand laden (Kochen)": {
+        "main": [
+          [
+            {
+              "node": "Grocy-Einheiten laden",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Grocy-Einheiten laden": {
+        "main": [
+          [
+            {
+              "node": "Verbrauch berechnen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Verbrauch berechnen": {
+        "main": [
+          [
+            {
+              "node": "Nur echte Abbuchungen",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Rezept als gekocht markieren",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Nur echte Abbuchungen": {
+        "main": [
+          [
+            {
+              "node": "In Grocy verbrauchen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Button bestätigen (Vorrat)": {
+        "main": [
+          [
+            {
+              "node": "Produktdetails laden",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Produktdetails laden": {
+        "main": [
+          [
+            {
+              "node": "Bestandseinträge laden",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Bestandseinträge laden": {
+        "main": [
+          [
+            {
+              "node": "Vorrat-Aktion vorbereiten",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Vorrat-Aktion vorbereiten": {
+        "main": [
+          [
+            {
+              "node": "Nur echte Grocy-Anfragen",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Vorrat-Aktion melden",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Nur echte Grocy-Anfragen": {
+        "main": [
+          [
+            {
+              "node": "Grocy aktualisieren",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Chat-ID speichern": {
+        "main": [
+          [
+            {
+              "node": "Willkommen senden",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Rezepte: kurz warten": {
+        "main": [
+          [
+            {
+              "node": "Planer: Rezepte",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Wochenplan: kurz warten": {
+        "main": [
+          [
+            {
+              "node": "Planer: Wochenplan",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Grocy-Bestand laden (Liste)": {
+        "main": [
+          [
+            {
+              "node": "Grocy-Lagerorte laden",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Grocy-Lagerorte laden": {
+        "main": [
+          [
+            {
+              "node": "Grocy-Einheiten laden (Liste)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Grocy-Einheiten laden (Liste)": {
+        "main": [
+          [
+            {
+              "node": "Vorrat formatieren",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Vorrat formatieren": {
+        "main": [
+          [
+            {
+              "node": "Vorrat senden",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Vorrats-Assistent": {
+        "main": [
+          [
+            {
+              "node": "Antwort säubern",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "MiniMax Chat-Modell": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "Vorrats-Assistent",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Chat-Gedächtnis": {
+        "ai_memory": [
+          [
+            {
+              "node": "Vorrats-Assistent",
+              "type": "ai_memory",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "grocy_bestand": {
+        "ai_tool": [
+          [
+            {
+              "node": "Vorrats-Assistent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "grocy_verbrauchen": {
+        "ai_tool": [
+          [
+            {
+              "node": "Vorrats-Assistent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "grocy_einbuchen": {
+        "ai_tool": [
+          [
+            {
+              "node": "Vorrats-Assistent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "grocy_produkt_suchen": {
+        "ai_tool": [
+          [
+            {
+              "node": "Vorrats-Assistent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "grocy_eintraege": {
+        "ai_tool": [
+          [
+            {
+              "node": "Vorrats-Assistent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "grocy_mhd_aendern": {
+        "ai_tool": [
+          [
+            {
+              "node": "Vorrats-Assistent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "profil_lesen": {
+        "ai_tool": [
+          [
+            {
+              "node": "Vorrats-Assistent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "ziele_speichern": {
+        "ai_tool": [
+          [
+            {
+              "node": "Vorrats-Assistent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Antwort säubern": {
+        "main": [
+          [
+            {
+              "node": "Antwort senden",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Rezept als gekocht markieren": {
+        "main": [
+          [
+            {
+              "node": "Gekocht melden",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1",
+      "availableInMCP": true
+    },
+    "staticData": null,
+    "meta": {
+      "aiBuilderAssisted": true,
+      "builderVariant": "mcp"
+    },
+    "nodeGroups": [
+      {
+        "id": "86c9d75e-cf9d-4fa1-bdf0-abe355f87e78",
+        "name": "Gekocht buchen",
+        "nodeIds": [
+          "24194e1a-9bc5-4fab-a496-0a8212ec271f",
+          "7d5cbce3-9860-4bbb-8175-a9edc31d4256",
+          "57557f0d-6b0c-46d6-acc3-50d035cf0be0",
+          "d0ee3190-589f-4c3c-bd45-fcca7fdabc08",
+          "cc12a66b-f239-494c-9ab6-29a265620062",
+          "476fb503-d029-4a9d-986d-dbd5851e83bb",
+          "e0d448ad-2b50-4b59-9211-e4a73725f953",
+          "7e22727f-47c5-45fc-9afe-e538aac932e2",
+          "06e1c3a8-d9b9-4309-bf8c-54326a9ce808"
+        ],
+        "description": "Bucht die Zutaten des Rezepts in Grocy als verbraucht (mit Einheiten-Umrechnung) und markiert es als gekocht"
+      },
+      {
+        "id": "c9e96c16-a50a-4fad-a53f-c98ee4a1a758",
+        "name": "Ablauf-Buttons",
+        "nodeIds": [
+          "3736cd7e-8657-4aa7-bbdb-1038b5a5649a",
+          "e3b001be-858d-4a5c-aff6-fe8aa0258e7a",
+          "64308dc2-3a63-47a9-bb1d-2dcc0639d84d",
+          "149049d5-d22c-4624-9a6a-35a557fea151",
+          "8435c40a-bd86-42de-aaf0-4fa9ceda6d08",
+          "d292fe83-ab3d-43dd-8930-81114b6586e0",
+          "f80e8b48-ac5b-4a81-9436-833679659fc2"
+        ],
+        "description": "Verarbeitet Verbraucht / Weggeworfen / Noch gut (+3 Tage) aus dem MHD-Wächter direkt in Grocy"
+      },
+      {
+        "id": "56fcb4a6-51c3-42ff-8ea0-986694722082",
+        "name": "Start",
+        "nodeIds": [
+          "b3e879bb-e932-489b-9ee8-389f9649e598",
+          "d28e4e07-8186-4f55-8eba-16a28f82c595"
+        ],
+        "description": "Speichert deine Chat-ID und schickt die Einführung"
+      },
+      {
+        "id": "ff4a944d-ea7b-47ba-ad97-9701a72f4302",
+        "name": "Vorrat anzeigen",
+        "nodeIds": [
+          "776097b7-a40d-4007-a226-5bcda7cfd3f9",
+          "63d22d38-8aea-449d-9913-c9caf2dacb66",
+          "076752a6-c0a6-46b2-9d6e-f7c2d4c05d3e",
+          "aac47abe-d777-40a5-869e-4cfaa632804a",
+          "937abee8-ecb4-4722-8de3-6fddf5ad095d"
+        ],
+        "description": "Listet den Grocy-Bestand nach Lagerort mit Ampel für die Haltbarkeit"
+      },
+      {
+        "id": "27006275-cab3-40f7-b753-60e1ddb0405e",
+        "name": "KI-Chat",
+        "nodeIds": [
+          "1cfae810-915e-4928-9ade-94d3fe097abb",
+          "240fe722-0140-43f3-b539-c78e8d925726",
+          "6c7f17ef-5c48-4020-9585-14acb2b29109",
+          "979174d7-7067-42a8-b25c-254fcff5229b",
+          "5673cd5b-49bb-4509-9f2b-6d0153e553a0",
+          "b9b94679-9e42-4cd6-9d36-acdb06999ad6",
+          "aa392e91-945d-432d-a17c-fe402126a14c",
+          "28ae1c1d-30aa-4ab3-9bac-0d245827c834",
+          "f6de2841-1a44-4cc0-aaa5-ce037757e384",
+          "1ce279db-81ed-4cd2-97b6-a68f2d6bbafb",
+          "dc80d82d-efc1-4a8d-bb2f-a06d256202a8",
+          "59e8b4a1-41d8-49e1-ac02-8ff28fa27f8f",
+          "d4584be7-8e46-4028-955c-58b09032bd47"
+        ],
+        "description": "Freitext: Verbrauch, Korrekturen, Ziele setzen, Fragen zum Vorrat – über die Grocy-API"
+      }
+    ],
+    "pinData": null,
+    "versionId": "e4f347cb-abc4-40d8-bb40-204cd8ea5a25",
+    "activeVersionId": null,
+    "versionCounter": 1,
+    "triggerCount": 0,
+    "sourceWorkflowId": null,
+    "tags": [],
+    "shared": [
+      {
+        "updatedAt": "2026-09-27T15:07:02.164Z",
+        "createdAt": "2026-09-27T15:07:02.164Z",
+        "role": "workflow:owner",
+        "workflowId": "JStsSgy75x6xLQzD",
+        "projectId": "nzlXKBBRrLp3C73r",
+        "project": {
+          "updatedAt": "2026-09-27T10:46:36.945Z",
+          "createdAt": "2026-09-27T10:43:38.721Z",
+          "id": "nzlXKBBRrLp3C73r",
+          "name": "Julian Krause <cjuliankrause@icloud.com>",
+          "type": "personal",
+          "icon": null,
+          "description": null,
+          "customTelemetryTags": [],
+          "creatorId": "d119e51b-5188-40f3-82ab-3c4e7b4f489e"
+        }
+      }
+    ],
+    "versionMetadata": {
+      "name": "Telegram-Bot mit Grocy",
+      "description": "Created with 46 nodes: Telegram Trigger, Profil laden, Update auswerten, Was ist zu tun?, Button bestätigen (Kochen) and 41 more"
+    }
+  }
+]

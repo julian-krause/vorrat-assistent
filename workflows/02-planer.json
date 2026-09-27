@@ -1,0 +1,869 @@
+[
+  {
+    "updatedAt": "2026-09-27T15:25:31.911Z",
+    "createdAt": "2026-09-27T14:58:40.924Z",
+    "id": "2dBOwb9KJDnwi1Id",
+    "name": "Vorrat · Planer (Rezepte & Wochenplan)",
+    "description": "Gesunde Rezepte oder Wochenplan aus dem Grocy-Bestand, mit OFF-Nährwerten und Makrozielen; Einkaufsliste per Telegram und in Grocy.",
+    "active": false,
+    "isArchived": false,
+    "nodes": [
+      {
+        "id": "550644be-0b07-486d-a345-1a6b8372a46d",
+        "name": "Aufruf von anderem Workflow",
+        "type": "n8n-nodes-base.executeWorkflowTrigger",
+        "typeVersion": 1.2,
+        "position": [
+          0,
+          0
+        ],
+        "parameters": {
+          "inputSource": "workflowInputs",
+          "workflowInputs": {
+            "values": [
+              {
+                "name": "modus",
+                "type": "string"
+              },
+              {
+                "name": "hinweis",
+                "type": "string"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "3c714b7b-7299-4cfd-a374-d855570504eb",
+        "name": "Eingabe normalisieren",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          224,
+          96
+        ],
+        "parameters": {
+          "mode": "manual",
+          "includeOtherFields": false,
+          "assignments": {
+            "assignments": [
+              {
+                "id": "modus",
+                "name": "modus",
+                "value": "={{ $json.modus ? $json.modus : ($json.timestamp ? \"wochenplan\" : \"rezepte\") }}",
+                "type": "string"
+              },
+              {
+                "id": "hinweis",
+                "name": "hinweis",
+                "value": "={{ $json.hinweis || \"\" }}",
+                "type": "string"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "703010a4-e239-4c0a-b3f3-22efc9373063",
+        "name": "Sonntag 10 Uhr Wochenplan",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1.4,
+        "position": [
+          0,
+          192
+        ],
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "weeks",
+                "weeksInterval": 1,
+                "triggerAtDay": [
+                  0
+                ],
+                "triggerAtHour": 10,
+                "triggerAtMinute": 0
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "4f2ef94c-8d87-45e5-825a-71c44721e3f7",
+        "name": "Alte Vorschläge ersetzen",
+        "type": "n8n-nodes-base.dataTable",
+        "typeVersion": 1.1,
+        "position": [
+          448,
+          96
+        ],
+        "parameters": {
+          "resource": "row",
+          "operation": "update",
+          "dataTableId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "64b9tBoz3sRJsuGW",
+            "cachedResultName": "vorrat_rezepte"
+          },
+          "matchType": "allConditions",
+          "filters": {
+            "conditions": [
+              {
+                "keyName": "typ",
+                "condition": "eq",
+                "keyValue": "={{ $json.modus }}"
+              },
+              {
+                "keyName": "status",
+                "condition": "eq",
+                "keyValue": "vorgeschlagen"
+              }
+            ]
+          },
+          "columns": {
+            "mappingMode": "defineBelow",
+            "value": {
+              "status": "ersetzt"
+            },
+            "matchingColumns": [],
+            "schema": [
+              {
+                "id": "status",
+                "displayName": "status",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              }
+            ]
+          }
+        },
+        "alwaysOutputData": true
+      },
+      {
+        "id": "9a0ac29b-bc08-499b-8c15-6a052b74e188",
+        "name": "Profil laden",
+        "type": "n8n-nodes-base.dataTable",
+        "typeVersion": 1.1,
+        "position": [
+          672,
+          96
+        ],
+        "parameters": {
+          "resource": "row",
+          "operation": "get",
+          "dataTableId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "cT54sdECXIGtpqDT",
+            "cachedResultName": "vorrat_profil"
+          },
+          "filters": {
+            "conditions": [
+              {
+                "keyName": "schluessel",
+                "condition": "eq",
+                "keyValue": "main"
+              }
+            ]
+          },
+          "limit": 1
+        },
+        "executeOnce": true
+      },
+      {
+        "id": "d7438786-5a0e-4864-a70b-31f2898c7636",
+        "name": "Grocy-Bestand laden",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          896,
+          96
+        ],
+        "parameters": {
+          "method": "GET",
+          "url": "={{ $('Profil laden').first().json.grocy_url }}/api/stock",
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpTemplatedCustomAuth",
+          "options": {}
+        },
+        "executeOnce": true,
+        "alwaysOutputData": true
+      },
+      {
+        "id": "6b4be76b-a9fb-4bdf-aaec-8f46b628f8fe",
+        "name": "Grocy-Einheiten laden",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          1120,
+          96
+        ],
+        "parameters": {
+          "method": "GET",
+          "url": "={{ $('Profil laden').first().json.grocy_url }}/api/objects/quantity_units",
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpTemplatedCustomAuth",
+          "options": {}
+        },
+        "executeOnce": true
+      },
+      {
+        "id": "def8d75e-feaf-4b26-b05d-247dd9c00725",
+        "name": "Nährwerte laden",
+        "type": "n8n-nodes-base.dataTable",
+        "typeVersion": 1.1,
+        "position": [
+          1344,
+          96
+        ],
+        "parameters": {
+          "resource": "row",
+          "operation": "get",
+          "dataTableId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "kil5ZUYaG9x3uGat",
+            "cachedResultName": "vorrat_produkte"
+          },
+          "returnAll": true
+        },
+        "executeOnce": true,
+        "alwaysOutputData": true
+      },
+      {
+        "id": "b8ecc5bb-9a2f-49cc-b947-182161a57925",
+        "name": "Kontext bauen",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1568,
+          96
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "language": "javaScript",
+          "jsCode": "const norm = $('Eingabe normalisieren').first().json;\nconst profil = $('Profil laden').first().json || {};\nconst klein = x => String(x || '').trim().toLowerCase();\nconst qus = $('Grocy-Einheiten laden').all().map(i => i.json).filter(q => q && q.id);\nconst quCode = {};\nfor (const q of qus) quCode[q.id] = klein(q.name) === 'gramm' ? 'g' : klein(q.name) === 'milliliter' ? 'ml' : klein(q.name) === 'stück' ? 'stk' : q.name;\nconst nw = {};\nfor (const i of $('Nährwerte laden').all()) if (i.json && i.json.grocy_product_id) nw[i.json.grocy_product_id] = i.json;\nconst bestand = $('Grocy-Bestand laden').all().map(i => i.json).filter(r => r && r.product_id && Number(r.amount) > 0);\nconst zone = 'Europe/Berlin';\nconst heute = DateTime.now().setZone(zone).startOf('day');\n\nconst vorrat = bestand.map(r => {\n  const p = r.product || {};\n  const m = r.best_before_date && !String(r.best_before_date).startsWith('2999') ? DateTime.fromISO(String(r.best_before_date).slice(0, 10), { zone }) : null;\n  const n = nw[r.product_id] || {};\n  const e = { product_id: Number(r.product_id), name: p.name, menge: Math.round(Number(r.amount) * 10) / 10, einheit: quCode[p.qu_id_stock] || 'stk', tage_bis_mhd: m ? Math.round(m.diff(heute, 'days').days) : null };\n  if (n.kcal_100 != null) e.pro_100g = { kcal: n.kcal_100, p: n.protein_100, f: n.fett_100, kh: n.kh_100 };\n  if (n.gramm_pro_stk) e.gramm_pro_stk = n.gramm_pro_stk;\n  if (n.nutriscore) e.nutriscore = n.nutriscore;\n  if (n.nova) e.nova = n.nova;\n  return e;\n}).sort((a, b) => (a.tage_bis_mhd ?? 999) - (b.tage_bis_mhd ?? 999));\n\nconst hatZiele = Number(profil.kcal) > 0;\nconst ziele_text = hatZiele\n  ? 'Tagesziel: ' + profil.kcal + ' kcal, ' + profil.protein_g + ' g Protein, ' + profil.fett_g + ' g Fett, ' + profil.kh_g + ' g Kohlenhydrate.'\n  : 'Keine Ziele hinterlegt: ausgewogen mit ca. 2000 kcal pro Tag und ca. 25-30 % Protein planen.';\nconst mahlzeiten = Number(profil.mahlzeiten_pro_tag) || 3;\nconst slots = ['Frühstück', 'Mittag', 'Abend', 'Snack', 'Snack 2'].slice(0, Math.max(1, Math.min(5, mahlzeiten)));\nconst start = heute.plus({ days: 1 });\n\nlet aufgabe;\nif (norm.modus === 'wochenplan') {\n  aufgabe = 'AUFGABE: Erstelle einen gesunden Wochenplan für 7 Tage von ' + start.toISODate() + ' bis ' + start.plus({ days: 6 }).toISODate()\n    + ' mit genau diesen Mahlzeiten pro Tag: ' + slots.join(', ') + '. '\n    + 'Die Summe aller Mahlzeiten eines Tages soll die Tagesziele möglichst genau treffen (Abweichung max. 10 %). '\n    + 'Verplane zuerst Zutaten, die bald ablaufen (kleine tage_bis_mhd zuerst). '\n    + 'Nutze Meal-Prep: Reste vom Abendessen dürfen am nächsten Tag mittags wiederkommen. Frühstück darf sich wiederholen. '\n    + 'Setze bei jedem Rezept das Feld \"tag\" auf das Datum.';\n} else {\n  aufgabe = 'AUFGABE: Schlage genau 3 einfache, gesunde Rezepte (je 1 Portion) vor, die überwiegend den vorhandenen Vorrat nutzen. '\n    + 'Priorisiere Zutaten mit tage_bis_mhd <= 3. Jede Portion soll etwa ein Tagesziel geteilt durch ' + mahlzeiten + ' treffen. '\n    + 'Setze \"tag\" auf ' + heute.toISODate() + ' und \"mahlzeit\" passend (Frühstück/Mittag/Abend/Snack).';\n}\nif (norm.hinweis) aufgabe += ' Zusatzwunsch des Nutzers: ' + norm.hinweis;\n\nconst format = 'ANTWORTFORMAT (nur dieses JSON, nichts anderes):\\n'\n  + '{\"hinweis\":\"1 kurzer Satz, welche Zutaten zuerst verbraucht werden sollten\",'\n  + '\"rezepte\":[{\"titel\":\"...\",\"tag\":\"YYYY-MM-DD\",\"mahlzeit\":\"Frühstück\",\"portionen\":1,\"dauer_min\":20,'\n  + '\"kcal\":550,\"protein_g\":40,\"fett_g\":18,\"kh_g\":55,'\n  + '\"zutaten\":[{\"product_id\":12,\"name\":\"Zucchini\",\"menge\":200,\"einheit\":\"g\"}],'\n  + '\"anleitung\":[\"Schritt 1\",\"Schritt 2\"]}]}\\n'\n  + 'REGELN: product_id nur aus dem VORRAT verwenden und dann exakt dessen Einheit nutzen. '\n  + 'Zutaten, die nicht im Vorrat sind, mit \"product_id\": null angeben (landen auf der Einkaufsliste). '\n  + 'Berechne kcal und Makros aus den Mengen und den Werten pro_100g (bei stk über gramm_pro_stk); nur wo diese fehlen, realistisch schätzen. '\n  + 'Bevorzuge Produkte mit Nutri-Score A/B und NOVA 1-3; Produkte mit Nutri-Score D/E oder NOVA 4 nur sparsam einsetzen.';\n\nconst system = 'Du bist Ernährungscoach und Koch. Alles muss gesund sein: viel Gemüse, Hülsenfrüchte, Vollkorn, mageres Protein, gesunde Fette, '\n  + 'wenig Zucker und wenig stark verarbeitete Lebensmittel. Rezepte sind einfach: max. 8 Zutaten, max. 30 Minuten, Alltagsküche. '\n  + 'Grundzutaten (Salz, Pfeffer, Gewürze, Öl, Essig, Senf, Brühe) gelten als vorhanden und werden nicht als Zutat aufgeführt. '\n  + 'Vorlieben des Nutzers: ' + (profil.vorlieben || 'keine') + '. Antworte ausschließlich mit gültigem JSON.';\n\nconst prompt = aufgabe + '\\n\\n' + ziele_text + '\\n\\nVORRAT (sortiert nach Ablaufdatum):\\n' + JSON.stringify(vorrat) + '\\n\\n' + format;\n\nreturn [{ json: { modus: norm.modus, chat_id: String(profil.chat_id || ''), ziele_text, vorrat, system, prompt } }];"
+        }
+      },
+      {
+        "id": "d10c42c2-4556-436e-9960-486901db3a99",
+        "name": "MiniMax plant Rezepte",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          1792,
+          96
+        ],
+        "parameters": {
+          "method": "POST",
+          "url": "https://api.minimax.io/v1/chat/completions",
+          "authentication": "predefinedCredentialType",
+          "nodeCredentialType": "openAiApi",
+          "sendBody": true,
+          "contentType": "json",
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ model: \"MiniMax-M2\", temperature: 0.5, max_tokens: 24000, messages: [ { role: \"system\", content: $json.system }, { role: \"user\", content: $json.prompt } ] }) }}",
+          "options": {
+            "timeout": 300000
+          }
+        },
+        "retryOnFail": true,
+        "maxTries": 2
+      },
+      {
+        "id": "455d6964-6bae-43a3-b972-b5b124f6f6db",
+        "name": "Antwort auswerten",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          2016,
+          96
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "language": "javaScript",
+          "jsCode": "const ctx = $('Kontext bauen').first().json;\nconst res = $input.first().json;\nlet s = String((res.choices && res.choices[0] && res.choices[0].message && res.choices[0].message.content) || '');\nif (s.includes('</think>')) s = s.split('</think>').pop();\nconst a = s.indexOf('{');\nconst b = s.lastIndexOf('}');\nif (a < 0 || b < 0) throw new Error('KI-Antwort enthält kein JSON: ' + s.slice(0, 300));\nconst data = JSON.parse(s.slice(a, b + 1));\n\nconst esc = t => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nconst r1 = x => Math.round((Number(x) || 0) * 10) / 10;\nconst inv = {};\nfor (const v of ctx.vorrat) inv[v.product_id] = v;\nconst bedarf = {};\nconst einkauf = {};\nconst addEinkauf = (name, menge, einheit, product_id) => {\n  const k = String(name || '').toLowerCase().trim() + '|' + (einheit || '');\n  if (!einkauf[k]) einkauf[k] = { name, menge: 0, einheit: einheit || '', product_id: product_id || null };\n  einkauf[k].menge += Number(menge) || 0;\n};\nconst heute = DateTime.now().setZone('Europe/Berlin').toISODate();\nconst rezepte = Array.isArray(data.rezepte) ? data.rezepte : [];\nif (!rezepte.length) throw new Error('KI hat keine Rezepte geliefert');\n\nconst out = rezepte.map(r => {\n  const zutaten = (r.zutaten || []).map(z => {\n    const v = z.product_id != null ? inv[z.product_id] : null;\n    return { product_id: v ? v.product_id : null, name: z.name || (v && v.name) || '?', menge: Number(z.menge) || 0, einheit: v ? v.einheit : (z.einheit || '') };\n  });\n  for (const z of zutaten) {\n    if (z.product_id != null) bedarf[z.product_id] = (bedarf[z.product_id] || 0) + z.menge;\n    else addEinkauf(z.name, z.menge, z.einheit);\n  }\n  const schritte = Array.isArray(r.anleitung) ? r.anleitung : String(r.anleitung || '').split('\\n').filter(Boolean);\n  const anleitung = schritte.map((t, i) => (i + 1) + '. ' + String(t).replace(/^\\s*\\d+[.)]\\s*/, '')).join('\\n');\n  const zText = zutaten.map(z => '• ' + (z.menge ? r1(z.menge) + ' ' + esc(z.einheit) + ' ' : '') + esc(z.name) + (z.product_id == null ? ' 🛒' : '')).join('\\n');\n  const kcal = Math.round(r.kcal || 0), p = Math.round(r.protein_g || 0), f = Math.round(r.fett_g || 0), kh = Math.round(r.kh_g || 0);\n  const nachricht = '<b>🍳 ' + esc(r.titel) + '</b>\\n'\n    + (r.mahlzeit ? esc(r.mahlzeit) + ' · ' : '') + kcal + ' kcal · P ' + p + ' g · F ' + f + ' g · KH ' + kh + ' g'\n    + (r.dauer_min ? ' · ⏱ ' + r.dauer_min + ' Min' : '')\n    + '\\n\\n<b>Zutaten</b> (🛒 = fehlt noch)\\n' + zText\n    + '\\n\\n<b>Zubereitung</b>\\n' + esc(anleitung);\n  return { titel: String(r.titel || 'Rezept'), typ: ctx.modus, geplant_fuer: r.tag || heute, mahlzeit: String(r.mahlzeit || ''), portionen: Number(r.portionen) || 1,\n    kcal, protein_g: p, fett_g: f, kh_g: kh, zutaten_json: JSON.stringify(zutaten), anleitung, status: 'vorgeschlagen', nachricht };\n});\n\nfor (const id of Object.keys(bedarf)) {\n  const v = inv[id];\n  const fehlt = bedarf[id] - (Number(v.menge) || 0);\n  if (fehlt > 0.01) addEinkauf(v.name, fehlt, v.einheit, v.product_id);\n}\nconst liste = Object.values(einkauf).sort((x, y) => String(x.name).localeCompare(String(y.name)))\n  .map(e => '☐ ' + (e.menge ? Math.ceil(e.menge) + ' ' + esc(e.einheit) + ' ' : '') + esc(e.name)).join('\\n');\nconst einkaufText = '<b>🛒 Einkaufsliste für die Woche</b>\\n' + (liste || 'Alles da, nichts einzukaufen! 🎉');\n\nconst reihenfolge = { 'Frühstück': 0, 'Mittag': 1, 'Abend': 2, 'Snack': 3, 'Snack 2': 4 };\nconst tage = {};\nfor (const r of out) (tage[r.geplant_fuer] = tage[r.geplant_fuer] || []).push(r);\nlet uebersicht = (data.hinweis ? '💡 ' + esc(data.hinweis) + '\\n\\n' : '') + '<b>📅 Dein Wochenplan</b>\\n' + esc(ctx.ziele_text) + '\\n';\nfor (const tag of Object.keys(tage).sort()) {\n  const l = tage[tag].sort((x, y) => (reihenfolge[x.mahlzeit] ?? 9) - (reihenfolge[y.mahlzeit] ?? 9));\n  const sum = k => l.reduce((acc, r) => acc + (Number(r[k]) || 0), 0);\n  uebersicht += '\\n<b>' + DateTime.fromISO(tag).setLocale('de').toFormat('ccc dd.LL.') + '</b> · ' + sum('kcal') + ' kcal · P ' + sum('protein_g') + ' / F ' + sum('fett_g') + ' / KH ' + sum('kh_g') + ' g\\n'\n    + l.map(r => '  ' + esc(r.mahlzeit) + ': ' + esc(r.titel) + ' (' + r.kcal + ' kcal)').join('\\n') + '\\n';\n}\nuebersicht += '\\nDie Rezepte bekommst du jeden Morgen einzeln mit „✅ Gekocht“-Button.';\n\nif (ctx.modus !== 'wochenplan' && data.hinweis) out[0].nachricht = '💡 ' + esc(data.hinweis) + '\\n\\n' + out[0].nachricht;\nconst einkaufListe = Object.values(einkauf).map(e => ({ ...e, menge: Math.ceil(e.menge) }));\nreturn out.map(o => ({ json: { ...o, uebersicht, einkaufText, einkauf: einkaufListe, chat_id: ctx.chat_id } }));"
+        }
+      },
+      {
+        "id": "84754447-6d5d-4ffa-8afb-b6f238d189c9",
+        "name": "Rezepte speichern",
+        "type": "n8n-nodes-base.dataTable",
+        "typeVersion": 1.1,
+        "position": [
+          2240,
+          96
+        ],
+        "parameters": {
+          "resource": "row",
+          "operation": "insert",
+          "dataTableId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "64b9tBoz3sRJsuGW",
+            "cachedResultName": "vorrat_rezepte"
+          },
+          "columns": {
+            "mappingMode": "defineBelow",
+            "matchingColumns": [],
+            "value": {
+              "titel": "={{ $json.titel }}",
+              "typ": "={{ $json.typ }}",
+              "geplant_fuer": "={{ $json.geplant_fuer }}",
+              "mahlzeit": "={{ $json.mahlzeit }}",
+              "portionen": "={{ $json.portionen }}",
+              "kcal": "={{ $json.kcal }}",
+              "protein_g": "={{ $json.protein_g }}",
+              "fett_g": "={{ $json.fett_g }}",
+              "kh_g": "={{ $json.kh_g }}",
+              "zutaten_json": "={{ $json.zutaten_json }}",
+              "anleitung": "={{ $json.anleitung }}",
+              "status": "vorgeschlagen"
+            },
+            "schema": [
+              {
+                "id": "titel",
+                "displayName": "titel",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "typ",
+                "displayName": "typ",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "geplant_fuer",
+                "displayName": "geplant_fuer",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "dateTime",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "mahlzeit",
+                "displayName": "mahlzeit",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "portionen",
+                "displayName": "portionen",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "number",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "kcal",
+                "displayName": "kcal",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "number",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "protein_g",
+                "displayName": "protein_g",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "number",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "fett_g",
+                "displayName": "fett_g",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "number",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "kh_g",
+                "displayName": "kh_g",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "number",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "zutaten_json",
+                "displayName": "zutaten_json",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "anleitung",
+                "displayName": "anleitung",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "status",
+                "displayName": "status",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "63a7712b-4094-48e6-9074-46f605278c95",
+        "name": "Rezepte oder Wochenplan?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          2464,
+          96
+        ],
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "strict"
+            },
+            "conditions": [
+              {
+                "leftValue": "={{ $('Kontext bauen').first().json.modus }}",
+                "operator": {
+                  "type": "string",
+                  "operation": "equals"
+                },
+                "rightValue": "rezepte"
+              }
+            ],
+            "combinator": "and"
+          }
+        }
+      },
+      {
+        "id": "941292a2-82b6-4969-be50-a3972c4f72e5",
+        "name": "Rezept senden",
+        "type": "n8n-nodes-base.telegram",
+        "typeVersion": 1.2,
+        "position": [
+          2688,
+          0
+        ],
+        "parameters": {
+          "resource": "message",
+          "operation": "sendMessage",
+          "chatId": "={{ $('Antwort auswerten').item.json.chat_id }}",
+          "text": "={{ $('Antwort auswerten').item.json.nachricht }}",
+          "replyMarkup": "inlineKeyboard",
+          "inlineKeyboard": {
+            "rows": [
+              {
+                "row": {
+                  "buttons": [
+                    {
+                      "text": "✅ Gekocht",
+                      "additionalFields": {
+                        "callback_data": "=cook:{{ $json.id }}"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "additionalFields": {
+            "appendAttribution": false,
+            "parse_mode": "HTML"
+          }
+        },
+        "webhookId": "548d08e0-bd88-45e0-95d0-ca7d3bb16541"
+      },
+      {
+        "id": "8bd988cf-48a9-4223-be64-1b74c233adcf",
+        "name": "Wochenplan senden",
+        "type": "n8n-nodes-base.telegram",
+        "typeVersion": 1.2,
+        "position": [
+          2688,
+          192
+        ],
+        "parameters": {
+          "resource": "message",
+          "operation": "sendMessage",
+          "chatId": "={{ $('Antwort auswerten').first().json.chat_id }}",
+          "text": "={{ $('Antwort auswerten').first().json.uebersicht }}",
+          "additionalFields": {
+            "appendAttribution": false,
+            "parse_mode": "HTML"
+          }
+        },
+        "executeOnce": true,
+        "webhookId": "c49bb8e6-a678-4013-b704-66ff3c0591d5"
+      },
+      {
+        "id": "68fe07d1-c27f-4db0-b83a-95d59b7a6fe7",
+        "name": "Einkaufsliste senden",
+        "type": "n8n-nodes-base.telegram",
+        "typeVersion": 1.2,
+        "position": [
+          2912,
+          192
+        ],
+        "parameters": {
+          "resource": "message",
+          "operation": "sendMessage",
+          "chatId": "={{ $('Antwort auswerten').first().json.chat_id }}",
+          "text": "={{ $('Antwort auswerten').first().json.einkaufText }}",
+          "additionalFields": {
+            "appendAttribution": false,
+            "parse_mode": "HTML"
+          }
+        },
+        "executeOnce": true,
+        "webhookId": "cf36bfcb-033e-4bdd-bc44-300ada1e6a25"
+      },
+      {
+        "id": "6d88526e-2a87-4ffe-a6af-fa38121dcdd7",
+        "name": "Einkaufsposten für Grocy",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          3136,
+          192
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "language": "javaScript",
+          "jsCode": "const liste = $('Antwort auswerten').first().json.einkauf || [];\nconst kw = DateTime.now().setZone('Europe/Berlin').plus({ days: 1 }).toFormat('W');\nreturn liste.map(e => ({ json: { body: e.product_id\n  ? { shopping_list_id: 1, product_id: e.product_id, amount: e.menge, note: 'Wochenplan KW ' + kw }\n  : { shopping_list_id: 1, amount: 1, note: e.name + (e.menge ? ' (' + e.menge + ' ' + e.einheit + ')' : '') + ' – Wochenplan KW ' + kw } } }));"
+        }
+      },
+      {
+        "id": "8b4fa503-8b29-433e-bd99-8d6cd97fd0a7",
+        "name": "Auf Grocy-Einkaufsliste",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          3360,
+          192
+        ],
+        "parameters": {
+          "method": "POST",
+          "url": "={{ $('Profil laden').first().json.grocy_url }}/api/objects/shopping_list",
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpTemplatedCustomAuth",
+          "sendBody": true,
+          "contentType": "json",
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify($json.body) }}",
+          "options": {}
+        },
+        "onError": "continueRegularOutput"
+      },
+      {
+        "id": "778e6fb7-d505-4874-8660-58e3e8bedb23",
+        "name": "Sticky Note 38ed4e32",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          1616,
+          192
+        ],
+        "parameters": {
+          "content": "## Planer\nWird vom eBon-Import und vom Telegram-Bot aufgerufen (modus = rezepte | wochenplan) und läuft sonntags 10 Uhr automatisch als Wochenplan.\nVorrat kommt live aus Grocy, Nährwerte aus OpenFoodFacts (Cache `vorrat_produkte`).\n\n**Modell ändern:** im Node „MiniMax plant Rezepte“ das Feld `model` im Body anpassen.",
+          "color": 4
+        }
+      }
+    ],
+    "connections": {
+      "Aufruf von anderem Workflow": {
+        "main": [
+          [
+            {
+              "node": "Eingabe normalisieren",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Eingabe normalisieren": {
+        "main": [
+          [
+            {
+              "node": "Alte Vorschläge ersetzen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Sonntag 10 Uhr Wochenplan": {
+        "main": [
+          [
+            {
+              "node": "Eingabe normalisieren",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Alte Vorschläge ersetzen": {
+        "main": [
+          [
+            {
+              "node": "Profil laden",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Profil laden": {
+        "main": [
+          [
+            {
+              "node": "Grocy-Bestand laden",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Grocy-Bestand laden": {
+        "main": [
+          [
+            {
+              "node": "Grocy-Einheiten laden",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Grocy-Einheiten laden": {
+        "main": [
+          [
+            {
+              "node": "Nährwerte laden",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Nährwerte laden": {
+        "main": [
+          [
+            {
+              "node": "Kontext bauen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Kontext bauen": {
+        "main": [
+          [
+            {
+              "node": "MiniMax plant Rezepte",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "MiniMax plant Rezepte": {
+        "main": [
+          [
+            {
+              "node": "Antwort auswerten",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Antwort auswerten": {
+        "main": [
+          [
+            {
+              "node": "Rezepte speichern",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Rezepte speichern": {
+        "main": [
+          [
+            {
+              "node": "Rezepte oder Wochenplan?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Rezepte oder Wochenplan?": {
+        "main": [
+          [
+            {
+              "node": "Rezept senden",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Wochenplan senden",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Wochenplan senden": {
+        "main": [
+          [
+            {
+              "node": "Einkaufsliste senden",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Einkaufsliste senden": {
+        "main": [
+          [
+            {
+              "node": "Einkaufsposten für Grocy",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Einkaufsposten für Grocy": {
+        "main": [
+          [
+            {
+              "node": "Auf Grocy-Einkaufsliste",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1",
+      "availableInMCP": true,
+      "timezone": "Europe/Berlin"
+    },
+    "staticData": null,
+    "meta": {
+      "aiBuilderAssisted": true,
+      "builderVariant": "mcp"
+    },
+    "nodeGroups": [
+      {
+        "id": "aa169aa8-c262-433e-9d06-81bb84624ea0",
+        "name": "Daten sammeln",
+        "nodeIds": [
+          "3c714b7b-7299-4cfd-a374-d855570504eb",
+          "4f2ef94c-8d87-45e5-825a-71c44721e3f7",
+          "9a0ac29b-bc08-499b-8c15-6a052b74e188",
+          "d7438786-5a0e-4864-a70b-31f2898c7636",
+          "6b4be76b-a9fb-4bdf-aaec-8f46b628f8fe",
+          "def8d75e-feaf-4b26-b05d-247dd9c00725",
+          "b8ecc5bb-9a2f-49cc-b947-182161a57925"
+        ],
+        "description": "Lädt Ziele, Grocy-Bestand (nach MHD) und OFF-Nährwerte und baut den KI-Prompt"
+      },
+      {
+        "id": "10bfd1f2-0208-4172-832d-63363c6e61e3",
+        "name": "KI-Planung",
+        "nodeIds": [
+          "d10c42c2-4556-436e-9960-486901db3a99",
+          "455d6964-6bae-43a3-b972-b5b124f6f6db",
+          "84754447-6d5d-4ffa-8afb-b6f238d189c9"
+        ],
+        "description": "MiniMax erstellt Rezepte, Code berechnet Einkaufsliste und Tagessummen, Rezepte werden gespeichert"
+      },
+      {
+        "id": "24ac0edb-e63c-4a8e-9470-219ec80ada41",
+        "name": "Versand",
+        "nodeIds": [
+          "63a7712b-4094-48e6-9074-46f605278c95",
+          "941292a2-82b6-4969-be50-a3972c4f72e5",
+          "8bd988cf-48a9-4223-be64-1b74c233adcf",
+          "68fe07d1-c27f-4db0-b83a-95d59b7a6fe7",
+          "6d88526e-2a87-4ffe-a6af-fa38121dcdd7",
+          "8b4fa503-8b29-433e-bd99-8d6cd97fd0a7"
+        ],
+        "description": "Rezepte mit Gekocht-Button oder Wochenplan + Einkaufsliste per Telegram und in die Grocy-Einkaufsliste"
+      }
+    ],
+    "pinData": null,
+    "versionId": "08692f7f-a817-46ff-b724-6a68e5aaf676",
+    "activeVersionId": null,
+    "versionCounter": 2,
+    "triggerCount": 0,
+    "sourceWorkflowId": null,
+    "tags": [],
+    "shared": [
+      {
+        "updatedAt": "2026-09-27T14:58:40.941Z",
+        "createdAt": "2026-09-27T14:58:40.941Z",
+        "role": "workflow:owner",
+        "workflowId": "2dBOwb9KJDnwi1Id",
+        "projectId": "nzlXKBBRrLp3C73r",
+        "project": {
+          "updatedAt": "2026-09-27T10:46:36.945Z",
+          "createdAt": "2026-09-27T10:43:38.721Z",
+          "id": "nzlXKBBRrLp3C73r",
+          "name": "Julian Krause <cjuliankrause@icloud.com>",
+          "type": "personal",
+          "icon": null,
+          "description": null,
+          "customTelemetryTags": [],
+          "creatorId": "d119e51b-5188-40f3-82ab-3c4e7b4f489e"
+        }
+      }
+    ],
+    "versionMetadata": {
+      "name": "Planer mit Grocy + OFF",
+      "description": "Created with 19 nodes: Aufruf von anderem Workflow, Eingabe normalisieren, Sonntag 10 Uhr Wochenplan, Alte Vorschläge ersetzen, Profil laden and 14 more"
+    }
+  }
+]

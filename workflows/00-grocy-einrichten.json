@@ -1,0 +1,336 @@
+[
+  {
+    "updatedAt": "2026-09-27T14:53:38.839Z",
+    "createdAt": "2026-09-27T14:53:38.839Z",
+    "id": "dD6BSMITP0JfC72f",
+    "name": "Vorrat · Grocy einrichten",
+    "description": "Einmalig: speichert Grocy-URL, testet API und legt Einheiten und Lagerorte an.",
+    "active": false,
+    "isArchived": false,
+    "nodes": [
+      {
+        "id": "4edf9e32-a04e-4793-a6b1-67e19ca623a7",
+        "name": "Einmalig ausführen",
+        "type": "n8n-nodes-base.manualTrigger",
+        "typeVersion": 1,
+        "position": [
+          0,
+          0
+        ],
+        "parameters": {}
+      },
+      {
+        "id": "ba3d9248-15c9-4924-810a-be3e7ea61949",
+        "name": "Einstellungen",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          224,
+          0
+        ],
+        "parameters": {
+          "mode": "manual",
+          "includeOtherFields": false,
+          "assignments": {
+            "assignments": [
+              {
+                "id": "grocy_url",
+                "name": "grocy_url",
+                "value": "http://grocy:80",
+                "type": "string"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "1f18ea94-4170-43ad-85ae-2d3204edfdf6",
+        "name": "Grocy-URL im Profil speichern",
+        "type": "n8n-nodes-base.dataTable",
+        "typeVersion": 1.1,
+        "position": [
+          448,
+          0
+        ],
+        "parameters": {
+          "resource": "row",
+          "operation": "update",
+          "dataTableId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "cT54sdECXIGtpqDT",
+            "cachedResultName": "vorrat_profil"
+          },
+          "filters": {
+            "conditions": [
+              {
+                "keyName": "schluessel",
+                "condition": "eq",
+                "keyValue": "main"
+              }
+            ]
+          },
+          "columns": {
+            "mappingMode": "defineBelow",
+            "matchingColumns": [],
+            "value": {
+              "grocy_url": "={{ $json.grocy_url }}"
+            },
+            "schema": [
+              {
+                "id": "grocy_url",
+                "displayName": "grocy_url",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "2a2ac06e-2d6a-4f6b-81cb-01877842a8d3",
+        "name": "Grocy-Verbindung testen",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          672,
+          0
+        ],
+        "parameters": {
+          "method": "GET",
+          "url": "={{ $('Einstellungen').first().json.grocy_url }}/api/system/info",
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpTemplatedCustomAuth",
+          "options": {}
+        },
+        "executeOnce": true
+      },
+      {
+        "id": "3cc9f893-98ae-4487-943c-952e6b4e525d",
+        "name": "Einheiten laden",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          896,
+          0
+        ],
+        "parameters": {
+          "method": "GET",
+          "url": "={{ $('Einstellungen').first().json.grocy_url }}/api/objects/quantity_units",
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpTemplatedCustomAuth",
+          "options": {}
+        },
+        "executeOnce": true,
+        "alwaysOutputData": true
+      },
+      {
+        "id": "c7a62612-f455-4012-b529-c1696925781a",
+        "name": "Lagerorte laden",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          1120,
+          0
+        ],
+        "parameters": {
+          "method": "GET",
+          "url": "={{ $('Einstellungen').first().json.grocy_url }}/api/objects/locations",
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpTemplatedCustomAuth",
+          "options": {}
+        },
+        "executeOnce": true,
+        "alwaysOutputData": true
+      },
+      {
+        "id": "708f96e9-c8a7-476d-96fc-c339ee1625ce",
+        "name": "Fehlendes ermitteln",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1344,
+          0
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "language": "javaScript",
+          "jsCode": "const norm = s => String(s || '').trim().toLowerCase();\nconst qus = $('Einheiten laden').all().map(i => i.json).filter(r => r && r.id);\nconst locs = $('Lagerorte laden').all().map(i => i.json).filter(r => r && r.id);\nconst out = [];\nfor (const q of [ { name: 'Gramm', name_plural: 'Gramm' }, { name: 'Milliliter', name_plural: 'Milliliter' }, { name: 'Stück', name_plural: 'Stück' } ]) {\n  if (!qus.some(r => norm(r.name) === norm(q.name))) out.push({ json: { endpoint: 'quantity_units', body: q } });\n}\nfor (const l of [ { name: 'Kühlschrank', is_freezer: 0 }, { name: 'Tiefkühler', is_freezer: 1 }, { name: 'Vorratsschrank', is_freezer: 0 } ]) {\n  if (!locs.some(r => norm(r.name) === norm(l.name))) out.push({ json: { endpoint: 'locations', body: l } });\n}\nreturn out;"
+        }
+      },
+      {
+        "id": "f377e5cd-52fc-48fe-a776-7ca3988fd669",
+        "name": "In Grocy anlegen",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          1568,
+          0
+        ],
+        "parameters": {
+          "method": "POST",
+          "url": "={{ $('Einstellungen').first().json.grocy_url }}/api/objects/{{ $json.endpoint }}",
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpTemplatedCustomAuth",
+          "sendBody": true,
+          "contentType": "json",
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify($json.body) }}",
+          "options": {}
+        }
+      },
+      {
+        "id": "2f83f027-479b-4dc4-8fad-5fd0f745a1b8",
+        "name": "Sticky Note ae0ea871",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          720,
+          0
+        ],
+        "parameters": {
+          "content": "## Grocy einrichten (einmalig)\n1. Im Node **Einstellungen** die Grocy-URL eintragen (Docker im selben Netz: `http://grocy:80`, sonst z.B. `http://localhost:9283`)\n2. Credential **Grocy API** (Custom Auth Template): `{\"headers\":{\"GROCY-API-KEY\":\"{{api_key}}\"}}`, api_key = Schlüssel aus Grocy → Einstellungen → API-Schlüssel verwalten\n3. Einmal ausführen: legt Einheiten (Gramm, Milliliter, Stück) und Lagerorte (Kühlschrank, Tiefkühler, Vorratsschrank) an und speichert die URL für alle anderen Workflows.",
+          "color": 4
+        }
+      }
+    ],
+    "connections": {
+      "Einmalig ausführen": {
+        "main": [
+          [
+            {
+              "node": "Einstellungen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Einstellungen": {
+        "main": [
+          [
+            {
+              "node": "Grocy-URL im Profil speichern",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Grocy-URL im Profil speichern": {
+        "main": [
+          [
+            {
+              "node": "Grocy-Verbindung testen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Grocy-Verbindung testen": {
+        "main": [
+          [
+            {
+              "node": "Einheiten laden",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Einheiten laden": {
+        "main": [
+          [
+            {
+              "node": "Lagerorte laden",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Lagerorte laden": {
+        "main": [
+          [
+            {
+              "node": "Fehlendes ermitteln",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Fehlendes ermitteln": {
+        "main": [
+          [
+            {
+              "node": "In Grocy anlegen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1",
+      "availableInMCP": true
+    },
+    "staticData": null,
+    "meta": {
+      "aiBuilderAssisted": true,
+      "builderVariant": "mcp"
+    },
+    "nodeGroups": [
+      {
+        "id": "d570c557-7757-4819-a67d-5e6570ed2738",
+        "name": "Grocy vorbereiten",
+        "nodeIds": [
+          "ba3d9248-15c9-4924-810a-be3e7ea61949",
+          "1f18ea94-4170-43ad-85ae-2d3204edfdf6",
+          "2a2ac06e-2d6a-4f6b-81cb-01877842a8d3",
+          "3cc9f893-98ae-4487-943c-952e6b4e525d",
+          "c7a62612-f455-4012-b529-c1696925781a",
+          "708f96e9-c8a7-476d-96fc-c339ee1625ce",
+          "f377e5cd-52fc-48fe-a776-7ca3988fd669"
+        ],
+        "description": "Speichert die Grocy-URL, testet die Verbindung und legt fehlende Einheiten und Lagerorte an"
+      }
+    ],
+    "pinData": null,
+    "versionId": "1fab5fb1-f78d-46af-90f0-e4f18763e246",
+    "activeVersionId": null,
+    "versionCounter": 1,
+    "triggerCount": 0,
+    "sourceWorkflowId": null,
+    "tags": [],
+    "shared": [
+      {
+        "updatedAt": "2026-09-27T14:53:38.842Z",
+        "createdAt": "2026-09-27T14:53:38.842Z",
+        "role": "workflow:owner",
+        "workflowId": "dD6BSMITP0JfC72f",
+        "projectId": "nzlXKBBRrLp3C73r",
+        "project": {
+          "updatedAt": "2026-09-27T10:46:36.945Z",
+          "createdAt": "2026-09-27T10:43:38.721Z",
+          "id": "nzlXKBBRrLp3C73r",
+          "name": "Julian Krause <cjuliankrause@icloud.com>",
+          "type": "personal",
+          "icon": null,
+          "description": null,
+          "customTelemetryTags": [],
+          "creatorId": "d119e51b-5188-40f3-82ab-3c4e7b4f489e"
+        }
+      }
+    ],
+    "versionMetadata": {
+      "name": "Grocy-Setup",
+      "description": "Created with 9 nodes: Einmalig ausführen, Einstellungen, Grocy-URL im Profil speichern, Grocy-Verbindung testen, Einheiten laden and 4 more"
+    }
+  }
+]

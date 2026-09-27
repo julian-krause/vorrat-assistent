@@ -1,0 +1,22 @@
+# Grocy im selben Docker-Netz wie n8n (Projekt ~/n8n → Netz "n8n_default").
+# Start:  docker compose -f docker/grocy.compose.yml up -d
+# n8n erreicht Grocy dann unter http://grocy:80, der Browser unter http://localhost:9283
+services:
+  grocy:
+    image: lscr.io/linuxserver/grocy:latest
+    container_name: grocy
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Berlin
+    volumes:
+      - ./grocy-data:/config
+    ports:
+      - "9283:80"
+    restart: unless-stopped
+    networks:
+      - n8n_default
+
+networks:
+  n8n_default:
+    external: true

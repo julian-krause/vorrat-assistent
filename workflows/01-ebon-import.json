@@ -1,0 +1,1262 @@
+[
+  {
+    "updatedAt": "2026-09-27T15:00:32.007Z",
+    "createdAt": "2026-09-27T15:00:32.007Z",
+    "id": "WI7rA3dd4TMM2WVb",
+    "name": "Vorrat · eBon-Import (REWE → Grocy)",
+    "description": "REWE-eBon aus iCloud → MiniMax-Auswertung → Produktabgleich/Anlage in Grocy mit OpenFoodFacts-Nährwerten → Bestand mit MHD buchen → Telegram + Rezeptvorschläge.",
+    "active": false,
+    "isArchived": false,
+    "nodes": [
+      {
+        "id": "f814e32d-f0a2-4c07-a465-7768e99c68cf",
+        "name": "Neue REWE-Mail (iCloud)",
+        "type": "n8n-nodes-base.emailReadImap",
+        "typeVersion": 2.2,
+        "position": [
+          0,
+          192
+        ],
+        "parameters": {
+          "mailbox": "INBOX",
+          "postProcessAction": "read",
+          "format": "resolved",
+          "dataPropertyAttachmentsPrefixName": "attachment_",
+          "options": {
+            "customEmailConfig": "[\"UNSEEN\", [\"FROM\", \"rewe\"]]"
+          }
+        }
+      },
+      {
+        "id": "15bf5715-846d-4d1a-bb36-f7128d0c318b",
+        "name": "PDF-Anhang finden",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          224,
+          192
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "language": "javaScript",
+          "jsCode": "const out = [];\nfor (const item of $input.all()) {\n  const bin = item.binary || {};\n  const key = Object.keys(bin).find(k => String(bin[k].mimeType || '').includes('pdf') || String(bin[k].fileName || '').toLowerCase().endsWith('.pdf'));\n  if (!key) continue;\n  const j = item.json;\n  out.push({\n    json: { message_id: String(j.messageId || ((j.subject || '') + '|' + (j.date || ''))), betreff: j.subject || '', mail_datum: j.date || '' },\n    binary: { data: bin[key] }\n  });\n}\nreturn out;"
+        }
+      },
+      {
+        "id": "3ef367a4-7bef-474a-82cd-408d877e22dd",
+        "name": "Text aus PDF lesen",
+        "type": "n8n-nodes-base.extractFromFile",
+        "typeVersion": 1.1,
+        "position": [
+          448,
+          192
+        ],
+        "parameters": {
+          "operation": "pdf",
+          "binaryPropertyName": "data",
+          "options": {
+            "joinPages": true
+          }
+        }
+      },
+      {
+        "id": "34a8b2ce-9c88-4a20-8a4c-abbd381deb48",
+        "name": "Bon vorbereiten",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          672,
+          192
+        ],
+        "parameters": {
+          "mode": "runOnceForEachItem",
+          "language": "javaScript",
+          "jsCode": "const src = $('PDF-Anhang finden').item.json;\nconst text = String($json.text || '');\nconst kaufdatum = src.mail_datum ? DateTime.fromJSDate(new Date(src.mail_datum)).setZone('Europe/Berlin').toISODate() : DateTime.now().setZone('Europe/Berlin').toISODate();\n\nconst system = 'Du wandelst deutsche Supermarkt-Kassenbons (REWE eBon) in strukturierte Vorratsdaten um. Antworte ausschließlich mit gültigem JSON.';\nconst prompt = 'Kaufdatum laut Mail: ' + kaufdatum + '\\n'\n  + 'AUFGABE: Extrahiere alle LEBENSMITTEL-Positionen aus dem Bon.\\n'\n  + 'REGELN:\\n'\n  + '- Ignoriere Pfand, Leergut, Tüten, Rabatte, Coupons, Payback, Summen, Zahlungsinfos und Non-Food (Drogerie, Haushalt, Tierbedarf).\\n'\n  + '- name: kurzer, generischer deutscher Produktname ohne Marke (z.B. \"BIO ZUCCHINI\" -> \"Zucchini\", \"JA H-MILCH 1,5%\" -> \"H-Milch 1,5 %\"). Gleiche Produkte sollen bei jedem Einkauf exakt gleich heißen.\\n'\n  + '- off_suche: bester Suchbegriff für OpenFoodFacts inkl. erkennbarer Marke (REWE-Eigenmarken: \"ja!\", \"REWE Beste Wahl\", \"REWE Bio\"), z.B. \"ja! H-Milch 1,5%\".\\n'\n  + '- frischware: true für loses Obst/Gemüse, Brot vom Bäcker, Fleisch/Käse von der Theke; sonst false.\\n'\n  + '- menge + einheit: nur \"g\", \"ml\" oder \"stk\" als Gesamtmenge. Packungsgrößen umrechnen (1 L -> 1000 ml, 0,512 kg -> 512 g). Zeilen wie \"2 Stk x 0,99\" multiplizieren. packungen = Anzahl Packungen.\\n'\n  + '- menge_geschaetzt: true, wenn keine Größe auf dem Bon steht und du die übliche Packungsgröße schätzt (Joghurt 500 g, Nudeln 500 g, Butter 250 g, Quark 500 g, Eier 10 stk). Obst/Gemüse ohne Gewicht als stk.\\n'\n  + '- gramm_pro_stk: ungefähres Gewicht eines Stücks (nur bei einheit stk, z.B. Zucchini 250, Ei 60, Apfel 150), sonst null.\\n'\n  + '- naehrwerte_100g: typische Nährwerte pro 100 g bzw. 100 ml (Schätzung): kcal, protein, fett, kh.\\n'\n  + '- kategorie: eine von Obst, Gemüse, Fleisch, Fisch, Milchprodukte, Käse, Eier, Brot & Backwaren, Getreide & Nudeln, Hülsenfrüchte, Konserven, Tiefkühl, Gewürze & Öle, Snacks & Süßes, Getränke, Sonstiges.\\n'\n  + '- lagerort: Kühlschrank, Tiefkühler oder Vorratsschrank.\\n'\n  + '- haltbarkeit_tage: realistische geschätzte Haltbarkeit ab Kauf bei richtiger Lagerung. Richtwerte: Hackfleisch 1, frischer Fisch 1, Hähnchen 2, Salat 3, Beeren 3, Brot 4, Tomaten 5, Brokkoli 5, Frischmilch 7, Zucchini 7, Paprika 7, Joghurt 14, Karotten 21, Eier 21, Hartkäse 28, Äpfel 30, Kartoffeln 30, H-Milch 90, Tiefkühl 180, Nudeln/Reis 365, Konserven 730.\\n'\n  + 'FORMAT: {\"kaufdatum\":\"YYYY-MM-DD\",\"summe\":23.45,\"artikel\":[{\"name\":\"Zucchini\",\"bon_text\":\"BIO ZUCCHINI\",\"off_suche\":\"Zucchini\",\"frischware\":true,\"kategorie\":\"Gemüse\",\"menge\":2,\"einheit\":\"stk\",\"packungen\":2,\"menge_geschaetzt\":false,\"gramm_pro_stk\":250,\"naehrwerte_100g\":{\"kcal\":17,\"protein\":1.2,\"fett\":0.3,\"kh\":2.2},\"lagerort\":\"Kühlschrank\",\"haltbarkeit_tage\":7}]}\\n\\n'\n  + 'BON-TEXT:\\n' + text;\n\nreturn { json: { message_id: src.message_id, kaufdatum, lesbar: text.replace(/\\s+/g, '').length > 40, system, prompt } };"
+        }
+      },
+      {
+        "id": "f5ef3dde-9ef8-4ef9-865e-652d88286570",
+        "name": "Nur neue Bons",
+        "type": "n8n-nodes-base.dataTable",
+        "typeVersion": 1.1,
+        "position": [
+          896,
+          192
+        ],
+        "parameters": {
+          "resource": "row",
+          "operation": "rowNotExists",
+          "dataTableId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "OOZDOg97S47jSMkc",
+            "cachedResultName": "vorrat_bons"
+          },
+          "filters": {
+            "conditions": [
+              {
+                "keyName": "message_id",
+                "condition": "eq",
+                "keyValue": "={{ $json.message_id }}"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "e49ba5a9-60f5-4546-a3da-39b2bf148d75",
+        "name": "Text lesbar?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          1120,
+          192
+        ],
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose"
+            },
+            "conditions": [
+              {
+                "leftValue": "={{ $json.lesbar }}",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                },
+                "rightValue": ""
+              }
+            ],
+            "combinator": "and"
+          }
+        }
+      },
+      {
+        "id": "74a86123-45cd-414f-b3e2-30b29883dac1",
+        "name": "MiniMax liest Bon aus",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          1344,
+          96
+        ],
+        "parameters": {
+          "method": "POST",
+          "url": "https://api.minimax.io/v1/chat/completions",
+          "authentication": "predefinedCredentialType",
+          "nodeCredentialType": "openAiApi",
+          "sendBody": true,
+          "contentType": "json",
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ model: \"MiniMax-M2\", temperature: 0.1, max_tokens: 16000, messages: [ { role: \"system\", content: $json.system }, { role: \"user\", content: $json.prompt } ] }) }}",
+          "options": {
+            "timeout": 240000
+          }
+        },
+        "retryOnFail": true,
+        "maxTries": 2
+      },
+      {
+        "id": "49a1ab97-2222-4cbb-aae6-50748023f68b",
+        "name": "Artikel aufbereiten",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1568,
+          96
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "language": "javaScript",
+          "jsCode": "const zone = 'Europe/Berlin';\nconst zahl = v => (v === null || v === undefined || v === '' || isNaN(Number(v))) ? null : Number(v);\nconst out = [];\n$input.all().forEach((item, i) => {\n  const bon = $('Bon vorbereiten').itemMatching(i).json;\n  const c = item.json.choices && item.json.choices[0] && item.json.choices[0].message ? String(item.json.choices[0].message.content || '') : '';\n  const s = c.includes('</think>') ? c.split('</think>').pop() : c;\n  const a = s.indexOf('{');\n  const b = s.lastIndexOf('}');\n  if (a < 0 || b < 0) throw new Error('KI-Antwort enthält kein JSON: ' + s.slice(0, 300));\n  const data = JSON.parse(s.slice(a, b + 1));\n  const kaufdatum = /^\\d{4}-\\d{2}-\\d{2}$/.test(String(data.kaufdatum || '')) ? data.kaufdatum : bon.kaufdatum;\n  const kauf = DateTime.fromISO(kaufdatum, { zone });\n  for (const art of (data.artikel || [])) {\n    const tage = Math.max(0, Math.round(Number(art.haltbarkeit_tage) || 7));\n    const einheit = ['g', 'ml', 'stk'].includes(String(art.einheit).toLowerCase()) ? String(art.einheit).toLowerCase() : 'stk';\n    const nw = art.naehrwerte_100g || {};\n    out.push({ json: {\n      name: String(art.name || art.bon_text || 'Unbekannt').trim(),\n      bon_text: String(art.bon_text || ''),\n      off_suche: String(art.off_suche || art.name || ''),\n      frischware: art.frischware === true,\n      kategorie: String(art.kategorie || 'Sonstiges'),\n      menge: Number(art.menge) || 1,\n      einheit,\n      packungen: Number(art.packungen) || 1,\n      menge_geschaetzt: art.menge_geschaetzt === true,\n      gramm_pro_stk: zahl(art.gramm_pro_stk),\n      ki_kcal_100: zahl(nw.kcal), ki_protein_100: zahl(nw.protein), ki_fett_100: zahl(nw.fett), ki_kh_100: zahl(nw.kh),\n      lagerort: String(art.lagerort || 'Vorratsschrank'),\n      haltbarkeit_tage: tage,\n      kaufdatum: kauf.toISODate(),\n      mhd: kauf.plus({ days: tage }).toISODate(),\n      bon_id: bon.message_id,\n      bon_summe: Number(data.summe) || 0\n    } });\n  }\n});\nreturn out;"
+        }
+      },
+      {
+        "id": "4f997894-e9bf-4d86-94c0-c7d5325e2aa6",
+        "name": "Profil laden",
+        "type": "n8n-nodes-base.dataTable",
+        "typeVersion": 1.1,
+        "position": [
+          1792,
+          96
+        ],
+        "parameters": {
+          "resource": "row",
+          "operation": "get",
+          "dataTableId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "cT54sdECXIGtpqDT",
+            "cachedResultName": "vorrat_profil"
+          },
+          "filters": {
+            "conditions": [
+              {
+                "keyName": "schluessel",
+                "condition": "eq",
+                "keyValue": "main"
+              }
+            ]
+          },
+          "limit": 1
+        },
+        "executeOnce": true
+      },
+      {
+        "id": "46b3a431-f3ee-4e62-95dc-caf08d07478f",
+        "name": "Grocy-Produkte laden",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          2016,
+          96
+        ],
+        "parameters": {
+          "method": "GET",
+          "url": "={{ $('Profil laden').first().json.grocy_url }}/api/objects/products",
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpTemplatedCustomAuth",
+          "options": {}
+        },
+        "executeOnce": true,
+        "alwaysOutputData": true
+      },
+      {
+        "id": "8b9c39f5-89a9-4460-bfa8-218ce3ceacb6",
+        "name": "Grocy-Einheiten laden",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          2240,
+          96
+        ],
+        "parameters": {
+          "method": "GET",
+          "url": "={{ $('Profil laden').first().json.grocy_url }}/api/objects/quantity_units",
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpTemplatedCustomAuth",
+          "options": {}
+        },
+        "executeOnce": true
+      },
+      {
+        "id": "a4e6913d-da5f-42bc-a172-512479da4608",
+        "name": "Grocy-Lagerorte laden",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          2464,
+          96
+        ],
+        "parameters": {
+          "method": "GET",
+          "url": "={{ $('Profil laden').first().json.grocy_url }}/api/objects/locations",
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpTemplatedCustomAuth",
+          "options": {}
+        },
+        "executeOnce": true
+      },
+      {
+        "id": "6cc2a830-2c95-444f-9d03-ecf717760545",
+        "name": "Produkte zuordnen",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          2688,
+          96
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "language": "javaScript",
+          "jsCode": "const norm = s => String(s || '').toLowerCase().replace(/[^a-z0-9äöüß%,.]+/g, ' ').trim();\nconst arts = $('Artikel aufbereiten').all().map(i => i.json);\nconst prods = $('Grocy-Produkte laden').all().map(i => i.json).filter(p => p && p.id);\nconst qus = $('Grocy-Einheiten laden').all().map(i => i.json).filter(p => p && p.id);\nconst locs = $('Grocy-Lagerorte laden').all().map(i => i.json).filter(p => p && p.id);\nconst quId = n => (qus.find(q => norm(q.name) === norm(n)) || {}).id;\nconst quIds = { g: quId('Gramm'), ml: quId('Milliliter'), stk: quId('Stück') };\nif (!quIds.g || !quIds.ml || !quIds.stk) throw new Error('In Grocy fehlen die Einheiten Gramm/Milliliter/Stück – bitte einmal den Workflow „Vorrat · Grocy einrichten“ ausführen.');\nconst quCode = { [quIds.g]: 'g', [quIds.ml]: 'ml', [quIds.stk]: 'stk' };\nconst locId = n => (locs.find(l => norm(l.name) === norm(n)) || locs[0] || {}).id;\nconst byName = {};\nfor (const p of prods) byName[norm(p.name)] = p;\n\nreturn arts.map(a => {\n  const p = byName[norm(a.name)];\n  let menge = a.menge;\n  let einheit = a.einheit;\n  if (p) {\n    const pe = quCode[p.qu_id_stock];\n    if (pe && pe !== einheit) {\n      if (pe === 'g' && einheit === 'stk' && a.gramm_pro_stk) menge = a.menge * a.gramm_pro_stk;\n      else if (pe === 'stk' && einheit === 'g' && a.gramm_pro_stk) menge = Math.max(1, Math.round(a.menge / a.gramm_pro_stk));\n      einheit = pe;\n    }\n  }\n  return { json: { ...a, product_id: p ? p.id : null, menge, einheit, qu_id: quIds[einheit], location_id: locId(a.lagerort) } };\n});"
+        }
+      },
+      {
+        "id": "8cbad808-d884-4a7b-adb4-80de941360ee",
+        "name": "Produkt schon in Grocy?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          2912,
+          96
+        ],
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose"
+            },
+            "conditions": [
+              {
+                "leftValue": "={{ !!$json.product_id }}",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                },
+                "rightValue": ""
+              }
+            ],
+            "combinator": "and"
+          }
+        }
+      },
+      {
+        "id": "3f6d96ff-fef4-4255-bfc5-51a1ef8a3d0f",
+        "name": "Alle Artikel",
+        "type": "n8n-nodes-base.merge",
+        "typeVersion": 3.2,
+        "position": [
+          4032,
+          0
+        ],
+        "parameters": {
+          "mode": "append"
+        }
+      },
+      {
+        "id": "6755e002-33ca-4e0b-af5a-d700d955b664",
+        "name": "OpenFoodFacts suchen",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          3136,
+          176
+        ],
+        "parameters": {
+          "method": "GET",
+          "url": "https://world.openfoodfacts.org/cgi/search.pl",
+          "sendQuery": true,
+          "specifyQuery": "keypair",
+          "queryParameters": {
+            "parameters": [
+              {
+                "name": "search_terms",
+                "value": "={{ $json.off_suche }}"
+              },
+              {
+                "name": "search_simple",
+                "value": "1"
+              },
+              {
+                "name": "action",
+                "value": "process"
+              },
+              {
+                "name": "json",
+                "value": "1"
+              },
+              {
+                "name": "page_size",
+                "value": "8"
+              },
+              {
+                "name": "tagtype_0",
+                "value": "countries"
+              },
+              {
+                "name": "tag_contains_0",
+                "value": "contains"
+              },
+              {
+                "name": "tag_0",
+                "value": "germany"
+              },
+              {
+                "name": "fields",
+                "value": "code,product_name,brands,quantity,product_quantity,nutriments,nutriscore_grade,nova_group"
+              }
+            ]
+          },
+          "sendHeaders": true,
+          "specifyHeaders": "keypair",
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "User-Agent",
+                "value": "VorratsAssistent-n8n/1.0"
+              }
+            ]
+          },
+          "options": {
+            "batching": {
+              "batch": {
+                "batchSize": 1,
+                "batchInterval": 6500
+              }
+            },
+            "timeout": 30000,
+            "response": {
+              "response": {
+                "neverError": true
+              }
+            }
+          }
+        },
+        "onError": "continueRegularOutput"
+      },
+      {
+        "id": "1059c18b-ca72-4398-9208-783360d471bf",
+        "name": "Nährwerte bestimmen",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          3360,
+          176
+        ],
+        "parameters": {
+          "mode": "runOnceForEachItem",
+          "language": "javaScript",
+          "jsCode": "const a = $('Produkte zuordnen').item.json;\nconst hits = ($json && Array.isArray($json.products)) ? $json.products : [];\nconst norm = s => String(s || '').toLowerCase().replace(/[^a-z0-9äöüß]+/g, ' ').trim();\nconst woerter = norm(a.name).split(' ').filter(w => w.length > 2);\nlet best = null;\nlet bestScore = 0;\nfor (const p of hits) {\n  const n = p.nutriments || {};\n  if (n['energy-kcal_100g'] == null) continue;\n  const pn = norm((p.product_name || '') + ' ' + (p.brands || ''));\n  const score = woerter.length ? woerter.filter(w => pn.includes(w)).length / woerter.length : 0;\n  if (score > bestScore) { best = p; bestScore = score; }\n}\nconst ok = !!best && bestScore >= (a.frischware ? 1 : 0.5);\nconst n = ok ? best.nutriments : {};\nconst r1 = v => (v === null || v === undefined || isNaN(Number(v))) ? null : Math.round(Number(v) * 10) / 10;\nlet menge = a.menge;\nif (ok && a.menge_geschaetzt && ['g', 'ml'].includes(a.einheit) && Number(best.product_quantity) > 0) menge = Number(best.product_quantity) * (a.packungen || 1);\nconst kcal_100 = ok ? r1(n['energy-kcal_100g']) : r1(a.ki_kcal_100);\nconst faktor = a.einheit === 'stk' ? (a.gramm_pro_stk || 100) / 100 : 0.01;\nconst hinweis = ok ? ['Nutri-Score ' + String(best.nutriscore_grade || '?').toUpperCase(), best.nova_group ? 'NOVA ' + best.nova_group : '', 'OFF ' + best.code].filter(Boolean).join(' · ') : 'Nährwerte geschätzt';\nreturn { json: {\n  ...a,\n  menge,\n  kcal_100,\n  protein_100: ok ? r1(n.proteins_100g) : r1(a.ki_protein_100),\n  fett_100: ok ? r1(n.fat_100g) : r1(a.ki_fett_100),\n  kh_100: ok ? r1(n.carbohydrates_100g) : r1(a.ki_kh_100),\n  nutriscore: ok && best.nutriscore_grade && best.nutriscore_grade.length === 1 ? best.nutriscore_grade.toUpperCase() : '',\n  nova: ok && best.nova_group ? Number(best.nova_group) : null,\n  off_code: ok ? String(best.code || '') : '',\n  off_name: ok ? String((best.brands ? best.brands + ' ' : '') + (best.product_name || '')) : '',\n  quelle: ok ? 'openfoodfacts' : 'ki-schaetzung',\n  kcal_pro_einheit: kcal_100 == null ? 0 : Math.round(kcal_100 * faktor * 100) / 100,\n  beschreibung: hinweis\n} };"
+        }
+      },
+      {
+        "id": "ab4699f7-d613-43ef-ae8f-da014ed52a4c",
+        "name": "Grocy-Produkt anlegen",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          3584,
+          176
+        ],
+        "parameters": {
+          "method": "POST",
+          "url": "={{ $('Profil laden').first().json.grocy_url }}/api/objects/products",
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpTemplatedCustomAuth",
+          "sendBody": true,
+          "contentType": "json",
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ name: $json.name, description: $json.beschreibung, location_id: $json.location_id, qu_id_purchase: $json.qu_id, qu_id_stock: $json.qu_id, qu_id_consume: $json.qu_id, qu_id_price: $json.qu_id, default_best_before_days: $json.haltbarkeit_tage, calories: $json.kcal_pro_einheit }) }}",
+          "options": {}
+        }
+      },
+      {
+        "id": "005c2f26-ee66-448a-bc69-0e588ce23644",
+        "name": "Neue Produkt-ID übernehmen",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          3808,
+          176
+        ],
+        "parameters": {
+          "mode": "runOnceForEachItem",
+          "language": "javaScript",
+          "jsCode": "return { json: { ...$('Nährwerte bestimmen').item.json, product_id: Number($json.created_object_id) } };"
+        }
+      },
+      {
+        "id": "3645b72d-baed-4193-959e-a5bbda33a9a8",
+        "name": "Profil laden (Fehlerfall)",
+        "type": "n8n-nodes-base.dataTable",
+        "typeVersion": 1.1,
+        "position": [
+          1344,
+          288
+        ],
+        "parameters": {
+          "resource": "row",
+          "operation": "get",
+          "dataTableId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "cT54sdECXIGtpqDT",
+            "cachedResultName": "vorrat_profil"
+          },
+          "filters": {
+            "conditions": [
+              {
+                "keyName": "schluessel",
+                "condition": "eq",
+                "keyValue": "main"
+              }
+            ]
+          },
+          "limit": 1
+        },
+        "executeOnce": true
+      },
+      {
+        "id": "1d82d78d-d4fd-48a2-880d-5cd0a47cd27a",
+        "name": "Nicht lesbar melden",
+        "type": "n8n-nodes-base.telegram",
+        "typeVersion": 1.2,
+        "position": [
+          1568,
+          288
+        ],
+        "parameters": {
+          "resource": "message",
+          "operation": "sendMessage",
+          "chatId": "={{ $json.chat_id }}",
+          "text": "⚠️ Ich habe einen REWE-eBon bekommen, konnte aber keinen Text aus dem PDF lesen (vermutlich ein Bild-PDF). Buch den Einkauf am besten per Barcode-Scanner in Grocy ein.",
+          "additionalFields": {
+            "appendAttribution": false
+          }
+        },
+        "executeOnce": true,
+        "webhookId": "67795c84-da8a-453a-b60b-ecc6d00e424f"
+      },
+      {
+        "id": "b1cf5f58-3967-4462-a038-31ff33ae10e5",
+        "name": "Nährwerte merken",
+        "type": "n8n-nodes-base.dataTable",
+        "typeVersion": 1.1,
+        "position": [
+          4032,
+          224
+        ],
+        "parameters": {
+          "resource": "row",
+          "operation": "insert",
+          "dataTableId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "kil5ZUYaG9x3uGat",
+            "cachedResultName": "vorrat_produkte"
+          },
+          "columns": {
+            "mappingMode": "defineBelow",
+            "matchingColumns": [],
+            "value": {
+              "grocy_product_id": "={{ $json.product_id }}",
+              "name": "={{ $json.name }}",
+              "einheit": "={{ $json.einheit }}",
+              "kategorie": "={{ $json.kategorie }}",
+              "kcal_100": "={{ $json.kcal_100 }}",
+              "protein_100": "={{ $json.protein_100 }}",
+              "fett_100": "={{ $json.fett_100 }}",
+              "kh_100": "={{ $json.kh_100 }}",
+              "gramm_pro_stk": "={{ $json.gramm_pro_stk }}",
+              "nutriscore": "={{ $json.nutriscore }}",
+              "nova": "={{ $json.nova }}",
+              "off_code": "={{ $json.off_code }}",
+              "off_name": "={{ $json.off_name }}",
+              "quelle": "={{ $json.quelle }}"
+            },
+            "schema": [
+              {
+                "id": "grocy_product_id",
+                "displayName": "grocy_product_id",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "number",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "name",
+                "displayName": "name",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "einheit",
+                "displayName": "einheit",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "kategorie",
+                "displayName": "kategorie",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "kcal_100",
+                "displayName": "kcal_100",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "number",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "protein_100",
+                "displayName": "protein_100",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "number",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "fett_100",
+                "displayName": "fett_100",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "number",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "kh_100",
+                "displayName": "kh_100",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "number",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "gramm_pro_stk",
+                "displayName": "gramm_pro_stk",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "number",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "nutriscore",
+                "displayName": "nutriscore",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "nova",
+                "displayName": "nova",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "number",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "off_code",
+                "displayName": "off_code",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "off_name",
+                "displayName": "off_name",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "quelle",
+                "displayName": "quelle",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "233710ac-9f98-4bcb-a848-87abddfd0fe9",
+        "name": "In Grocy einbuchen",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          4256,
+          0
+        ],
+        "parameters": {
+          "method": "POST",
+          "url": "={{ $('Profil laden').first().json.grocy_url }}/api/stock/products/{{ $json.product_id }}/add",
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpTemplatedCustomAuth",
+          "sendBody": true,
+          "contentType": "json",
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ amount: $json.menge, best_before_date: $json.mhd, purchased_date: $json.kaufdatum, transaction_type: \"purchase\", location_id: $json.location_id }) }}",
+          "options": {}
+        }
+      },
+      {
+        "id": "d1bc7ee0-fb87-4476-acc7-d003e0dafda5",
+        "name": "Bons zusammenfassen",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          4480,
+          0
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "language": "javaScript",
+          "jsCode": "const arts = $('Alle Artikel').all().map(i => i.json);\nconst esc = t => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nconst heute = DateTime.now().setZone('Europe/Berlin').startOf('day');\nconst byBon = {};\nfor (const a of arts) (byBon[a.bon_id] = byBon[a.bon_id] || []).push(a);\nreturn Object.keys(byBon).map(id => {\n  const l = byBon[id].sort((x, y) => String(x.mhd).localeCompare(String(y.mhd)));\n  const datum = DateTime.fromISO(l[0].kaufdatum).setLocale('de');\n  const zeilen = l.map(a => {\n    const m = DateTime.fromISO(a.mhd).setLocale('de');\n    const tage = Math.round(m.diff(heute, 'days').days);\n    return '• ' + esc(a.name) + ' – ' + a.menge + ' ' + a.einheit + ' · ca. bis ' + m.toFormat('ccc dd.LL.') + (tage <= 2 ? ' ⚠️' : '') + (a.nutriscore ? ' · NS ' + a.nutriscore : '');\n  });\n  const neu = l.filter(a => a.quelle).length;\n  const off = l.filter(a => a.quelle === 'openfoodfacts').length;\n  const text = '🧾 <b>REWE-Einkauf vom ' + datum.toFormat('dd.LL.yyyy') + ' in Grocy gebucht</b>\\n'\n    + l.length + ' Lebensmittel' + (l[0].bon_summe ? ' · ' + l[0].bon_summe.toFixed(2).replace('.', ',') + ' €' : '')\n    + (neu ? ' · ' + neu + ' neue Produkte (' + off + ' mit OpenFoodFacts-Nährwerten)' : '') + '\\n\\n'\n    + zeilen.join('\\n')\n    + '\\n\\n<i>Haltbarkeit ist geschätzt. Korrigieren z.B. mit: „Joghurt hält bis 15.10.“</i>\\nRezeptideen kommen gleich 🍳';\n  return { json: { message_id: id, datum: l[0].kaufdatum, summe: l[0].bon_summe || 0, anzahl_artikel: l.length, text } };\n});"
+        }
+      },
+      {
+        "id": "7733d193-c796-440a-ad13-b3664929929c",
+        "name": "Bon als verarbeitet merken",
+        "type": "n8n-nodes-base.dataTable",
+        "typeVersion": 1.1,
+        "position": [
+          4704,
+          0
+        ],
+        "parameters": {
+          "resource": "row",
+          "operation": "insert",
+          "dataTableId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "OOZDOg97S47jSMkc",
+            "cachedResultName": "vorrat_bons"
+          },
+          "columns": {
+            "mappingMode": "defineBelow",
+            "matchingColumns": [],
+            "value": {
+              "message_id": "={{ $json.message_id }}",
+              "datum": "={{ $json.datum }}",
+              "summe": "={{ $json.summe }}",
+              "anzahl_artikel": "={{ $json.anzahl_artikel }}"
+            },
+            "schema": [
+              {
+                "id": "message_id",
+                "displayName": "message_id",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "datum",
+                "displayName": "datum",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "dateTime",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "summe",
+                "displayName": "summe",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "number",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "anzahl_artikel",
+                "displayName": "anzahl_artikel",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "number",
+                "canBeUsedToMatch": true
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "aa1ed1f8-abbb-4593-a3ac-10c8458d681b",
+        "name": "Einkauf melden",
+        "type": "n8n-nodes-base.telegram",
+        "typeVersion": 1.2,
+        "position": [
+          4928,
+          0
+        ],
+        "parameters": {
+          "resource": "message",
+          "operation": "sendMessage",
+          "chatId": "={{ $('Profil laden').first().json.chat_id }}",
+          "text": "={{ $('Bons zusammenfassen').all().map(i => i.json.text).join('\\n\\n') }}",
+          "additionalFields": {
+            "appendAttribution": false,
+            "parse_mode": "HTML"
+          }
+        },
+        "executeOnce": true,
+        "webhookId": "3ddf618f-a997-4d96-a61a-d53a9d1d9911"
+      },
+      {
+        "id": "ff082760-7bf8-49b6-8736-e62b9903d856",
+        "name": "Rezeptvorschläge anstoßen",
+        "type": "n8n-nodes-base.executeWorkflow",
+        "typeVersion": 1.3,
+        "position": [
+          5152,
+          0
+        ],
+        "parameters": {
+          "mode": "once",
+          "source": "database",
+          "workflowId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "2dBOwb9KJDnwi1Id",
+            "cachedResultName": "Vorrat · Planer (Rezepte & Wochenplan)"
+          },
+          "workflowInputs": {
+            "mappingMode": "defineBelow",
+            "value": {
+              "modus": "rezepte",
+              "hinweis": "Es wurde gerade frisch eingekauft."
+            },
+            "matchingColumns": [],
+            "schema": [
+              {
+                "id": "modus",
+                "displayName": "modus",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
+              },
+              {
+                "id": "hinweis",
+                "displayName": "hinweis",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
+              }
+            ],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": true
+          },
+          "options": {
+            "waitForSubWorkflow": false
+          }
+        },
+        "executeOnce": true
+      },
+      {
+        "id": "ddf581ec-952b-424c-86b4-09312a718f89",
+        "name": "Sticky Note def5866e",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          2512,
+          288
+        ],
+        "parameters": {
+          "content": "## eBon-Import → Grocy\n1. iCloud: ungelesene Mails von „rewe“, PDF-Text lesen (eBons sind Text-PDFs, OCR unnötig)\n2. MiniMax strukturiert Artikel, schätzt MHD, Packungsgröße und Nährwerte\n3. Produkt schon in Grocy? → direkt einbuchen. Neu? → OpenFoodFacts-Suche (max. ~9/min, daher 6,5 s Abstand) → Produkt anlegen → Nährwerte in `vorrat_produkte` merken\n4. Bestand mit MHD in Grocy buchen → Telegram-Info → Rezeptvorschläge",
+          "color": 4
+        }
+      }
+    ],
+    "connections": {
+      "Neue REWE-Mail (iCloud)": {
+        "main": [
+          [
+            {
+              "node": "PDF-Anhang finden",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "PDF-Anhang finden": {
+        "main": [
+          [
+            {
+              "node": "Text aus PDF lesen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Text aus PDF lesen": {
+        "main": [
+          [
+            {
+              "node": "Bon vorbereiten",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Bon vorbereiten": {
+        "main": [
+          [
+            {
+              "node": "Nur neue Bons",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Nur neue Bons": {
+        "main": [
+          [
+            {
+              "node": "Text lesbar?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Text lesbar?": {
+        "main": [
+          [
+            {
+              "node": "MiniMax liest Bon aus",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Profil laden (Fehlerfall)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "MiniMax liest Bon aus": {
+        "main": [
+          [
+            {
+              "node": "Artikel aufbereiten",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Artikel aufbereiten": {
+        "main": [
+          [
+            {
+              "node": "Profil laden",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Profil laden": {
+        "main": [
+          [
+            {
+              "node": "Grocy-Produkte laden",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Grocy-Produkte laden": {
+        "main": [
+          [
+            {
+              "node": "Grocy-Einheiten laden",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Grocy-Einheiten laden": {
+        "main": [
+          [
+            {
+              "node": "Grocy-Lagerorte laden",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Grocy-Lagerorte laden": {
+        "main": [
+          [
+            {
+              "node": "Produkte zuordnen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Produkte zuordnen": {
+        "main": [
+          [
+            {
+              "node": "Produkt schon in Grocy?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Produkt schon in Grocy?": {
+        "main": [
+          [
+            {
+              "node": "Alle Artikel",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "OpenFoodFacts suchen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Alle Artikel": {
+        "main": [
+          [
+            {
+              "node": "In Grocy einbuchen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "OpenFoodFacts suchen": {
+        "main": [
+          [
+            {
+              "node": "Nährwerte bestimmen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Nährwerte bestimmen": {
+        "main": [
+          [
+            {
+              "node": "Grocy-Produkt anlegen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Grocy-Produkt anlegen": {
+        "main": [
+          [
+            {
+              "node": "Neue Produkt-ID übernehmen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Neue Produkt-ID übernehmen": {
+        "main": [
+          [
+            {
+              "node": "Alle Artikel",
+              "type": "main",
+              "index": 1
+            },
+            {
+              "node": "Nährwerte merken",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Profil laden (Fehlerfall)": {
+        "main": [
+          [
+            {
+              "node": "Nicht lesbar melden",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "In Grocy einbuchen": {
+        "main": [
+          [
+            {
+              "node": "Bons zusammenfassen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Bons zusammenfassen": {
+        "main": [
+          [
+            {
+              "node": "Bon als verarbeitet merken",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Bon als verarbeitet merken": {
+        "main": [
+          [
+            {
+              "node": "Einkauf melden",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Einkauf melden": {
+        "main": [
+          [
+            {
+              "node": "Rezeptvorschläge anstoßen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1",
+      "availableInMCP": true
+    },
+    "staticData": null,
+    "meta": {
+      "aiBuilderAssisted": true,
+      "builderVariant": "mcp"
+    },
+    "nodeGroups": [
+      {
+        "id": "c49a82fe-7989-4bbd-bd24-7c9f499e2e63",
+        "name": "PDF lesen",
+        "nodeIds": [
+          "15bf5715-846d-4d1a-bb36-f7128d0c318b",
+          "3ef367a4-7bef-474a-82cd-408d877e22dd",
+          "34a8b2ce-9c88-4a20-8a4c-abbd381deb48",
+          "f5ef3dde-9ef8-4ef9-865e-652d88286570"
+        ],
+        "description": "Findet den PDF-Anhang, liest den Text und überspringt bereits importierte Bons"
+      },
+      {
+        "id": "2ffe54b6-68a9-4e80-bab5-542a910a6350",
+        "name": "KI-Auswertung",
+        "nodeIds": [
+          "74a86123-45cd-414f-b3e2-30b29883dac1",
+          "49a1ab97-2222-4cbb-aae6-50748023f68b"
+        ],
+        "description": "MiniMax erkennt Lebensmittel, Mengen, Lagerort, MHD und schätzt Nährwerte als Fallback"
+      },
+      {
+        "id": "fe0c80ad-c63b-4279-98c6-226ef7379f62",
+        "name": "Grocy-Abgleich",
+        "nodeIds": [
+          "4f997894-e9bf-4d86-94c0-c7d5325e2aa6",
+          "46b3a431-f3ee-4e62-95dc-caf08d07478f",
+          "8b9c39f5-89a9-4460-bfa8-218ce3ceacb6",
+          "a4e6913d-da5f-42bc-a172-512479da4608",
+          "6cc2a830-2c95-444f-9d03-ecf717760545"
+        ],
+        "description": "Lädt Grocy-Produkte, Einheiten und Lagerorte und ordnet jeden Artikel einem Produkt zu"
+      },
+      {
+        "id": "6f65db12-4d82-4ce2-8890-407179269bb5",
+        "name": "Neue Produkte + OpenFoodFacts",
+        "nodeIds": [
+          "6755e002-33ca-4e0b-af5a-d700d955b664",
+          "1059c18b-ca72-4398-9208-783360d471bf",
+          "ab4699f7-d613-43ef-ae8f-da014ed52a4c",
+          "005c2f26-ee66-448a-bc69-0e588ce23644"
+        ],
+        "description": "Sucht Nährwerte, Nutri-Score und Packungsgröße bei OFF und legt das Produkt in Grocy an"
+      },
+      {
+        "id": "3a30f0cc-a463-44c5-b78a-4d64cfe0d18c",
+        "name": "Einbuchen & Abschluss",
+        "nodeIds": [
+          "3f6d96ff-fef4-4255-bfc5-51a1ef8a3d0f",
+          "233710ac-9f98-4bcb-a848-87abddfd0fe9",
+          "d1bc7ee0-fb87-4476-acc7-d003e0dafda5",
+          "7733d193-c796-440a-ad13-b3664929929c",
+          "aa1ed1f8-abbb-4593-a3ac-10c8458d681b",
+          "ff082760-7bf8-49b6-8736-e62b9903d856"
+        ],
+        "description": "Bucht den Bestand mit MHD in Grocy, merkt den Bon, meldet den Einkauf und stößt Rezepte an"
+      },
+      {
+        "id": "50415502-1e61-46b9-a091-2cc3b7ea4219",
+        "name": "Fehlerfall",
+        "nodeIds": [
+          "3645b72d-baed-4193-959e-a5bbda33a9a8",
+          "1d82d78d-d4fd-48a2-880d-5cd0a47cd27a"
+        ],
+        "description": "Meldet per Telegram, wenn das PDF keinen lesbaren Text enthält"
+      }
+    ],
+    "pinData": null,
+    "versionId": "50d502ef-fa89-4f99-b261-b641fbdd3e8d",
+    "activeVersionId": null,
+    "versionCounter": 1,
+    "triggerCount": 0,
+    "sourceWorkflowId": null,
+    "tags": [],
+    "shared": [
+      {
+        "updatedAt": "2026-09-27T15:00:32.015Z",
+        "createdAt": "2026-09-27T15:00:32.015Z",
+        "role": "workflow:owner",
+        "workflowId": "WI7rA3dd4TMM2WVb",
+        "projectId": "nzlXKBBRrLp3C73r",
+        "project": {
+          "updatedAt": "2026-09-27T10:46:36.945Z",
+          "createdAt": "2026-09-27T10:43:38.721Z",
+          "id": "nzlXKBBRrLp3C73r",
+          "name": "Julian Krause <cjuliankrause@icloud.com>",
+          "type": "personal",
+          "icon": null,
+          "description": null,
+          "customTelemetryTags": [],
+          "creatorId": "d119e51b-5188-40f3-82ab-3c4e7b4f489e"
+        }
+      }
+    ],
+    "versionMetadata": {
+      "name": "eBon-Import mit Grocy + OFF",
+      "description": "Created with 28 nodes: Neue REWE-Mail (iCloud), PDF-Anhang finden, Text aus PDF lesen, Bon vorbereiten, Nur neue Bons and 23 more"
+    }
+  }
+]
