@@ -1,6 +1,6 @@
 [
   {
-    "updatedAt": "2026-09-29T13:15:00.000Z",
+    "updatedAt": "2026-09-29T13:35:43.000Z",
     "createdAt": "2026-09-29T13:11:05.106Z",
     "id": "VorratNachts0001",
     "name": "Vorrat · Nährwerte nachts (03:30)",
@@ -326,6 +326,212 @@
           "color": 4,
           "content": "## Nährwerte nachts\n1. `POST /naehrwerte/nachtlauf`: Open-Food-Facts-Warteschlange erneut versuchen, Verzehr-Korrektur (bessere Quelle → neu berechnen).\n2. Grocy-kcal aus der View `vorrat_naehrwerte` neu setzen, wo abweichend (auch nach dem Crawl).\n3. Namen/Einheit in `vorrat_produkte` an Grocy angleichen.\n4. Gesammelte `meldungen` (> 20 % Abweichung, unplausibel) per Telegram, danach als gesendet markieren.\nFehler → Workflow „Fehlermeldung“."
         }
+      },
+      {
+        "id": "e5000000-0101-4000-8000-nachts000101",
+        "name": "Unsichere Produkte laden",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.6,
+        "position": [
+          1100,
+          420
+        ],
+        "credentials": {
+          "postgres": {
+            "id": "RewePostgres0001",
+            "name": "REWE Postgres"
+          }
+        },
+        "parameters": {
+          "operation": "executeQuery",
+          "options": {},
+          "query": "SELECT v.grocy_product_id, v.name, v.einheit, v.kategorie, v.rewe_product_id, v.ean, r.brand AS marke,\n       p.kcal_100::float8 AS kcal_100, p.protein_100::float8 AS protein_100, p.fett_100::float8 AS fett_100, p.kh_100::float8 AS kh_100,\n       p.naehrwert_quelle AS werte_quelle, p.gramm_pro_stk::float8 AS gramm_pro_stk, p.gramm_quelle\nFROM vorrat_naehrwerte v JOIN vorrat_produkte p USING (grocy_product_id) LEFT JOIN rewe_products r ON r.rewe_product_id = v.rewe_product_id\nWHERE v.naehrwert_rang IS NULL OR v.naehrwert_rang >= 5 OR (v.einheit = 'stk' AND coalesce(v.gramm_rang, 4) >= 4);"
+        },
+        "alwaysOutputData": true,
+        "executeOnce": false
+      },
+      {
+        "name": "Unsichere neu ermitteln",
+        "type": "n8n-nodes-base.executeWorkflow",
+        "typeVersion": 1.3,
+        "parameters": {
+          "mode": "once",
+          "source": "database",
+          "workflowId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "VorratNaehrwert1",
+            "cachedResultName": "Vorrat · Nährwerte ermitteln"
+          },
+          "workflowInputs": {
+            "mappingMode": "defineBelow",
+            "value": {
+              "grocy_product_id": "={{ $json.grocy_product_id }}",
+              "name": "={{ $json.name }}",
+              "marke": "={{ $json.marke || '' }}",
+              "rewe_product_id": "={{ $json.rewe_product_id || '' }}",
+              "ean": "={{ $json.ean || '' }}",
+              "einheit": "={{ $json.einheit }}",
+              "kategorie": "={{ $json.kategorie || '' }}",
+              "kcal_100": "={{ $json.werte_quelle === 'ki' || $json.werte_quelle === 'manuell' ? $json.kcal_100 : null }}",
+              "protein_100": "={{ $json.protein_100 }}",
+              "fett_100": "={{ $json.fett_100 }}",
+              "kh_100": "={{ $json.kh_100 }}",
+              "werte_quelle": "={{ $json.werte_quelle === 'manuell' ? 'manuell' : 'ki' }}",
+              "gramm_pro_stk": "={{ $json.gramm_pro_stk }}",
+              "gramm_quelle": "={{ $json.gramm_quelle || 'ki' }}",
+              "bls_suche": ""
+            },
+            "matchingColumns": [],
+            "schema": [
+              {
+                "id": "grocy_product_id",
+                "displayName": "grocy_product_id",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "number"
+              },
+              {
+                "id": "name",
+                "displayName": "name",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
+              },
+              {
+                "id": "marke",
+                "displayName": "marke",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
+              },
+              {
+                "id": "rewe_product_id",
+                "displayName": "rewe_product_id",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
+              },
+              {
+                "id": "ean",
+                "displayName": "ean",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
+              },
+              {
+                "id": "einheit",
+                "displayName": "einheit",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
+              },
+              {
+                "id": "kategorie",
+                "displayName": "kategorie",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
+              },
+              {
+                "id": "kcal_100",
+                "displayName": "kcal_100",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "number"
+              },
+              {
+                "id": "protein_100",
+                "displayName": "protein_100",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "number"
+              },
+              {
+                "id": "fett_100",
+                "displayName": "fett_100",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "number"
+              },
+              {
+                "id": "kh_100",
+                "displayName": "kh_100",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "number"
+              },
+              {
+                "id": "werte_quelle",
+                "displayName": "werte_quelle",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
+              },
+              {
+                "id": "gramm_pro_stk",
+                "displayName": "gramm_pro_stk",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "number"
+              },
+              {
+                "id": "gramm_quelle",
+                "displayName": "gramm_quelle",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
+              },
+              {
+                "id": "bls_suche",
+                "displayName": "bls_suche",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
+              }
+            ],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          },
+          "options": {
+            "waitForSubWorkflow": true
+          }
+        },
+        "id": "e5000000-0102-4000-8000-nachts000102",
+        "position": [
+          1320,
+          420
+        ]
       }
     ],
     "connections": {
@@ -355,7 +561,7 @@
         "main": [
           [
             {
-              "node": "Profil laden",
+              "node": "Unsichere Produkte laden",
               "type": "main",
               "index": 0
             }
@@ -459,6 +665,28 @@
             }
           ]
         ]
+      },
+      "Unsichere Produkte laden": {
+        "main": [
+          [
+            {
+              "node": "Unsichere neu ermitteln",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Unsichere neu ermitteln": {
+        "main": [
+          [
+            {
+              "node": "Profil laden",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
       }
     },
     "settings": {
@@ -480,9 +708,9 @@
     "meta": null,
     "nodeGroups": [],
     "pinData": null,
-    "versionId": "0f129835-4ab0-46c6-aa56-b4c2c43d48cf",
-    "activeVersionId": "0f129835-4ab0-46c6-aa56-b4c2c43d48cf",
-    "versionCounter": 2,
+    "versionId": "ef8a48fc-e9a9-40f1-b74a-ec784beedb46",
+    "activeVersionId": "ef8a48fc-e9a9-40f1-b74a-ec784beedb46",
+    "versionCounter": 3,
     "triggerCount": 1,
     "sourceWorkflowId": null,
     "tags": [],

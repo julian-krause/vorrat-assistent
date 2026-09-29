@@ -10,7 +10,7 @@ from pathlib import Path
 from fastapi import Body, FastAPI, HTTPException, Query
 from fastapi.responses import HTMLResponse, JSONResponse
 
-from . import bon, db, ermitteln, planer, rewe, vorrat
+from . import bls, bon, db, ermitteln, planer, rewe, stueckgewicht, vorrat
 from .crawler import Crawler, kategorien_config, listen_produkt, produkt_aktualisieren
 from .parse import ean_aus_article_id, finde_ean, parse_naehrwerte
 
@@ -210,9 +210,26 @@ def naehrwerte_ermitteln(artikel: dict = Body(...)):
 
 @app.post("/naehrwerte/nachtlauf")
 def naehrwerte_nachtlauf():
-    """Nächtliche Pflege: Open-Food-Facts-Warteschlange erneut versuchen."""
+    """Nächtliche Pflege: Open-Food-Facts-Warteschlange erneut versuchen, Stückgewichte aus der Referenz."""
     with db.verbinden() as con:
-        return {"warteschlange": ermitteln.warteschlange_abarbeiten(con)}
+        return {"warteschlange": ermitteln.warteschlange_abarbeiten(con),
+                "stueckgewichte": stueckgewicht.alle_aktualisieren(con)}
+
+
+@app.get("/bls/suche")
+def bls_suche(q: str, anzahl: int = Query(8, le=20)):
+    """BLS-Kandidaten für die KI-Auswahl (Werte pro 100 g), Quelle: Max Rubner-Institut, BLS 4.0 (CC BY 4.0)."""
+    with db.verbinden() as con:
+        return {"quelle": bls.QUELLE, "treffer": bls.suche(con, q, anzahl)}
+
+
+@app.get("/stueckgewichte")
+def stueckgewichte():
+    """Referenztabelle der Standard-Stückgewichte (essbarer Anteil) mit Quelle je Zeile."""
+    with db.verbinden() as con:
+        z = con.execute("SELECT schluessel, bezeichnung, gramm_essbar::float8, anteil_essbar::float8, quelle FROM stueckgewichte "
+                        "ORDER BY prioritaet, schluessel").fetchall()
+    return [dict(zip(("schluessel", "bezeichnung", "gramm_essbar", "anteil_essbar", "quelle"), r)) for r in z]
 
 
 @app.post("/vorrat/migrieren")

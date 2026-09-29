@@ -1,6 +1,6 @@
 [
   {
-    "updatedAt": "2026-09-29T13:08:57.000Z",
+    "updatedAt": "2026-09-29T13:24:59.000Z",
     "createdAt": "2026-09-29T13:07:39.762Z",
     "id": "VorratNaehrwert1",
     "name": "Vorrat · Nährwerte ermitteln",
@@ -138,7 +138,7 @@
         "type": "n8n-nodes-base.dataTable",
         "typeVersion": 1.1,
         "position": [
-          660,
+          2200,
           0
         ],
         "executeOnce": true,
@@ -169,13 +169,13 @@
         "type": "n8n-nodes-base.code",
         "typeVersion": 2,
         "position": [
-          880,
+          2420,
           0
         ],
         "parameters": {
           "mode": "runOnceForAllItems",
           "language": "javaScript",
-          "jsCode": "// Grocy-kcal ist nur eine Kopie der View: kcal pro Lagereinheit (g/ml: kcal/100 g ÷ 100, Stück: × Stückgewicht)\nreturn $('Ermitteln').all().map(i => (i.json && i.json.produkt) || {})\n  .filter(p => p.grocy_product_id && p.kcal_pro_einheit !== null && p.kcal_pro_einheit !== undefined)\n  .map(p => ({ json: { id: p.grocy_product_id, calories: p.kcal_pro_einheit } }));"
+          "jsCode": "// Grocy-kcal ist nur eine Kopie der View: kcal pro Lagereinheit (g/ml: kcal/100 g ÷ 100, Stück: × Stückgewicht)\nreturn $('Endergebnis').all().map(i => (i.json && i.json.produkt) || {})\n  .filter(p => p.grocy_product_id && p.kcal_pro_einheit !== null && p.kcal_pro_einheit !== undefined)\n  .map(p => ({ json: { id: p.grocy_product_id, calories: p.kcal_pro_einheit } }));"
         }
       },
       {
@@ -184,7 +184,7 @@
         "type": "n8n-nodes-base.httpRequest",
         "typeVersion": 4.2,
         "position": [
-          1100,
+          2640,
           0
         ],
         "credentials": {
@@ -218,13 +218,13 @@
         "type": "n8n-nodes-base.code",
         "typeVersion": 2,
         "position": [
-          880,
-          200
+          2200,
+          260
         ],
         "parameters": {
           "mode": "runOnceForAllItems",
           "language": "javaScript",
-          "jsCode": "// Ergebnis je Produkt (für eBon-Import und Bot): beste Quelle, Rang, Werte, Grocy-kcal\nreturn $('Ermitteln').all().map(i => {\n  const r = i.json || {};\n  const p = r.produkt || {};\n  return { json: {\n    grocy_product_id: p.grocy_product_id ?? null, name: p.name ?? null, quelle: p.naehrwert_quelle ?? r.quelle ?? null,\n    rang: p.naehrwert_rang ?? r.rang ?? null, kcal_100: p.kcal_100 ?? null, protein_100: p.protein_100 ?? null,\n    fett_100: p.fett_100 ?? null, kh_100: p.kh_100 ?? null, gramm_pro_stk: p.gramm_pro_stk ?? null, gramm_quelle: p.gramm_quelle ?? null,\n    geschaetzt: p.geschaetzt ?? true, kcal_pro_einheit: p.kcal_pro_einheit ?? null, rewe_product_id: p.rewe_product_id ?? null,\n    naehrwerte_status: r.naehrwerte_status ?? null, hinweise: r.hinweise || [], schritte: r.schritte || [],\n    fehler: r.error ? (r.error.message || String(r.error)) : (r.detail && !r.quelle && !r.produkt ? r.detail : null),\n  } };\n});"
+          "jsCode": "// Ergebnis je Produkt (für eBon-Import und Bot): beste Quelle, Rang, Werte, Grocy-kcal\nreturn $('Endergebnis').all().map(i => {\n  const r = i.json || {};\n  const p = r.produkt || {};\n  return { json: {\n    grocy_product_id: p.grocy_product_id ?? null, name: p.name ?? null, quelle: p.naehrwert_quelle ?? r.quelle ?? null,\n    rang: p.naehrwert_rang ?? r.rang ?? null, kcal_100: p.kcal_100 ?? null, protein_100: p.protein_100 ?? null,\n    fett_100: p.fett_100 ?? null, kh_100: p.kh_100 ?? null, gramm_pro_stk: p.gramm_pro_stk ?? null, gramm_quelle: p.gramm_quelle ?? null,\n    geschaetzt: p.geschaetzt ?? true, kcal_pro_einheit: p.kcal_pro_einheit ?? null, rewe_product_id: p.rewe_product_id ?? null,\n    naehrwerte_status: r.naehrwerte_status ?? null, hinweise: r.hinweise || [], schritte: r.schritte || [],\n    fehler: r.error ? (r.error.message || String(r.error)) : (r.detail && !r.quelle && !r.produkt ? r.detail : null),\n  } };\n});"
         }
       },
       {
@@ -241,6 +241,167 @@
           "height": 280,
           "color": 4,
           "content": "## Nährwerte ermitteln (Unter-Workflow)\nGenutzt vom eBon-Import, vom Bot-Tool `naehrwerte_merken` und von der Bon-Rückfrage.\n`POST /naehrwerte/ermitteln` arbeitet die Rangfolge ab: REWE (fehlende/über 7 Tage alte Details werden sofort nachgeladen) → Open Food Facts per Barcode → per Name (nur gleiche Marke) → BLS → KI. Gespeichert wird in `vorrat_produkte` (schlechter überschreibt nie besser). Danach wird das kcal-Feld in Grocy aus der View `vorrat_naehrwerte` neu gesetzt.\nRückgabe: je Produkt Quelle, Rang, Werte, `geschaetzt`."
+        }
+      },
+      {
+        "id": "d4000000-0011-4000-8000-naehrwert011",
+        "name": "BLS-Aufgaben",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          660,
+          260
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "language": "javaScript",
+          "jsCode": "// Ohne Quelle bis Rang 4 (REWE, Open Food Facts) liefert der Dienst BLS-Kandidaten: die KI wählt den passenden Eintrag\nconst anfragen = $('Anfrage bauen').all().map(i => i.json);\nconst aufgaben = [];\n$('Ermitteln').all().forEach((i, idx) => {\n  const r = i.json || {};\n  const k = r.bls_kandidaten || [];\n  if (!k.length || (r.rang !== null && r.rang !== undefined && r.rang <= 5)) return;\n  const a = anfragen[idx] || {};\n  aufgaben.push({ idx, name: a.name, kategorie: a.kategorie, kandidaten: k.slice(0, 8).map(e => ({ code: e.code, name: e.name, kcal: e.werte.kcal })) });\n});\nconst system = 'Du ordnest Lebensmittel Einträgen des Bundeslebensmittelschlüssels (BLS) zu. Antworte ausschließlich mit gültigem JSON.';\nconst prompt = 'Wähle für jedes Produkt den BLS-Eintrag, der dasselbe Lebensmittel im selben Zustand beschreibt (roh/frisch, wenn nichts anderes gesagt).\\n'\n  + 'Regeln: Nur Codes aus der jeweiligen Liste. Kein Gericht, Saft, getrocknetes oder zubereitetes Produkt für ein frisches Lebensmittel. '\n  + 'Ist es ein verarbeitetes Markenprodukt ohne passenden Grundeintrag, wähle null.\\n'\n  + 'ANTWORTFORMAT: {\"wahl\": {\"<Nummer>\": \"<Code oder null>\"}}\\n\\n'\n  + aufgaben.map(a => 'Nummer ' + a.idx + ': ' + a.name + (a.kategorie ? ' (' + a.kategorie + ')' : '') + '\\n'\n    + a.kandidaten.map(k => '  ' + k.code + ' | ' + k.name + ' | ' + k.kcal + ' kcal').join('\\n')).join('\\n\\n');\nreturn [{ json: { anzahl: aufgaben.length, system, prompt } }];"
+        }
+      },
+      {
+        "id": "d4000000-0012-4000-8000-naehrwert012",
+        "name": "BLS nötig?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          880,
+          260
+        ],
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose"
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "bls",
+                "leftValue": "={{ $json.anzahl > 0 }}",
+                "rightValue": "",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                }
+              }
+            ]
+          },
+          "options": {}
+        }
+      },
+      {
+        "id": "d4000000-0013-4000-8000-naehrwert013",
+        "name": "MiniMax wählt BLS",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          1100,
+          160
+        ],
+        "credentials": {
+          "openAiApi": {
+            "id": "MiniMaxOpenAi01",
+            "name": "MiniMax (OpenAI-kompatibel)"
+          }
+        },
+        "onError": "continueRegularOutput",
+        "retryOnFail": true,
+        "maxTries": 2,
+        "waitBetweenTries": 3000,
+        "parameters": {
+          "method": "POST",
+          "url": "https://api.minimax.io/v1/chat/completions",
+          "authentication": "predefinedCredentialType",
+          "nodeCredentialType": "openAiApi",
+          "sendBody": true,
+          "contentType": "json",
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ model: \"MiniMax-M3\", thinking: { type: \"disabled\" }, temperature: 0, max_tokens: 2000, messages: [ { role: \"system\", content: $json.system }, { role: \"user\", content: $json.prompt } ] }) }}",
+          "options": {
+            "timeout": 120000,
+            "response": {
+              "response": {
+                "neverError": true
+              }
+            }
+          }
+        }
+      },
+      {
+        "id": "d4000000-0014-4000-8000-naehrwert014",
+        "name": "BLS-Anfragen",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1320,
+          160
+        ],
+        "alwaysOutputData": true,
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "language": "javaScript",
+          "jsCode": "// Gewählte BLS-Codes -> zweite Ermittlung mit bls_code (die Werte liest der Dienst aus der BLS-Tabelle)\nconst c = (($json.choices || [])[0] || {}).message || {};\nconst text = String(c.content || '').split('</think>').pop();\nlet wahl = {};\ntry { wahl = JSON.parse(text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1)).wahl || {}; } catch (e) { wahl = {}; }\nconst anfragen = $('Anfrage bauen').all().map(i => i.json);\nconst out = [];\nfor (const [idx, code] of Object.entries(wahl)) {\n  const a = anfragen[Number(idx)];\n  if (a && code && /^[A-Z]\\d{6}$/.test(String(code))) out.push({ json: { ...a, bls_code: String(code), idx: Number(idx) } });\n}\nreturn out;"
+        }
+      },
+      {
+        "id": "d4000000-0015-4000-8000-naehrwert015",
+        "name": "Mit BLS ermitteln",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          1540,
+          160
+        ],
+        "parameters": {
+          "method": "POST",
+          "url": "http://rewe-service:8000/naehrwerte/ermitteln",
+          "sendBody": true,
+          "contentType": "json",
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify($json) }}",
+          "options": {
+            "timeout": 60000,
+            "batching": {
+              "batch": {
+                "batchSize": 1,
+                "batchInterval": 200
+              }
+            },
+            "response": {
+              "response": {
+                "neverError": true
+              }
+            }
+          }
+        }
+      },
+      {
+        "id": "d4000000-0016-4000-8000-naehrwert016",
+        "name": "Ergebnisse zusammenführen",
+        "type": "n8n-nodes-base.merge",
+        "typeVersion": 3,
+        "position": [
+          1760,
+          260
+        ],
+        "parameters": {}
+      },
+      {
+        "id": "d4000000-0017-4000-8000-naehrwert017",
+        "name": "Endergebnis",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1980,
+          260
+        ],
+        "executeOnce": false,
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "language": "javaScript",
+          "jsCode": "// Endergebnis je Produkt: zweite Ermittlung (mit BLS) ersetzt die erste\nconst erg = $('Ermitteln').all().map(i => i.json || {});\nlet zweite = [], anfragen = [];\ntry { zweite = $('Mit BLS ermitteln').all().map(i => i.json || {}); anfragen = $('BLS-Anfragen').all().map(i => i.json || {}); } catch (e) {}\nanfragen.forEach((a, k) => { if (a && a.idx !== undefined && zweite[k] && zweite[k].produkt) erg[a.idx] = zweite[k]; });\nreturn erg.map(r => ({ json: r }));"
         }
       }
     ],
@@ -271,12 +432,7 @@
         "main": [
           [
             {
-              "node": "Profil laden",
-              "type": "main",
-              "index": 0
-            },
-            {
-              "node": "Ergebnis",
+              "node": "BLS-Aufgaben",
               "type": "main",
               "index": 0
             }
@@ -304,6 +460,95 @@
             }
           ]
         ]
+      },
+      "BLS-Aufgaben": {
+        "main": [
+          [
+            {
+              "node": "BLS nötig?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "BLS nötig?": {
+        "main": [
+          [
+            {
+              "node": "MiniMax wählt BLS",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Ergebnisse zusammenführen",
+              "type": "main",
+              "index": 1
+            }
+          ]
+        ]
+      },
+      "MiniMax wählt BLS": {
+        "main": [
+          [
+            {
+              "node": "BLS-Anfragen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "BLS-Anfragen": {
+        "main": [
+          [
+            {
+              "node": "Mit BLS ermitteln",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Mit BLS ermitteln": {
+        "main": [
+          [
+            {
+              "node": "Ergebnisse zusammenführen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Ergebnisse zusammenführen": {
+        "main": [
+          [
+            {
+              "node": "Endergebnis",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Endergebnis": {
+        "main": [
+          [
+            {
+              "node": "Profil laden",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Ergebnis",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
       }
     },
     "settings": {
@@ -316,9 +561,9 @@
     "meta": null,
     "nodeGroups": [],
     "pinData": null,
-    "versionId": "9267cc8a-3acb-42dc-adc6-0d910535bda5",
-    "activeVersionId": "9267cc8a-3acb-42dc-adc6-0d910535bda5",
-    "versionCounter": 1,
+    "versionId": "2b9a0d58-cde4-4b87-95d3-cebc3ec69aa1",
+    "activeVersionId": "2b9a0d58-cde4-4b87-95d3-cebc3ec69aa1",
+    "versionCounter": 2,
     "triggerCount": 0,
     "sourceWorkflowId": null,
     "tags": [],

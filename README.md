@@ -170,7 +170,9 @@ Geschrieben wird nur über den rewe-service (`POST /vorrat/produkte/{grocy_id}`)
 
 In n8n kapselt der Unter-Workflow **„Vorrat · Nährwerte ermitteln“** (10) den Aufruf samt Speichern und dem Neusetzen des Grocy-kcal-Felds. Ihn nutzen der eBon-Import (für jeden Artikel, auch schon vorhandene Produkte – ein besserer Rang wird übernommen; Abgleich mit Grocy über die `rewe_product_id`, der Name ist nur Rückfall), das Bot-Tool `naehrwerte_merken` und die Bon-Rückfrage.
 
-**Nachtjob** (09, 03:30): OFF-Warteschlange, Grocy-kcal aus der View angleichen (auch nach dem Crawl), Namen/Einheit an Grocy angleichen, gesammelte `meldungen` per Telegram.
+**BLS und Stückgewichte:** Der Bundeslebensmittelschlüssel 4.0 (Max Rubner-Institut (2025): Bundeslebensmittelschlüssel (BLS), Version 4.0, CC BY 4.0) liegt als `rewe-service/daten/bls_4_0.csv.gz` im Repo und wird beim Start in die Tabelle `bls` geladen. Findet die Ermittlung bis Rang 4 nichts, liefert sie BLS-Kandidaten; im Unter-Workflow wählt MiniMax den passenden Eintrag (nur den Code), die Werte liest der Dienst. Stückgewichte (essbarer Anteil) kommen aus der Gewichtsklasse im Namen (Eier S/M/L/XL, Rang 2) oder der Referenztabelle `stueckgewichte` (Rang 3, Quelle je Zeile: USDA SR28 bzw. VO (EG) 589/2008) – siehe `rewe-service/daten/QUELLEN.md`, `GET /stueckgewichte`.
+
+**Nachtjob** (09, 03:30): OFF-Warteschlange, Stückgewichte aus der Referenz, Produkte mit geschätzten Werten (Rang ≥ 5 oder KI-Stückgewicht) neu ermitteln, Grocy-kcal aus der View angleichen (auch nach dem Crawl), Namen/Einheit an Grocy angleichen, gesammelte `meldungen` per Telegram.
 
 ## Ist-Verbrauch (Verzehr-Protokoll)
 

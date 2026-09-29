@@ -18,8 +18,11 @@ def verbinden() -> psycopg.Connection:
 
 def schema_anlegen() -> None:
     schema = (Path(__file__).parent / "schema.sql").read_text(encoding="utf-8")
+    from . import bls, stueckgewicht
     with verbinden() as con:
         con.execute(schema)
+        bls.laden(con)
+        stueckgewicht.referenz_laden(con)
         n8n_passwort = os.environ.get("REWE_DB_N8N_PASSWORD")
         if n8n_passwort:
             # Eigene Rolle für n8n: darf lesen und nur die Angebotsfelder ändern.

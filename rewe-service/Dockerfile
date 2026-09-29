@@ -7,6 +7,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 COPY app ./app
 COPY tests ./tests
+COPY daten ./daten
 COPY kategorien.yml /config/kategorien.yml
 
 RUN useradd --uid 1000 --no-create-home rewe

@@ -306,3 +306,31 @@ CREATE TABLE IF NOT EXISTS off_warteschlange (
     erledigt_at      timestamptz
 );
 CREATE UNIQUE INDEX IF NOT EXISTS off_warteschlange_offen_idx ON off_warteschlange (grocy_product_id, art) WHERE erledigt_at IS NULL;
+
+-- Bundeslebensmittelschlüssel 4.0 (Max Rubner-Institut, CC BY 4.0), nur die benötigten Spalten, Werte pro 100 g.
+-- Wird beim Start aus daten/bls_4_0.csv.gz geladen. Für lose Ware wählt die KI einen Eintrag, der Code liest die Werte.
+CREATE TABLE IF NOT EXISTS bls (
+    code          text PRIMARY KEY,
+    name          text NOT NULL,
+    name_en       text,
+    kcal          numeric(7, 1),
+    protein       numeric(7, 3),
+    fett          numeric(7, 3),
+    kh            numeric(7, 3),
+    zucker        numeric(7, 3),
+    ballaststoffe numeric(7, 3),
+    salz          numeric(7, 3)
+);
+CREATE INDEX IF NOT EXISTS bls_name_idx ON bls USING gin (name gin_trgm_ops);
+
+-- Standard-Stückgewichte (essbarer Anteil) mit Quelle je Zeile; muster = regulärer Ausdruck auf den Produktnamen.
+-- anteil_essbar rechnet ein gewogenes Gesamtgewicht (mit Schale/Kern) in den essbaren Anteil um.
+CREATE TABLE IF NOT EXISTS stueckgewichte (
+    schluessel    text PRIMARY KEY,
+    bezeichnung   text NOT NULL,
+    muster        text NOT NULL,
+    prioritaet    integer NOT NULL DEFAULT 100,   -- kleiner = zuerst prüfen (Kiwi Gold vor Kiwi)
+    gramm_essbar  numeric(7, 1) NOT NULL,
+    anteil_essbar numeric(4, 2),
+    quelle        text NOT NULL
+);
