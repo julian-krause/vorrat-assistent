@@ -293,3 +293,16 @@ LEFT JOIN LATERAL (
     ORDER BY x.rang, x.verlauf_id IS NULL
     LIMIT 1
 ) b ON true;
+
+-- Open-Food-Facts-Anfragen, die am Anfrage-Limit gescheitert sind; der Nachtjob versucht sie erneut
+CREATE TABLE IF NOT EXISTS off_warteschlange (
+    id               bigserial PRIMARY KEY,
+    grocy_product_id integer NOT NULL,
+    art              text NOT NULL CHECK (art IN ('barcode', 'name')),
+    anfrage          jsonb NOT NULL,           -- Eingabe für ermitteln()
+    versuche         integer NOT NULL DEFAULT 0,
+    letzter_fehler   text,
+    erstellt_at      timestamptz NOT NULL DEFAULT now(),
+    erledigt_at      timestamptz
+);
+CREATE UNIQUE INDEX IF NOT EXISTS off_warteschlange_offen_idx ON off_warteschlange (grocy_product_id, art) WHERE erledigt_at IS NULL;

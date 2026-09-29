@@ -13,6 +13,8 @@ WORKFLOWS=(
   "VorratReweAngeb1:06-rewe-angebote"
   "VorratReweCrawl1:07-rewe-crawl"
   "VorratVerzehr001:08-verzehr-erfassen"
+  "VorratNachts0001:09-naehrwerte-nachts"
+  "VorratNaehrwert1:10-naehrwerte-ermitteln"
 )
 mkdir -p workflows
 for pair in "${WORKFLOWS[@]}"; do

@@ -1,6 +1,6 @@
 [
   {
-    "updatedAt": "2026-09-29T12:33:47.000Z",
+    "updatedAt": "2026-09-29T13:07:44.000Z",
     "createdAt": "2026-09-27T15:00:32.007Z",
     "id": "WI7rA3dd4TMM2WVb",
     "name": "Vorrat · eBon-Import (REWE → Grocy)",
@@ -302,7 +302,7 @@
         "parameters": {
           "mode": "runOnceForAllItems",
           "language": "javaScript",
-          "jsCode": "const norm = s => String(s || '').toLowerCase().replace(/[^a-z0-9äöüß%,.]+/g, ' ').trim();\nconst arts = $('REWE-Daten übernehmen').all().map(i => i.json);\nconst prods = $('Grocy-Produkte laden').all().map(i => i.json).filter(p => p && p.id);\nconst qus = $('Grocy-Einheiten laden').all().map(i => i.json).filter(p => p && p.id);\nconst locs = $('Grocy-Lagerorte laden').all().map(i => i.json).filter(p => p && p.id);\nconst quId = n => (qus.find(q => norm(q.name) === norm(n)) || {}).id;\nconst quIds = { g: quId('Gramm'), ml: quId('Milliliter'), stk: quId('Stück') };\nif (!quIds.g || !quIds.ml || !quIds.stk) throw new Error('In Grocy fehlen die Einheiten Gramm/Milliliter/Stück – bitte einmal den Workflow „Vorrat · Grocy einrichten“ ausführen.');\nconst quCode = { [quIds.g]: 'g', [quIds.ml]: 'ml', [quIds.stk]: 'stk' };\nconst locId = n => (locs.find(l => norm(l.name) === norm(n)) || locs[0] || {}).id;\nconst byName = {};\nfor (const p of prods) byName[norm(p.name)] = p;\n\nreturn arts.map(a => {\n  const p = byName[norm(a.name)];\n  let menge = a.menge;\n  let einheit = a.einheit;\n  if (p) {\n    const pe = quCode[p.qu_id_stock];\n    if (pe && pe !== einheit) {\n      if (pe === 'g' && einheit === 'stk' && a.gramm_pro_stk) menge = a.menge * a.gramm_pro_stk;\n      else if (pe === 'stk' && einheit === 'g' && a.gramm_pro_stk) menge = Math.max(1, Math.round(a.menge / a.gramm_pro_stk));\n      einheit = pe;\n    }\n  }\n  return { json: { ...a, product_id: p ? p.id : null, menge, einheit, qu_id: quIds[einheit], location_id: locId(a.lagerort) } };\n});"
+          "jsCode": "const norm = s => String(s || '').toLowerCase().replace(/[^a-z0-9äöüß%,.]+/g, ' ').trim();\nconst arts = $('REWE-Daten übernehmen').all().map(i => i.json);\nconst prods = $('Grocy-Produkte laden').all().map(i => i.json).filter(p => p && p.id);\nconst qus = $('Grocy-Einheiten laden').all().map(i => i.json).filter(p => p && p.id);\nconst locs = $('Grocy-Lagerorte laden').all().map(i => i.json).filter(p => p && p.id);\nconst quId = n => (qus.find(q => norm(q.name) === norm(n)) || {}).id;\nconst quIds = { g: quId('Gramm'), ml: quId('Milliliter'), stk: quId('Stück') };\nif (!quIds.g || !quIds.ml || !quIds.stk) throw new Error('In Grocy fehlen die Einheiten Gramm/Milliliter/Stück – bitte einmal den Workflow „Vorrat · Grocy einrichten“ ausführen.');\nconst quCode = { [quIds.g]: 'g', [quIds.ml]: 'ml', [quIds.stk]: 'stk' };\nconst locId = n => (locs.find(l => norm(l.name) === norm(n)) || locs[0] || {}).id;\nconst byName = {};\nfor (const p of prods) byName[norm(p.name)] = p;\n// Abgleich über die REWE-ID (vorrat_produkte), der Name ist nur Rückfall\nconst byId = {};\nfor (const p of prods) byId[p.id] = p;\nconst byRewe = {};\nfor (const v of $('Vorrat-Verknüpfungen laden').all().map(i => i.json)) if (v && v.rewe_product_id && byId[v.grocy_product_id]) byRewe[String(v.rewe_product_id)] = byId[v.grocy_product_id];\n\nreturn arts.map(a => {\n  const p = (a.rewe_product_id && byRewe[String(a.rewe_product_id)]) || byName[norm(a.name)];\n  let menge = a.menge;\n  let einheit = a.einheit;\n  if (p) {\n    const pe = quCode[p.qu_id_stock];\n    if (pe && pe !== einheit) {\n      if (pe === 'g' && einheit === 'stk' && a.gramm_pro_stk) menge = a.menge * a.gramm_pro_stk;\n      else if (pe === 'stk' && einheit === 'g' && a.gramm_pro_stk) menge = Math.max(1, Math.round(a.menge / a.gramm_pro_stk));\n      einheit = pe;\n    }\n  }\n  return { json: { ...a, product_id: p ? p.id : null, menge, einheit, qu_id: quIds[einheit], location_id: locId(a.lagerort) } };\n});"
         }
       },
       {
@@ -347,102 +347,6 @@
         ],
         "parameters": {
           "mode": "append"
-        }
-      },
-      {
-        "id": "6755e002-33ca-4e0b-af5a-d700d955b664",
-        "name": "OpenFoodFacts suchen",
-        "type": "n8n-nodes-base.httpRequest",
-        "typeVersion": 4.2,
-        "position": [
-          3796,
-          176
-        ],
-        "parameters": {
-          "method": "GET",
-          "url": "https://world.openfoodfacts.org/cgi/search.pl",
-          "sendQuery": true,
-          "specifyQuery": "keypair",
-          "queryParameters": {
-            "parameters": [
-              {
-                "name": "search_terms",
-                "value": "={{ $json.off_suche }}"
-              },
-              {
-                "name": "search_simple",
-                "value": "1"
-              },
-              {
-                "name": "action",
-                "value": "process"
-              },
-              {
-                "name": "json",
-                "value": "1"
-              },
-              {
-                "name": "page_size",
-                "value": "8"
-              },
-              {
-                "name": "tagtype_0",
-                "value": "countries"
-              },
-              {
-                "name": "tag_contains_0",
-                "value": "contains"
-              },
-              {
-                "name": "tag_0",
-                "value": "germany"
-              },
-              {
-                "name": "fields",
-                "value": "code,product_name,brands,quantity,product_quantity,nutriments,nutriscore_grade,nova_group"
-              }
-            ]
-          },
-          "sendHeaders": true,
-          "specifyHeaders": "keypair",
-          "headerParameters": {
-            "parameters": [
-              {
-                "name": "User-Agent",
-                "value": "VorratsAssistent-n8n/1.0"
-              }
-            ]
-          },
-          "options": {
-            "batching": {
-              "batch": {
-                "batchSize": 1,
-                "batchInterval": 6500
-              }
-            },
-            "timeout": 30000,
-            "response": {
-              "response": {
-                "neverError": true
-              }
-            }
-          }
-        },
-        "onError": "continueRegularOutput"
-      },
-      {
-        "id": "1059c18b-ca72-4398-9208-783360d471bf",
-        "name": "Nährwerte bestimmen",
-        "type": "n8n-nodes-base.code",
-        "typeVersion": 2,
-        "position": [
-          4020,
-          176
-        ],
-        "parameters": {
-          "mode": "runOnceForEachItem",
-          "language": "javaScript",
-          "jsCode": "const a = $('Produkte zuordnen').item.json;\n// REWE-Treffer: Nährwerte aus den REWE-Produktdaten (sonst KI-Schätzung), Barcode als off_code\nif (a.rewe_product_id) {\n  const z = v => (v === null || v === undefined || isNaN(Number(v))) ? null : Math.round(Number(v) * 10) / 10;\n  const n = a.rewe_naehrwerte;\n  const kcal = n ? z(n.kcal) : z(a.ki_kcal_100);\n  const faktor = a.einheit === 'stk' ? (a.gramm_pro_stk || 100) / 100 : 0.01;\n  const preis = a.rewe_preis != null ? Number(a.rewe_preis).toFixed(2).replace('.', ',') + ' €' : '';\n  return { json: { ...a, kcal_100: kcal, protein_100: n ? z(n.protein) : z(a.ki_protein_100), fett_100: n ? z(n.fett) : z(a.ki_fett_100),\n    kh_100: n ? z(n.kh) : z(a.ki_kh_100), nutriscore: '', nova: null, off_code: a.ean || '', off_name: ((a.marke ? a.marke + ' ' : '') + a.name).trim(),\n    quelle: n ? 'rewe' : 'ki-schaetzung', kcal_pro_einheit: kcal == null ? 0 : Math.round(kcal * faktor * 100) / 100,\n    beschreibung: ['REWE', a.marke, preis, 'REWE-ID ' + a.rewe_product_id, a.ean ? 'EAN ' + a.ean : '', n ? '' : 'Nährwerte geschätzt'].filter(Boolean).join(' · ') } };\n}\nconst hits = ($json && Array.isArray($json.products)) ? $json.products : [];\nconst norm = s => String(s || '').toLowerCase().replace(/[^a-z0-9äöüß]+/g, ' ').trim();\nconst woerter = norm(a.name).split(' ').filter(w => w.length > 2);\nlet best = null;\nlet bestScore = 0;\nfor (const p of hits) {\n  const n = p.nutriments || {};\n  if (n['energy-kcal_100g'] == null) continue;\n  const pn = norm((p.product_name || '') + ' ' + (p.brands || ''));\n  const score = woerter.length ? woerter.filter(w => pn.includes(w)).length / woerter.length : 0;\n  if (score > bestScore) { best = p; bestScore = score; }\n}\nconst ok = !!best && bestScore >= (a.frischware ? 1 : 0.5);\nconst n = ok ? best.nutriments : {};\nconst r1 = v => (v === null || v === undefined || isNaN(Number(v))) ? null : Math.round(Number(v) * 10) / 10;\nlet menge = a.menge;\nif (ok && a.menge_geschaetzt && ['g', 'ml'].includes(a.einheit) && Number(best.product_quantity) > 0) menge = Number(best.product_quantity) * (a.packungen || 1);\nconst kcal_100 = ok ? r1(n['energy-kcal_100g']) : r1(a.ki_kcal_100);\nconst faktor = a.einheit === 'stk' ? (a.gramm_pro_stk || 100) / 100 : 0.01;\nconst hinweis = ok ? ['Nutri-Score ' + String(best.nutriscore_grade || '?').toUpperCase(), best.nova_group ? 'NOVA ' + best.nova_group : '', 'OFF ' + best.code].filter(Boolean).join(' · ') : 'Nährwerte geschätzt';\nreturn { json: {\n  ...a,\n  menge,\n  kcal_100,\n  protein_100: ok ? r1(n.proteins_100g) : r1(a.ki_protein_100),\n  fett_100: ok ? r1(n.fat_100g) : r1(a.ki_fett_100),\n  kh_100: ok ? r1(n.carbohydrates_100g) : r1(a.ki_kh_100),\n  nutriscore: ok && best.nutriscore_grade && best.nutriscore_grade.length === 1 ? best.nutriscore_grade.toUpperCase() : '',\n  nova: ok && best.nova_group ? Number(best.nova_group) : null,\n  off_code: ok ? String(best.code || '') : '',\n  off_name: ok ? String((best.brands ? best.brands + ' ' : '') + (best.product_name || '')) : '',\n  quelle: ok ? 'openfoodfacts' : 'ki-schaetzung',\n  kcal_pro_einheit: kcal_100 == null ? 0 : Math.round(kcal_100 * faktor * 100) / 100,\n  beschreibung: hinweis\n} };"
         }
       },
       {
@@ -494,7 +398,7 @@
         "parameters": {
           "mode": "runOnceForEachItem",
           "language": "javaScript",
-          "jsCode": "return { json: { ...$('Nährwerte bestimmen').item.json, product_id: Number($json.created_object_id) } };"
+          "jsCode": "return { json: { ...$('Neues Produkt vorbereiten').item.json, product_id: Number($json.created_object_id) } };"
         }
       },
       {
@@ -556,32 +460,6 @@
         }
       },
       {
-        "name": "Nährwerte merken",
-        "type": "n8n-nodes-base.httpRequest",
-        "typeVersion": 4.2,
-        "options": {},
-        "parameters": {
-          "method": "POST",
-          "url": "={{ 'http://rewe-service:8000/vorrat/produkte/' + $json.product_id }}",
-          "sendBody": true,
-          "contentType": "json",
-          "specifyBody": "json",
-          "jsonBody": "={{ JSON.stringify({ name: $json.name, einheit: $json.einheit, kategorie: $json.kategorie, rewe_product_id: $json.rewe_product_id || null, ean: $json.off_code || null, nutriscore: $json.nutriscore || null, nova: $json.nova || null, naehrwerte: { kcal: $json.kcal_100, protein: $json.protein_100, fett: $json.fett_100, kh: $json.kh_100 }, naehrwert_quelle: ({ rewe: 'rewe', openfoodfacts: 'off_name', 'ki-schaetzung': 'ki' })[$json.quelle] || 'ki', gramm_pro_stk: $json.einheit === 'stk' ? $json.gramm_pro_stk : null, gramm_quelle: 'ki' }) }}",
-          "options": {
-            "response": {
-              "response": {
-                "neverError": true
-              }
-            }
-          }
-        },
-        "position": [
-          4692,
-          224
-        ],
-        "id": "b1cf5f58-3967-4462-a038-31ff33ae10e5"
-      },
-      {
         "id": "233710ac-9f98-4bcb-a848-87abddfd0fe9",
         "name": "In Grocy einbuchen",
         "type": "n8n-nodes-base.httpRequest",
@@ -630,7 +508,7 @@
         "parameters": {
           "mode": "runOnceForAllItems",
           "language": "javaScript",
-          "jsCode": "const arts = $('Alle Artikel').all().map(i => i.json);\nconst esc = t => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nconst heute = DateTime.now().setZone('Europe/Berlin').startOf('day');\nconst byBon = {};\nfor (const a of arts) (byBon[a.bon_id] = byBon[a.bon_id] || []).push(a);\nreturn Object.keys(byBon).map(id => {\n  const l = byBon[id].sort((x, y) => String(x.mhd).localeCompare(String(y.mhd)));\n  const datum = DateTime.fromISO(l[0].kaufdatum).setLocale('de');\n  const zeilen = l.map(a => {\n    const m = DateTime.fromISO(a.mhd).setLocale('de');\n    const tage = Math.round(m.diff(heute, 'days').days);\n    return '• ' + esc(a.name) + ' – ' + a.menge + ' ' + a.einheit + ' · ca. bis ' + m.toFormat('ccc dd.LL.') + (tage <= 2 ? ' ⚠️' : '') + (a.nutriscore ? ' · NS ' + a.nutriscore : '');\n  });\n  const neu = l.filter(a => a.quelle).length;\n  const off = l.filter(a => a.quelle === 'openfoodfacts').length;\n  const text = '🧾 <b>REWE-Einkauf vom ' + datum.toFormat('dd.LL.yyyy') + ' in Grocy gebucht</b>\\n'\n    + l.length + ' Lebensmittel' + (l[0].bon_summe ? ' · ' + l[0].bon_summe.toFixed(2).replace('.', ',') + ' €' : '')\n    + (neu ? ' · ' + neu + ' neue Produkte (' + off + ' mit OpenFoodFacts-Nährwerten)' : '') + '\\n\\n'\n    + zeilen.join('\\n')\n    + '\\n\\n<i>Haltbarkeit ist geschätzt. Korrigieren z.B. mit: „Joghurt hält bis 15.10.“</i>\\nRezeptideen kommen gleich 🍳';\n  return { json: { message_id: id, datum: l[0].kaufdatum, summe: l[0].bon_summe || 0, anzahl_artikel: l.length, text } };\n});"
+          "jsCode": "const arts = $('Alle Artikel').all().map(i => i.json);\nconst esc = t => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nconst heute = DateTime.now().setZone('Europe/Berlin').startOf('day');\nconst byBon = {};\nfor (const a of arts) (byBon[a.bon_id] = byBon[a.bon_id] || []).push(a);\nreturn Object.keys(byBon).map(id => {\n  const l = byBon[id].sort((x, y) => String(x.mhd).localeCompare(String(y.mhd)));\n  const datum = DateTime.fromISO(l[0].kaufdatum).setLocale('de');\n  const zeilen = l.map(a => {\n    const m = DateTime.fromISO(a.mhd).setLocale('de');\n    const tage = Math.round(m.diff(heute, 'days').days);\n    return '• ' + esc(a.name) + ' – ' + a.menge + ' ' + a.einheit + ' · ca. bis ' + m.toFormat('ccc dd.LL.') + (tage <= 2 ? ' ⚠️' : '') + (a.nutriscore ? ' · NS ' + a.nutriscore : '');\n  });\n  const neu = l.filter(a => a.neu).length;\n  const text = '🧾 <b>REWE-Einkauf vom ' + datum.toFormat('dd.LL.yyyy') + ' in Grocy gebucht</b>\\n'\n    + l.length + ' Lebensmittel' + (l[0].bon_summe ? ' · ' + l[0].bon_summe.toFixed(2).replace('.', ',') + ' €' : '')\n    + (neu ? ' · ' + neu + ' neue Produkte' : '') + '\\n\\n'\n    + zeilen.join('\\n')\n    + '\\n\\n<i>Haltbarkeit ist geschätzt. Korrigieren z.B. mit: „Joghurt hält bis 15.10.“</i>\\nRezeptideen kommen gleich 🍳';\n  return { json: { message_id: id, datum: l[0].kaufdatum, summe: l[0].bon_summe || 0, anzahl_artikel: l.length, text } };\n});"
         }
       },
       {
@@ -852,39 +730,6 @@
           "mode": "runOnceForAllItems",
           "language": "javaScript",
           "jsCode": "// Sichere REWE-Treffer: exakter Produktname, Marke, Barcode, Packungsgröße und REWE-Nährwerte übernehmen.\n// Unsichere Zeilen behalten die KI-Werte und bekommen nach dem Einbuchen eine Rückfrage per Telegram.\n// Wasser wird nie erfasst\nconst istWasser = t => /wasser|sprudel/i.test(String(t || '')) && !/melone|kokos|rosen|orangenbl/i.test(String(t || ''));\nconst arts = $('Artikel aufbereiten').all().map(i => i.json);\nconst anfragen = $('REWE-Anfrage bauen').all().map(i => i.json);\nconst antworten = $input.all().map(i => i.json);\nconst nachBon = {};\nanfragen.forEach((a, i) => { nachBon[a.bon_id] = antworten[i] || {}; });\nconst zaehler = {};\nreturn arts.map(a => {\n  const erg = nachBon[a.bon_id] || {};\n  const idx = (zaehler[a.bon_id] = (zaehler[a.bon_id] ?? -1) + 1);\n  const z = Array.isArray(erg.artikel) ? erg.artikel[idx] : null;\n  if (!z) return { json: { ...a, rewe_status: 'keine' } };\n  const basis = { ...a, rewe_status: z.status, rewe_zeile_id: z.zeile_id, rewe_kandidaten: z.kandidaten || [], einzelpreis: z.einzelpreis };\n  const p = z.produkt;\n  if (z.status !== 'sicher' || !p) return { json: basis };\n  const anzahl = z.gewicht_kg ? 1 : (z.anzahl || a.packungen || 1);\n  let menge = a.menge, einheit = a.einheit;\n  if (z.gewicht_kg) { menge = Math.round(z.gewicht_kg * 1000); einheit = 'g'; }\n  else if (p.size_value && ['g', 'ml'].includes(p.size_unit)) { menge = p.size_value * anzahl; einheit = p.size_unit; }\n  else if (p.size_unit === 'Stück' && p.size_value) { menge = p.size_value * anzahl; einheit = 'stk'; }\n  const nw = p.kcal_100 != null ? { kcal: p.kcal_100, protein: p.protein_100, fett: p.fett_100, kh: p.kh_100 } : null;\n  return { json: { ...basis, name: p.name, marke: p.brand || '', rewe_product_id: p.rewe_product_id, ean: p.ean || '',\n    menge, einheit, packungen: anzahl, menge_geschaetzt: false, rewe_naehrwerte: nw, rewe_preis: p.price } };\n}).filter(i => !istWasser((i.json.bon_text || '') + ' ' + (i.json.name || '')));"
-        }
-      },
-      {
-        "id": "e0000000-0004-4000-8000-rewebon00004",
-        "name": "Nährwerte von REWE?",
-        "type": "n8n-nodes-base.if",
-        "typeVersion": 2.2,
-        "position": [
-          3576,
-          336
-        ],
-        "parameters": {
-          "conditions": {
-            "options": {
-              "caseSensitive": true,
-              "leftValue": "",
-              "typeValidation": "loose"
-            },
-            "combinator": "and",
-            "conditions": [
-              {
-                "id": "rewe",
-                "leftValue": "={{ !!$json.rewe_product_id }}",
-                "rightValue": "",
-                "operator": {
-                  "type": "boolean",
-                  "operation": "true",
-                  "singleValue": true
-                }
-              }
-            ]
-          },
-          "options": {}
         }
       },
       {
@@ -1265,17 +1110,225 @@
         }
       },
       {
-        "id": "e0000000-0020-4000-8000-rewebon00020",
-        "name": "Nährwertquelle zusammenführen",
-        "type": "n8n-nodes-base.merge",
-        "typeVersion": 3.2,
+        "name": "Vorrat-Verknüpfungen laden",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.6,
+        "credentials": {
+          "postgres": {
+            "id": "RewePostgres0001",
+            "name": "REWE Postgres"
+          }
+        },
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "SELECT grocy_product_id, rewe_product_id FROM vorrat_produkte WHERE rewe_product_id IS NOT NULL;",
+          "options": {}
+        },
+        "executeOnce": true,
+        "alwaysOutputData": true,
+        "id": "d4000000-0101-4000-8000-ebonnw000101",
         "position": [
-          3820,
+          3238,
+          276
+        ]
+      },
+      {
+        "id": "d4000000-0102-4000-8000-ebonnw000102",
+        "name": "Neues Produkt vorbereiten",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          3792,
           296
         ],
         "parameters": {
-          "mode": "append"
+          "mode": "runOnceForEachItem",
+          "language": "javaScript",
+          "jsCode": "// Grocy-Beschreibung für Menschen (Marke, Preis, REWE-ID, EAN); Nährwerte und Grocy-kcal setzt danach „Nährwerte ermitteln“\nconst a = $json;\nconst preis = a.rewe_preis != null ? Number(a.rewe_preis).toFixed(2).replace('.', ',') + ' €' : '';\nconst beschreibung = (a.rewe_product_id ? ['REWE', a.marke, preis, 'REWE-ID ' + a.rewe_product_id, a.ean ? 'EAN ' + a.ean : '']\n  : ['REWE', a.bon_text ? 'Bon: ' + a.bon_text : '']).filter(Boolean).join(' · ');\nreturn { json: { ...a, beschreibung, kcal_pro_einheit: 0, neu: true } };"
         }
+      },
+      {
+        "name": "Nährwerte ermitteln",
+        "type": "n8n-nodes-base.executeWorkflow",
+        "typeVersion": 1.3,
+        "parameters": {
+          "mode": "once",
+          "source": "database",
+          "workflowId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "VorratNaehrwert1",
+            "cachedResultName": "Vorrat · Nährwerte ermitteln"
+          },
+          "workflowInputs": {
+            "mappingMode": "defineBelow",
+            "value": {
+              "grocy_product_id": "={{ $json.product_id }}",
+              "name": "={{ $json.name }}",
+              "marke": "={{ $json.marke || '' }}",
+              "rewe_product_id": "={{ $json.rewe_product_id || '' }}",
+              "ean": "={{ $json.ean || '' }}",
+              "einheit": "={{ $json.einheit }}",
+              "kategorie": "={{ $json.kategorie }}",
+              "kcal_100": "={{ $json.ki_kcal_100 }}",
+              "protein_100": "={{ $json.ki_protein_100 }}",
+              "fett_100": "={{ $json.ki_fett_100 }}",
+              "kh_100": "={{ $json.ki_kh_100 }}",
+              "werte_quelle": "ki",
+              "gramm_pro_stk": "={{ $json.gramm_pro_stk }}",
+              "gramm_quelle": "ki",
+              "bls_suche": "={{ $json.off_suche || '' }}"
+            },
+            "matchingColumns": [],
+            "schema": [
+              {
+                "id": "grocy_product_id",
+                "displayName": "grocy_product_id",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "number"
+              },
+              {
+                "id": "name",
+                "displayName": "name",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
+              },
+              {
+                "id": "marke",
+                "displayName": "marke",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
+              },
+              {
+                "id": "rewe_product_id",
+                "displayName": "rewe_product_id",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
+              },
+              {
+                "id": "ean",
+                "displayName": "ean",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
+              },
+              {
+                "id": "einheit",
+                "displayName": "einheit",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
+              },
+              {
+                "id": "kategorie",
+                "displayName": "kategorie",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
+              },
+              {
+                "id": "kcal_100",
+                "displayName": "kcal_100",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "number"
+              },
+              {
+                "id": "protein_100",
+                "displayName": "protein_100",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "number"
+              },
+              {
+                "id": "fett_100",
+                "displayName": "fett_100",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "number"
+              },
+              {
+                "id": "kh_100",
+                "displayName": "kh_100",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "number"
+              },
+              {
+                "id": "werte_quelle",
+                "displayName": "werte_quelle",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
+              },
+              {
+                "id": "gramm_pro_stk",
+                "displayName": "gramm_pro_stk",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "number"
+              },
+              {
+                "id": "gramm_quelle",
+                "displayName": "gramm_quelle",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
+              },
+              {
+                "id": "bls_suche",
+                "displayName": "bls_suche",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
+              }
+            ],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          },
+          "options": {
+            "waitForSubWorkflow": true
+          }
+        },
+        "id": "d4000000-0103-4000-8000-ebonnw000103",
+        "position": [
+          4912,
+          220
+        ]
       }
     ],
     "connections": {
@@ -1411,7 +1464,7 @@
         "main": [
           [
             {
-              "node": "Produkte zuordnen",
+              "node": "Vorrat-Verknüpfungen laden",
               "type": "main",
               "index": 0
             }
@@ -1440,7 +1493,7 @@
           ],
           [
             {
-              "node": "Nährwerte von REWE?",
+              "node": "Neues Produkt vorbereiten",
               "type": "main",
               "index": 0
             }
@@ -1454,26 +1507,9 @@
               "node": "In Grocy einbuchen",
               "type": "main",
               "index": 0
-            }
-          ]
-        ]
-      },
-      "OpenFoodFacts suchen": {
-        "main": [
-          [
+            },
             {
-              "node": "Nährwertquelle zusammenführen",
-              "type": "main",
-              "index": 1
-            }
-          ]
-        ]
-      },
-      "Nährwerte bestimmen": {
-        "main": [
-          [
-            {
-              "node": "Grocy-Produkt anlegen",
+              "node": "Nährwerte ermitteln",
               "type": "main",
               "index": 0
             }
@@ -1498,11 +1534,6 @@
               "node": "Alle Artikel",
               "type": "main",
               "index": 1
-            },
-            {
-              "node": "Nährwerte merken",
-              "type": "main",
-              "index": 0
             },
             {
               "node": "Barcode bekannt?",
@@ -1605,24 +1636,6 @@
           ]
         ]
       },
-      "Nährwerte von REWE?": {
-        "main": [
-          [
-            {
-              "node": "Nährwertquelle zusammenführen",
-              "type": "main",
-              "index": 0
-            }
-          ],
-          [
-            {
-              "node": "OpenFoodFacts suchen",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
       "Barcode bekannt?": {
         "main": [
           [
@@ -1670,11 +1683,22 @@
           ]
         ]
       },
-      "Nährwertquelle zusammenführen": {
+      "Vorrat-Verknüpfungen laden": {
         "main": [
           [
             {
-              "node": "Nährwerte bestimmen",
+              "node": "Produkte zuordnen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Neues Produkt vorbereiten": {
+        "main": [
+          [
+            {
+              "node": "Grocy-Produkt anlegen",
               "type": "main",
               "index": 0
             }
@@ -1760,9 +1784,9 @@
       }
     ],
     "pinData": null,
-    "versionId": "4dd0afa0-40d7-482c-8091-a39150127f1e",
-    "activeVersionId": "4dd0afa0-40d7-482c-8091-a39150127f1e",
-    "versionCounter": 9,
+    "versionId": "86ed8e17-8442-43df-8688-c2509a0249e7",
+    "activeVersionId": "86ed8e17-8442-43df-8688-c2509a0249e7",
+    "versionCounter": 10,
     "triggerCount": 1,
     "sourceWorkflowId": null,
     "tags": [],

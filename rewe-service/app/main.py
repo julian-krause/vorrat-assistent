@@ -10,8 +10,8 @@ from pathlib import Path
 from fastapi import Body, FastAPI, HTTPException, Query
 from fastapi.responses import HTMLResponse, JSONResponse
 
-from . import bon, db, planer, rewe, vorrat
-from .crawler import Crawler, details_uebernehmen, kategorien_config, listen_produkt
+from . import bon, db, ermitteln, planer, rewe, vorrat
+from .crawler import Crawler, kategorien_config, listen_produkt, produkt_aktualisieren
 from .parse import ean_aus_article_id, finde_ean, parse_naehrwerte
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -85,19 +85,16 @@ def product_detail(product_id: str):
             "ean": finde_ean(d) or ean_aus_article_id(d.get("articleId"))}
 
 
-def produkt_aktualisieren(con, product_id: str) -> dict:
-    """Details eines Produkts live holen und speichern (fehlt es in der Tabelle, wird es angelegt)."""
-    d = _live("produkt_detail", product_id)
-    if not con.execute("SELECT 1 FROM rewe_products WHERE rewe_product_id = %s", (product_id,)).fetchone():
-        db.produkt_aus_liste(con, listen_produkt({**d, "productId": product_id}, None))
-    return details_uebernehmen(con, product_id, d)
-
-
 @app.post("/products/{product_id}/aktualisieren")
 def product_aktualisieren(product_id: str):
     """Details live holen und in rewe_products schreiben (Verlauf, leer überschreibt nie, Plausibilität, 20-%-Meldung)."""
     with db.verbinden() as con:
-        return produkt_aktualisieren(con, product_id)
+        try:
+            return produkt_aktualisieren(con, product_id)
+        except rewe.NichtBereit:
+            raise
+        except Exception as e:  # noqa: BLE001 - Fehler der REWE-API an n8n durchreichen
+            raise HTTPException(status_code=502, detail=f"REWE-API: {e}") from e
 
 
 @app.get("/debug/raw/product/{product_id}")
@@ -199,6 +196,23 @@ def vorrat_speichern(grocy_product_id: int, daten: dict = Body(...)):
     """Anlegen/aktualisieren mit Rangregel (schlechter überschreibt nie besser, leer nie, unplausibel wird gemeldet)."""
     with db.verbinden() as con:
         return vorrat.speichern(con, grocy_product_id, daten)
+
+
+@app.post("/naehrwerte/ermitteln")
+def naehrwerte_ermitteln(artikel: dict = Body(...)):
+    """Beste verfügbare Nährwerte nach Rangfolge (REWE → OFF Barcode → OFF Name → BLS → KI), optional speichern.
+
+    Ohne Treffer bis Rang 4 und ohne bls_code enthält die Antwort bls_kandidaten, aus denen die KI wählt.
+    """
+    with db.verbinden() as con:
+        return ermitteln.ermitteln(con, artikel)
+
+
+@app.post("/naehrwerte/nachtlauf")
+def naehrwerte_nachtlauf():
+    """Nächtliche Pflege: Open-Food-Facts-Warteschlange erneut versuchen."""
+    with db.verbinden() as con:
+        return {"warteschlange": ermitteln.warteschlange_abarbeiten(con)}
 
 
 @app.post("/vorrat/migrieren")

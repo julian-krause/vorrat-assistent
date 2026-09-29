@@ -1,0 +1,514 @@
+[
+  {
+    "updatedAt": "2026-09-29T13:15:00.000Z",
+    "createdAt": "2026-09-29T13:11:05.106Z",
+    "id": "VorratNachts0001",
+    "name": "Vorrat · Nährwerte nachts (03:30)",
+    "description": null,
+    "active": true,
+    "isArchived": false,
+    "nodes": [
+      {
+        "id": "e5000000-0001-4000-8000-nachts000001",
+        "name": "Täglich 03:30",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1.2,
+        "position": [
+          0,
+          0
+        ],
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "cronExpression",
+                "expression": "30 3 * * *"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "e5000000-0002-4000-8000-nachts000002",
+        "name": "Manuell starten",
+        "type": "n8n-nodes-base.manualTrigger",
+        "typeVersion": 1,
+        "position": [
+          0,
+          180
+        ],
+        "parameters": {}
+      },
+      {
+        "id": "e5000000-0003-4000-8000-nachts000003",
+        "name": "Nachtlauf",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          220,
+          0
+        ],
+        "parameters": {
+          "method": "POST",
+          "url": "http://rewe-service:8000/naehrwerte/nachtlauf",
+          "options": {
+            "timeout": 1800000
+          }
+        }
+      },
+      {
+        "id": "e5000000-0004-4000-8000-nachts000004",
+        "name": "Profil laden",
+        "type": "n8n-nodes-base.dataTable",
+        "typeVersion": 1.1,
+        "position": [
+          440,
+          0
+        ],
+        "parameters": {
+          "resource": "row",
+          "operation": "get",
+          "dataTableId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "cT54sdECXIGtpqDT",
+            "cachedResultName": "vorrat_profil"
+          },
+          "filters": {
+            "conditions": [
+              {
+                "keyName": "schluessel",
+                "condition": "eq",
+                "keyValue": "main"
+              }
+            ]
+          },
+          "limit": 1
+        },
+        "executeOnce": true
+      },
+      {
+        "id": "e5000000-0005-4000-8000-nachts000005",
+        "name": "Grocy-Produkte laden",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          660,
+          0
+        ],
+        "parameters": {
+          "method": "GET",
+          "url": "={{ $('Profil laden').first().json.grocy_url }}/api/objects/products",
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpCustomAuth",
+          "options": {}
+        },
+        "credentials": {
+          "httpCustomAuth": {
+            "id": "sWOsDlhSjQx2Y5EN",
+            "name": "Custom Auth account"
+          }
+        },
+        "executeOnce": true
+      },
+      {
+        "id": "e5000000-0006-4000-8000-nachts000006",
+        "name": "Vorratswerte laden",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.6,
+        "position": [
+          880,
+          0
+        ],
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "SELECT * FROM vorrat_naehrwerte ORDER BY grocy_product_id;",
+          "options": {}
+        },
+        "credentials": {
+          "postgres": {
+            "id": "RewePostgres0001",
+            "name": "REWE Postgres"
+          }
+        },
+        "executeOnce": true,
+        "alwaysOutputData": true
+      },
+      {
+        "id": "e5000000-0007-4000-8000-nachts000007",
+        "name": "Grocy-kcal abweichend",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1100,
+          -200
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "language": "javaScript",
+          "jsCode": "// Grocy-kcal ist nur eine Kopie der View vorrat_naehrwerte: abweichende Werte neu setzen\nconst grocy = {};\nfor (const i of $('Grocy-Produkte laden').all()) if (i.json && i.json.id) grocy[i.json.id] = i.json;\nconst out = [];\nfor (const i of $('Vorratswerte laden').all()) {\n  const v = i.json;\n  if (!v || !v.grocy_product_id || v.kcal_pro_einheit === null || v.kcal_pro_einheit === undefined) continue;\n  const g = grocy[v.grocy_product_id];\n  if (!g) continue;\n  if (Math.abs((Number(g.calories) || 0) - v.kcal_pro_einheit) > 0.005) out.push({ json: { id: v.grocy_product_id, calories: v.kcal_pro_einheit, vorher: Number(g.calories) || 0 } });\n}\nreturn out;"
+        }
+      },
+      {
+        "id": "e5000000-0008-4000-8000-nachts000008",
+        "name": "Grocy-kcal setzen",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          1320,
+          -200
+        ],
+        "parameters": {
+          "method": "PUT",
+          "url": "={{ $('Profil laden').first().json.grocy_url }}/api/objects/products/{{ $json.id }}",
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpCustomAuth",
+          "sendBody": true,
+          "contentType": "json",
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ calories: $json.calories }) }}",
+          "options": {
+            "batching": {
+              "batch": {
+                "batchSize": 1,
+                "batchInterval": 200
+              }
+            }
+          }
+        },
+        "credentials": {
+          "httpCustomAuth": {
+            "id": "sWOsDlhSjQx2Y5EN",
+            "name": "Custom Auth account"
+          }
+        }
+      },
+      {
+        "id": "e5000000-0009-4000-8000-nachts000009",
+        "name": "Namen sammeln",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1100,
+          0
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "language": "javaScript",
+          "jsCode": "// Namen und Einheit in vorrat_produkte folgen Grocy (dort benennt der Nutzer um)\nconst qu = { 4: 'g', 5: 'stk', 6: 'ml' };\nconst liste = $('Grocy-Produkte laden').all().map(i => i.json).filter(p => p && p.id)\n  .map(p => ({ id: p.id, name: p.name, einheit: qu[p.qu_id_stock] || null }));\nreturn [{ json: { liste } }];"
+        }
+      },
+      {
+        "id": "e5000000-0010-4000-8000-nachts000010",
+        "name": "Namen abgleichen",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.6,
+        "position": [
+          1320,
+          0
+        ],
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "UPDATE vorrat_produkte v SET name = x.name, einheit = coalesce(x.einheit, v.einheit), aktualisiert_at = now()\nFROM jsonb_to_recordset($1::jsonb) AS x(id integer, name text, einheit text)\nWHERE v.grocy_product_id = x.id AND (v.name IS DISTINCT FROM x.name OR v.einheit IS DISTINCT FROM coalesce(x.einheit, v.einheit));",
+          "options": {
+            "queryReplacement": "={{ [ JSON.stringify($json.liste) ] }}"
+          }
+        },
+        "credentials": {
+          "postgres": {
+            "id": "RewePostgres0001",
+            "name": "REWE Postgres"
+          }
+        },
+        "executeOnce": true
+      },
+      {
+        "id": "e5000000-0011-4000-8000-nachts000011",
+        "name": "Meldungen laden",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.6,
+        "position": [
+          1100,
+          200
+        ],
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "SELECT id, art, text FROM meldungen WHERE gesendet_at IS NULL ORDER BY id LIMIT 300;",
+          "options": {}
+        },
+        "credentials": {
+          "postgres": {
+            "id": "RewePostgres0001",
+            "name": "REWE Postgres"
+          }
+        },
+        "executeOnce": true,
+        "alwaysOutputData": true
+      },
+      {
+        "id": "e5000000-0012-4000-8000-nachts000012",
+        "name": "Meldung bauen",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1320,
+          200
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "language": "javaScript",
+          "jsCode": "// Gesammelte Meldungen (Abweichungen > 20 %, unplausible Werte) + Ergebnis des Nachtlaufs als eine Telegram-Nachricht\nconst esc = t => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nconst m = $('Meldungen laden').all().map(i => i.json).filter(x => x && x.id);\nconst lauf = $('Nachtlauf').first().json || {};\nconst zeilen = [];\nconst titel = { abweichung: '📈 Nährwerte um mehr als 20 % geändert (möglicher Crawl-Fehler, gespeichert)', unplausibel: '⚠️ Unplausible Nährwerte (nicht übernommen)' };\nconst gruppen = {};\nfor (const x of m) (gruppen[x.art] = gruppen[x.art] || []).push(x);\nfor (const [art, liste] of Object.entries(gruppen)) {\n  zeilen.push('<b>' + esc(titel[art] || art) + '</b> (' + liste.length + ')');\n  liste.slice(0, 15).forEach(x => zeilen.push('• ' + esc(x.text)));\n  if (liste.length > 15) zeilen.push('… und ' + (liste.length - 15) + ' weitere (Tabelle meldungen)');\n}\nconst extra = [];\nconst w = lauf.warteschlange || {};\nif (w.erledigt) extra.push(w.erledigt + ' Open-Food-Facts-Anfragen nachgeholt');\nconst k = lauf.korrektur || {};\nif (k.korrigiert) extra.push(k.korrigiert + ' Verzehr-Einträge mit besserer Quelle neu berechnet');\nconst kcal = $('Grocy-kcal abweichend').all().filter(i => i.json && i.json.id).length;\nif (kcal) extra.push(kcal + ' Grocy-kcal aus der View neu gesetzt');\nif (!zeilen.length && !extra.length) return [];\nconst text = '🌙 <b>Nährwerte – Nachtlauf</b>\\n' + (extra.length ? extra.join(' · ') + '\\n' : '') + (zeilen.length ? '\\n' + zeilen.join('\\n') : '');\nreturn [{ json: { text: text.slice(0, 4000), ids: m.map(x => x.id) } }];"
+        }
+      },
+      {
+        "id": "e5000000-0013-4000-8000-nachts000013",
+        "name": "Meldung senden",
+        "type": "n8n-nodes-base.telegram",
+        "typeVersion": 1.2,
+        "position": [
+          1540,
+          200
+        ],
+        "parameters": {
+          "resource": "message",
+          "operation": "sendMessage",
+          "chatId": "={{ $('Profil laden').first().json.chat_id }}",
+          "text": "={{ $json.text }}",
+          "additionalFields": {
+            "appendAttribution": false,
+            "parse_mode": "HTML"
+          }
+        },
+        "credentials": {
+          "telegramApi": {
+            "id": "R0Ye0fbcmRICFU8r",
+            "name": "Telegram account"
+          }
+        },
+        "webhookId": "e5000000-aaaa-4000-8000-nachtsmeldung"
+      },
+      {
+        "id": "e5000000-0014-4000-8000-nachts000014",
+        "name": "Als gesendet markieren",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.6,
+        "position": [
+          1760,
+          200
+        ],
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "UPDATE meldungen SET gesendet_at = now() WHERE id IN (SELECT x::bigint FROM jsonb_array_elements_text($1::jsonb) x);",
+          "options": {
+            "queryReplacement": "={{ [ JSON.stringify($('Meldung bauen').first().json.ids) ] }}"
+          }
+        },
+        "credentials": {
+          "postgres": {
+            "id": "RewePostgres0001",
+            "name": "REWE Postgres"
+          }
+        },
+        "executeOnce": true
+      },
+      {
+        "id": "e5000000-0015-4000-8000-nachts000015",
+        "name": "Notiz",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          0,
+          -340
+        ],
+        "parameters": {
+          "width": 820,
+          "height": 260,
+          "color": 4,
+          "content": "## Nährwerte nachts\n1. `POST /naehrwerte/nachtlauf`: Open-Food-Facts-Warteschlange erneut versuchen, Verzehr-Korrektur (bessere Quelle → neu berechnen).\n2. Grocy-kcal aus der View `vorrat_naehrwerte` neu setzen, wo abweichend (auch nach dem Crawl).\n3. Namen/Einheit in `vorrat_produkte` an Grocy angleichen.\n4. Gesammelte `meldungen` (> 20 % Abweichung, unplausibel) per Telegram, danach als gesendet markieren.\nFehler → Workflow „Fehlermeldung“."
+        }
+      }
+    ],
+    "connections": {
+      "Täglich 03:30": {
+        "main": [
+          [
+            {
+              "node": "Nachtlauf",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Manuell starten": {
+        "main": [
+          [
+            {
+              "node": "Nachtlauf",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Nachtlauf": {
+        "main": [
+          [
+            {
+              "node": "Profil laden",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Profil laden": {
+        "main": [
+          [
+            {
+              "node": "Grocy-Produkte laden",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Grocy-Produkte laden": {
+        "main": [
+          [
+            {
+              "node": "Vorratswerte laden",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Vorratswerte laden": {
+        "main": [
+          [
+            {
+              "node": "Grocy-kcal abweichend",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Namen sammeln",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Meldungen laden",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Grocy-kcal abweichend": {
+        "main": [
+          [
+            {
+              "node": "Grocy-kcal setzen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Namen sammeln": {
+        "main": [
+          [
+            {
+              "node": "Namen abgleichen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Meldungen laden": {
+        "main": [
+          [
+            {
+              "node": "Meldung bauen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Meldung bauen": {
+        "main": [
+          [
+            {
+              "node": "Meldung senden",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Meldung senden": {
+        "main": [
+          [
+            {
+              "node": "Als gesendet markieren",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1",
+      "timezone": "Europe/Berlin",
+      "errorWorkflow": "VorratFehler0001",
+      "saveManualExecutions": true
+    },
+    "staticData": {
+      "node:Täglich 03:30": {
+        "recurrenceRules": [
+          null
+        ],
+        "recurrenceRuleSignatures": [
+          null
+        ]
+      }
+    },
+    "meta": null,
+    "nodeGroups": [],
+    "pinData": null,
+    "versionId": "0f129835-4ab0-46c6-aa56-b4c2c43d48cf",
+    "activeVersionId": "0f129835-4ab0-46c6-aa56-b4c2c43d48cf",
+    "versionCounter": 2,
+    "triggerCount": 1,
+    "sourceWorkflowId": null,
+    "tags": [],
+    "shared": [
+      {
+        "updatedAt": "2026-09-29T13:11:05.109Z",
+        "createdAt": "2026-09-29T13:11:05.109Z",
+        "role": "workflow:owner",
+        "workflowId": "VorratNachts0001",
+        "projectId": "nzlXKBBRrLp3C73r",
+        "project": {
+          "updatedAt": "2026-09-27T10:46:36.945Z",
+          "createdAt": "2026-09-27T10:43:38.721Z",
+          "id": "nzlXKBBRrLp3C73r",
+          "name": "Julian Krause <cjuliankrause@icloud.com>",
+          "type": "personal",
+          "icon": null,
+          "description": null,
+          "customTelemetryTags": [],
+          "creatorId": "d119e51b-5188-40f3-82ab-3c4e7b4f489e"
+        }
+      }
+    ],
+    "versionMetadata": {
+      "name": null,
+      "description": null
+    }
+  }
+]

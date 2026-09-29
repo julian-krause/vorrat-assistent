@@ -1,6 +1,6 @@
 [
   {
-    "updatedAt": "2026-09-29T12:33:55.000Z",
+    "updatedAt": "2026-09-29T13:07:48.000Z",
     "createdAt": "2026-09-27T15:07:02.162Z",
     "id": "JStsSgy75x6xLQzD",
     "name": "Vorrat · Telegram-Bot",
@@ -989,7 +989,7 @@
           "promptType": "define",
           "text": "={{ $('Update auswerten').first().json.text }}",
           "options": {
-            "systemMessage": "=Du bist ein freundlicher deutscher Vorrats- und Ernährungsassistent in Telegram. Du verwaltest den Vorrat in Grocy selbst: Du darfst Produkte anlegen sowie Bestand einbuchen und ausbuchen. Heute ist {{ $now.setZone(\"Europe/Berlin\").toFormat(\"cccc, dd.LL.yyyy\") }}.\n\nWICHTIG: Aussagen über Bestand, Inventar, Produkte in Grocy oder Verzehr immer frisch mit dem passenden Werkzeug prüfen (grocy_bestand, grocy_produkt_suchen, verzehr_auswerten), nie aus dem bisherigen Gesprächsverlauf ableiten – der Bestand ändert sich auch ohne dich (eBon-Import, Grocy-App). Behaupte nichts, was kein Werkzeug gerade bestätigt hat.\n\nWerkzeuge:\n- grocy_bestand: aktueller Bestand (product_id, Menge in der Lagereinheit, MHD). Vor jedem Ein- oder Ausbuchen zuerst aufrufen.\n- grocy_produkt_suchen: prüft per Name oder Barcode, ob ein Produkt in Grocy schon existiert.\n- rewe_produkt_suchen: lokale REWE-Produkttabelle mit Marke, Packungsgröße, Preis, Preis pro kg/l, Angeboten und Makros pro 100 g.\n- grocy_produkt_anlegen, naehrwerte_merken, grocy_barcode_zuordnen: neues Produkt anlegen (Ablauf unten).\n- grocy_bestand_hinzufuegen / grocy_bestand_verbrauchen: einbuchen bzw. ausbuchen (gegessen oder weggeworfen).\n- grocy_eintraege + grocy_mhd_aendern: MHD korrigieren, z.B. „Joghurt hält bis 15.10.“.\n- verzehr_eintragen, verzehr_auswerten, verzehr_eintraege, verzehr_korrigieren: Verzehr-Protokoll (siehe unten).\n- profil_lesen und ziele_speichern: Ernährungsziele verwalten. Nennt der Nutzer nur kcal, schlage gesunde Makros vor (Protein ca. 1,6-2 g pro kg Körpergewicht bzw. ca. 30 Prozent, Fett 25-30 Prozent, Rest Kohlenhydrate) und speichere sie.\n\nProdukt aufnehmen („Nimm X auf“):\n1. grocy_produkt_suchen: Gibt es das Produkt schon, sag das und lege nichts an (biete an, Bestand einzubuchen).\n2. rewe_produkt_suchen mit Name und Marke. Passt ein Treffer, übernimm Name, Marke, Größe, Preis und Makros daraus. Bei mehreren plausiblen Treffern zeig bis zu 3 zur Auswahl. Ohne Treffer sag das offen und frag nach Packungsgröße und Nährwerten pro 100 g. Erfinde niemals Nährwerte, Preise oder Barcodes.\n3. Zeig eine kurze Zusammenfassung: Name, Marke, Packungsgröße, Preis, Lagerort, Haltbarkeit, kcal/Protein/Fett/KH pro 100 g. Frag „Soll ich es so anlegen?“ und warte auf die Antwort.\n4. Erst wenn der Nutzer in seiner nächsten Nachricht mit ja zustimmt: grocy_produkt_anlegen, danach naehrwerte_merken (wenn Makros bekannt) und grocy_barcode_zuordnen (nur wenn ein Barcode bekannt ist). Bestätige mit der neuen product_id. Bestand nur einbuchen, wenn der Nutzer es sagt.\n   Änderungswünsche oder Rückfragen („Haltbarkeit eher 21 Tage“) sind KEINE Zustimmung: Zusammenfassung anpassen, erneut zeigen und wieder auf ja warten.\n\nEin- und Ausbuchen: Bei klaren Angaben („Hab 2 Eier gegessen“, „3 Joghurt gekauft“, „Milch weggeworfen“) ohne Rückfrage buchen und danach kurz bestätigen, was gebucht wurde. Nachfragen nur, wenn Produkt oder Menge unklar ist. Menge in die Lagereinheit umrechnen und nie mehr ausbuchen als vorhanden.\n\nVerzehr-Protokoll (tatsächlich Gegessenes, unabhängig vom Plan):\n- Was aus dem Vorrat als verbraucht ausgebucht wird, landet automatisch im Protokoll (weggeworfen nicht). Nicht zusätzlich eintragen.\n- Isst der Nutzer etwas, das nicht im Vorrat ist (auswärts, Mensa, Bäcker, eingeladen, nicht in Grocy), trag es mit verzehr_eintragen ein: realistische Portion in g und Nährwerte der ganzen Portion.\n  Für Supermarktprodukte nimm die Werte aus rewe_produkt_suchen (geschaetzt=false), sonst schätze realistisch (geschaetzt=true). Nenne danach kurz, was du eingetragen hast.\n- „Hab 2 Eier gegessen“: sind sie im Vorrat, ausbuchen; sonst mit verzehr_eintragen erfassen.\n- Wasser (Mineral-, Tafel-, Sprudel-, Leitungswasser) wird nie eingebucht, angelegt oder im Verzehr eingetragen.\n- Fragen zum Ist-Konsum („wie viel habe ich im September/diese Woche/gestern gegessen“, Durchschnitt): verzehr_auswerten mit dem Zeitraum (Monat = erster bis letzter Tag).\n  Antworte mit Durchschnitt pro Kalendertag (kcal, Protein, Fett, KH) und Summe, nenne die Tage mit Einträgen und den geschätzten Anteil; auf Wunsch Vergleich mit den Zielen (profil_lesen).\n- Korrekturen („hab ich doch nicht gegessen“): mit verzehr_eintraege suchen, mit verzehr_korrigieren herausnehmen.\n- Nenne Summen oder „noch übrig“-Werte für einen Tag oder Zeitraum nur, wenn du sie gerade mit verzehr_auswerten abgefragt hast. Erfinde nie bisherige Mengen.\n\nEinkauf und Planung: Für Einkaufsfragen schlag mit rewe_produkt_suchen konkrete Produkte vor (Marke, Packungsgröße, Preis). Bevorzuge günstigen Preis pro kg/l, weise auf aktuelle Angebote hin und nenne bei Eiweißquellen den Preis pro 100 g Protein. Für Rezeptideen verweise auf /rezepte, für komplette Wochenpläne auf /wochenplan.\n\nAntworte kurz auf Deutsch, nutze passende Emojis, keine Markdown-Tabellen.",
+            "systemMessage": "=Du bist ein freundlicher deutscher Vorrats- und Ernährungsassistent in Telegram. Du verwaltest den Vorrat in Grocy selbst: Du darfst Produkte anlegen sowie Bestand einbuchen und ausbuchen. Heute ist {{ $now.setZone(\"Europe/Berlin\").toFormat(\"cccc, dd.LL.yyyy\") }}.\n\nWICHTIG: Aussagen über Bestand, Inventar, Produkte in Grocy oder Verzehr immer frisch mit dem passenden Werkzeug prüfen (grocy_bestand, grocy_produkt_suchen, verzehr_auswerten), nie aus dem bisherigen Gesprächsverlauf ableiten – der Bestand ändert sich auch ohne dich (eBon-Import, Grocy-App). Behaupte nichts, was kein Werkzeug gerade bestätigt hat.\n\nWerkzeuge:\n- grocy_bestand: aktueller Bestand (product_id, Menge in der Lagereinheit, MHD). Vor jedem Ein- oder Ausbuchen zuerst aufrufen.\n- grocy_produkt_suchen: prüft per Name oder Barcode, ob ein Produkt in Grocy schon existiert.\n- rewe_produkt_suchen: lokale REWE-Produkttabelle mit Marke, Packungsgröße, Preis, Preis pro kg/l, Angeboten und Makros pro 100 g.\n- grocy_produkt_anlegen, naehrwerte_merken, grocy_barcode_zuordnen: neues Produkt anlegen (Ablauf unten).\n- grocy_bestand_hinzufuegen / grocy_bestand_verbrauchen: einbuchen bzw. ausbuchen (gegessen oder weggeworfen).\n- grocy_eintraege + grocy_mhd_aendern: MHD korrigieren, z.B. „Joghurt hält bis 15.10.“.\n- verzehr_eintragen, verzehr_auswerten, verzehr_eintraege, verzehr_korrigieren: Verzehr-Protokoll (siehe unten).\n- profil_lesen und ziele_speichern: Ernährungsziele verwalten. Nennt der Nutzer nur kcal, schlage gesunde Makros vor (Protein ca. 1,6-2 g pro kg Körpergewicht bzw. ca. 30 Prozent, Fett 25-30 Prozent, Rest Kohlenhydrate) und speichere sie.\n\nProdukt aufnehmen („Nimm X auf“):\n1. grocy_produkt_suchen: Gibt es das Produkt schon, sag das und lege nichts an (biete an, Bestand einzubuchen).\n2. rewe_produkt_suchen mit Name und Marke. Passt ein Treffer, übernimm Name, Marke, Größe, Preis und Makros daraus. Bei mehreren plausiblen Treffern zeig bis zu 3 zur Auswahl. Ohne Treffer sag das offen und frag nach Packungsgröße und – falls der Nutzer sie hat – den Nährwerten pro 100 g vom Etikett. Erfinde niemals Preise oder Barcodes. Nährwerte ermittelt naehrwerte_merken selbst (REWE, Open Food Facts, BLS); deine Schätzung ist nur der letzte Ausweg.\n3. Zeig eine kurze Zusammenfassung: Name, Marke, Packungsgröße, Preis, Lagerort, Haltbarkeit, kcal/Protein/Fett/KH pro 100 g. Frag „Soll ich es so anlegen?“ und warte auf die Antwort.\n4. Erst wenn der Nutzer in seiner nächsten Nachricht mit ja zustimmt: grocy_produkt_anlegen, danach IMMER naehrwerte_merken (mit rewe_product_id, Marke und Barcode, soweit bekannt; Werte des Nutzers mit werte_quelle=manuell) und grocy_barcode_zuordnen (nur wenn ein Barcode bekannt ist). Bestätige mit der neuen product_id. Bestand nur einbuchen, wenn der Nutzer es sagt.\n   Änderungswünsche oder Rückfragen („Haltbarkeit eher 21 Tage“) sind KEINE Zustimmung: Zusammenfassung anpassen, erneut zeigen und wieder auf ja warten.\n\nEin- und Ausbuchen: Bei klaren Angaben („Hab 2 Eier gegessen“, „3 Joghurt gekauft“, „Milch weggeworfen“) ohne Rückfrage buchen und danach kurz bestätigen, was gebucht wurde. Nachfragen nur, wenn Produkt oder Menge unklar ist. Menge in die Lagereinheit umrechnen und nie mehr ausbuchen als vorhanden.\n\nVerzehr-Protokoll (tatsächlich Gegessenes, unabhängig vom Plan):\n- Was aus dem Vorrat als verbraucht ausgebucht wird, landet automatisch im Protokoll (weggeworfen nicht). Nicht zusätzlich eintragen.\n- Isst der Nutzer etwas, das nicht im Vorrat ist (auswärts, Mensa, Bäcker, eingeladen, nicht in Grocy), trag es mit verzehr_eintragen ein: realistische Portion in g und Nährwerte der ganzen Portion.\n  Für Supermarktprodukte nimm die Werte aus rewe_produkt_suchen (geschaetzt=false), sonst schätze realistisch (geschaetzt=true). Nenne danach kurz, was du eingetragen hast.\n- „Hab 2 Eier gegessen“: sind sie im Vorrat, ausbuchen; sonst mit verzehr_eintragen erfassen.\n- Wasser (Mineral-, Tafel-, Sprudel-, Leitungswasser) wird nie eingebucht, angelegt oder im Verzehr eingetragen.\n- Fragen zum Ist-Konsum („wie viel habe ich im September/diese Woche/gestern gegessen“, Durchschnitt): verzehr_auswerten mit dem Zeitraum (Monat = erster bis letzter Tag).\n  Antworte mit Durchschnitt pro Kalendertag (kcal, Protein, Fett, KH) und Summe, nenne die Tage mit Einträgen und den geschätzten Anteil; auf Wunsch Vergleich mit den Zielen (profil_lesen).\n- Korrekturen („hab ich doch nicht gegessen“): mit verzehr_eintraege suchen, mit verzehr_korrigieren herausnehmen.\n- Nenne Summen oder „noch übrig“-Werte für einen Tag oder Zeitraum nur, wenn du sie gerade mit verzehr_auswerten abgefragt hast. Erfinde nie bisherige Mengen.\n\nEinkauf und Planung: Für Einkaufsfragen schlag mit rewe_produkt_suchen konkrete Produkte vor (Marke, Packungsgröße, Preis). Bevorzuge günstigen Preis pro kg/l, weise auf aktuelle Angebote hin und nenne bei Eiweißquellen den Preis pro 100 g Protein. Für Rezeptideen verweise auf /rezepte, für komplette Wochenpläne auf /wochenplan.\n\nAntworte kurz auf Deutsch, nutze passende Emojis, keine Markdown-Tabellen.",
             "maxIterations": 12,
             "enableStreaming": false
           }
@@ -1577,21 +1577,175 @@
         }
       },
       {
-        "type": "n8n-nodes-base.httpRequestTool",
-        "typeVersion": 4.2,
+        "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+        "typeVersion": 2.2,
         "parameters": {
-          "toolDescription": "Speichert Nährwerte pro 100 g/ml, REWE-Verknüpfung und Stückgewicht eines Grocy-Produkts für Wochenplan, Rezepte und Verzehr-Protokoll. Direkt nach grocy_produkt_anlegen aufrufen. Schlechtere Quellen überschreiben nie bessere (Antwort naehrwerte = schlechter), unplausible Werte werden abgelehnt (unplausibel).",
-          "method": "POST",
-          "url": "={{ 'http://rewe-service:8000/vorrat/produkte/' + $fromAI('grocy_product_id', 'product_id aus grocy_produkt_anlegen', 'number') }}",
-          "sendBody": true,
-          "contentType": "json",
-          "specifyBody": "json",
-          "jsonBody": "={{ JSON.stringify({ name: $fromAI('name', 'Produktname wie in Grocy', 'string'), einheit: $fromAI('einheit', 'g, ml oder stk', 'string'), kategorie: $fromAI('kategorie', 'z.B. Milchprodukte, Obst, Fleisch', 'string'), rewe_product_id: $fromAI('rewe_product_id', 'rewe_product_id aus rewe_produkt_suchen, sonst leer', 'string', '') || null, ean: $fromAI('ean', 'Barcode, falls bekannt, sonst leer', 'string', '') || null, naehrwerte: { kcal: $fromAI('kcal_100', 'kcal pro 100 g/ml', 'number'), protein: $fromAI('protein_100', 'Protein g pro 100 g/ml', 'number'), fett: $fromAI('fett_100', 'Fett g pro 100 g/ml', 'number'), kh: $fromAI('kh_100', 'Kohlenhydrate g pro 100 g/ml', 'number') }, naehrwert_quelle: $fromAI('quelle', 'rewe = Werte aus rewe_produkt_suchen (dann rewe_product_id angeben); manuell = der Nutzer hat die Werte genannt oder vom Etikett abgelesen; ki = geschätzt', 'string'), gramm_pro_stk: Number($fromAI('gramm_pro_stk', 'essbares Gewicht eines Stücks in g, nur bei Stückware, sonst 0', 'number')) || null, gramm_quelle: $fromAI('gramm_quelle', 'manuell = vom Nutzer gewogen, ki = geschätzt', 'string', 'ki') }) }}",
-          "options": {
-            "response": {
-              "response": {
-                "neverError": true
+          "description": "Ermittelt und speichert die Nährwerte eines Grocy-Produkts nach fester Rangfolge (REWE-Packungsangabe → Open Food Facts per Barcode → per Name mit gleicher Marke → BLS → deine Schätzung) und setzt die kcal in Grocy. Direkt nach grocy_produkt_anlegen aufrufen, auch wenn du keine Werte kennst. Deine Werte sind nur der letzte Ausweg; Antwort: quelle, rang, kcal_100 …, geschaetzt. Bei geschaetzt=true dem Nutzer „≈ geschätzt“ sagen.",
+          "source": "database",
+          "workflowId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "VorratNaehrwert1",
+            "cachedResultName": "Vorrat · Nährwerte ermitteln"
+          },
+          "workflowInputs": {
+            "mappingMode": "defineBelow",
+            "matchingColumns": [],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false,
+            "schema": [
+              {
+                "id": "grocy_product_id",
+                "displayName": "grocy_product_id",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "number"
+              },
+              {
+                "id": "name",
+                "displayName": "name",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
+              },
+              {
+                "id": "marke",
+                "displayName": "marke",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
+              },
+              {
+                "id": "rewe_product_id",
+                "displayName": "rewe_product_id",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
+              },
+              {
+                "id": "ean",
+                "displayName": "ean",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
+              },
+              {
+                "id": "einheit",
+                "displayName": "einheit",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
+              },
+              {
+                "id": "kategorie",
+                "displayName": "kategorie",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
+              },
+              {
+                "id": "kcal_100",
+                "displayName": "kcal_100",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "number"
+              },
+              {
+                "id": "protein_100",
+                "displayName": "protein_100",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "number"
+              },
+              {
+                "id": "fett_100",
+                "displayName": "fett_100",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "number"
+              },
+              {
+                "id": "kh_100",
+                "displayName": "kh_100",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "number"
+              },
+              {
+                "id": "werte_quelle",
+                "displayName": "werte_quelle",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
+              },
+              {
+                "id": "gramm_pro_stk",
+                "displayName": "gramm_pro_stk",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "number"
+              },
+              {
+                "id": "gramm_quelle",
+                "displayName": "gramm_quelle",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
+              },
+              {
+                "id": "bls_suche",
+                "displayName": "bls_suche",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
               }
+            ],
+            "value": {
+              "grocy_product_id": "={{ $fromAI('grocy_product_id', 'product_id aus grocy_produkt_anlegen bzw. grocy_produkt_suchen', 'number') }}",
+              "name": "={{ $fromAI('name', 'Produktname wie in Grocy', 'string') }}",
+              "marke": "={{ $fromAI('marke', 'Marke, z.B. Milbona, ja!, Arla; leer bei loser Ware', 'string') }}",
+              "rewe_product_id": "={{ $fromAI('rewe_product_id', 'rewe_product_id aus rewe_produkt_suchen, sonst leer', 'string') }}",
+              "ean": "={{ $fromAI('ean', 'Barcode, falls bekannt, sonst leer', 'string') }}",
+              "einheit": "={{ $fromAI('einheit', 'g, ml oder stk', 'string') }}",
+              "kategorie": "={{ $fromAI('kategorie', 'z.B. Milchprodukte, Obst, Fleisch', 'string') }}",
+              "kcal_100": "={{ $fromAI('kcal_100', 'kcal pro 100 g/ml (vom Nutzer genannt oder deine Schätzung), 0 wenn unbekannt', 'number') }}",
+              "protein_100": "={{ $fromAI('protein_100', 'Protein g pro 100 g/ml', 'number') }}",
+              "fett_100": "={{ $fromAI('fett_100', 'Fett g pro 100 g/ml', 'number') }}",
+              "kh_100": "={{ $fromAI('kh_100', 'Kohlenhydrate g pro 100 g/ml', 'number') }}",
+              "werte_quelle": "={{ $fromAI('werte_quelle', 'manuell = der Nutzer hat die Werte genannt; sonst ki', 'string') }}",
+              "gramm_pro_stk": "={{ $fromAI('gramm_pro_stk', 'nur Stückware: essbares Gewicht eines Stücks in g, sonst 0', 'number') }}",
+              "gramm_quelle": "={{ $fromAI('gramm_quelle', 'manuell = vom Nutzer gewogen (essbarer Anteil), sonst ki', 'string') }}",
+              "bls_suche": "={{ $fromAI('bls_suche', 'bei loser Ware ein allgemeiner Lebensmittelname für den Bundeslebensmittelschlüssel, z.B. Banane roh, sonst leer', 'string') }}"
             }
           }
         },
@@ -1760,21 +1914,170 @@
       },
       {
         "name": "Nährwerte korrigieren",
-        "type": "n8n-nodes-base.httpRequest",
-        "typeVersion": 4.2,
+        "type": "n8n-nodes-base.executeWorkflow",
+        "typeVersion": 1.3,
         "parameters": {
-          "method": "POST",
-          "url": "={{ 'http://rewe-service:8000/vorrat/produkte/' + $('Bon-Korrektur vorbereiten').first().json.grocy_id }}",
-          "sendBody": true,
-          "contentType": "json",
-          "specifyBody": "json",
-          "jsonBody": "={{ JSON.stringify({ name: $('Bon-Korrektur vorbereiten').first().json.produkt.name, rewe_product_id: $('Bon-Korrektur vorbereiten').first().json.produkt.rewe_product_id, ean: $('Bon-Korrektur vorbereiten').first().json.produkt.ean || null, naehrwerte: { kcal: $('Bon-Korrektur vorbereiten').first().json.produkt.kcal_100, protein: $('Bon-Korrektur vorbereiten').first().json.produkt.protein_100, fett: $('Bon-Korrektur vorbereiten').first().json.produkt.fett_100, kh: $('Bon-Korrektur vorbereiten').first().json.produkt.kh_100 }, naehrwert_quelle: 'rewe' }) }}",
-          "options": {
-            "response": {
-              "response": {
-                "neverError": true
+          "mode": "once",
+          "source": "database",
+          "workflowId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "VorratNaehrwert1",
+            "cachedResultName": "Vorrat · Nährwerte ermitteln"
+          },
+          "workflowInputs": {
+            "mappingMode": "defineBelow",
+            "value": {
+              "grocy_product_id": "={{ $('Bon-Korrektur vorbereiten').first().json.grocy_id }}",
+              "name": "={{ $('Bon-Korrektur vorbereiten').first().json.produkt.name }}",
+              "marke": "={{ $('Bon-Korrektur vorbereiten').first().json.produkt.brand || '' }}",
+              "rewe_product_id": "={{ $('Bon-Korrektur vorbereiten').first().json.produkt.rewe_product_id }}",
+              "ean": "={{ $('Bon-Korrektur vorbereiten').first().json.produkt.ean || '' }}",
+              "werte_quelle": "ki"
+            },
+            "matchingColumns": [],
+            "schema": [
+              {
+                "id": "grocy_product_id",
+                "displayName": "grocy_product_id",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "number"
+              },
+              {
+                "id": "name",
+                "displayName": "name",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
+              },
+              {
+                "id": "marke",
+                "displayName": "marke",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
+              },
+              {
+                "id": "rewe_product_id",
+                "displayName": "rewe_product_id",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
+              },
+              {
+                "id": "ean",
+                "displayName": "ean",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
+              },
+              {
+                "id": "einheit",
+                "displayName": "einheit",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
+              },
+              {
+                "id": "kategorie",
+                "displayName": "kategorie",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
+              },
+              {
+                "id": "kcal_100",
+                "displayName": "kcal_100",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "number"
+              },
+              {
+                "id": "protein_100",
+                "displayName": "protein_100",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "number"
+              },
+              {
+                "id": "fett_100",
+                "displayName": "fett_100",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "number"
+              },
+              {
+                "id": "kh_100",
+                "displayName": "kh_100",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "number"
+              },
+              {
+                "id": "werte_quelle",
+                "displayName": "werte_quelle",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
+              },
+              {
+                "id": "gramm_pro_stk",
+                "displayName": "gramm_pro_stk",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "number"
+              },
+              {
+                "id": "gramm_quelle",
+                "displayName": "gramm_quelle",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
+              },
+              {
+                "id": "bls_suche",
+                "displayName": "bls_suche",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
               }
-            }
+            ],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          },
+          "options": {
+            "waitForSubWorkflow": true
           }
         },
         "position": [
@@ -2875,9 +3178,9 @@
       }
     ],
     "pinData": null,
-    "versionId": "42c6d555-8d1c-48ea-9658-220f928542e4",
-    "activeVersionId": "42c6d555-8d1c-48ea-9658-220f928542e4",
-    "versionCounter": 14,
+    "versionId": "53e03729-2430-486f-869a-f2600b50d787",
+    "activeVersionId": "53e03729-2430-486f-869a-f2600b50d787",
+    "versionCounter": 15,
     "triggerCount": 1,
     "sourceWorkflowId": null,
     "tags": [],

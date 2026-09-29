@@ -38,6 +38,8 @@ def schema_anlegen() -> None:
             # Vorratsprodukte: n8n darf lesen und schreiben (die Workflows schreiben über den rewe-service, der die
             # Rangregel prüft); sonst keine weiteren Schreibrechte auf Produktdaten
             con.execute("GRANT SELECT, INSERT, UPDATE, DELETE ON vorrat_produkte TO n8n")
+            # Nachtjob verschickt Meldungen per Telegram und markiert sie als gesendet
+            con.execute("GRANT UPDATE (gesendet_at) ON meldungen TO n8n")
             # Chat-Gedächtnis des Telegram-Agenten (n8n „Postgres Chat Memory“ legt seine Tabelle selbst an):
             # eigenes Schema, das n8n gehört – so braucht n8n keine Schreibrechte auf die Produktdaten
             con.execute("CREATE SCHEMA IF NOT EXISTS chat AUTHORIZATION n8n")

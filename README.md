@@ -164,6 +164,14 @@ Beide REWE-Workflows haben zusätzlich einen Node „Manuell starten“, um sie 
 
 Geschrieben wird nur über den rewe-service (`POST /vorrat/produkte/{grocy_id}`), der die Regeln prüft: schlechter überschreibt nie besser, leere Werte überschreiben nie, unplausible Werte werden abgelehnt und gemeldet. Gelesen wird direkt aus der View (Planer, Verzehr-Abgleich) oder über `GET /vorrat/produkte/{grocy_id}`. Die frühere n8n-Datentabelle `vorrat_produkte` wurde mit `POST /vorrat/migrieren` übernommen (REWE-ID aus der Grocy-Beschreibung „REWE-ID 123“).
 
+### Nährwerte ermitteln (eBon-Import und Bot)
+
+`POST /naehrwerte/ermitteln` arbeitet die Rangfolge ab: REWE-Produkt (fehlen die Details oder sind sie älter als 7 Tage, werden sie sofort über `/products/{id}/aktualisieren` nachgeladen) → Open Food Facts per Barcode → per Name (nur bei exakt gleicher Marke) → BLS → KI-Schätzung. Scheitert Open Food Facts am Anfrage-Limit, landet die Anfrage in `off_warteschlange`; der Nachtjob versucht es erneut. Die KI wählt nur aus (Produkt, BLS-Eintrag), gerechnet wird im Code.
+
+In n8n kapselt der Unter-Workflow **„Vorrat · Nährwerte ermitteln“** (10) den Aufruf samt Speichern und dem Neusetzen des Grocy-kcal-Felds. Ihn nutzen der eBon-Import (für jeden Artikel, auch schon vorhandene Produkte – ein besserer Rang wird übernommen; Abgleich mit Grocy über die `rewe_product_id`, der Name ist nur Rückfall), das Bot-Tool `naehrwerte_merken` und die Bon-Rückfrage.
+
+**Nachtjob** (09, 03:30): OFF-Warteschlange, Grocy-kcal aus der View angleichen (auch nach dem Crawl), Namen/Einheit an Grocy angleichen, gesammelte `meldungen` per Telegram.
+
 ## Ist-Verbrauch (Verzehr-Protokoll)
 
 Unabhängig vom Plan wird festgehalten, was tatsächlich gegessen wurde – Tabelle `verzehr` in der REWE-Postgres, mit Zeitstempel und zum Zeitpunkt des Essens festgeschriebenen Nährwerten:

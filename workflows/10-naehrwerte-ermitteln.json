@@ -1,0 +1,350 @@
+[
+  {
+    "updatedAt": "2026-09-29T13:08:57.000Z",
+    "createdAt": "2026-09-29T13:07:39.762Z",
+    "id": "VorratNaehrwert1",
+    "name": "Vorrat · Nährwerte ermitteln",
+    "description": null,
+    "active": true,
+    "isArchived": false,
+    "nodes": [
+      {
+        "id": "d4000000-0001-4000-8000-naehrwert001",
+        "name": "Aufruf von anderem Workflow",
+        "type": "n8n-nodes-base.executeWorkflowTrigger",
+        "typeVersion": 1.2,
+        "position": [
+          0,
+          0
+        ],
+        "parameters": {
+          "inputSource": "workflowInputs",
+          "workflowInputs": {
+            "values": [
+              {
+                "name": "grocy_product_id",
+                "type": "number"
+              },
+              {
+                "name": "name",
+                "type": "string"
+              },
+              {
+                "name": "marke",
+                "type": "string"
+              },
+              {
+                "name": "rewe_product_id",
+                "type": "string"
+              },
+              {
+                "name": "ean",
+                "type": "string"
+              },
+              {
+                "name": "einheit",
+                "type": "string"
+              },
+              {
+                "name": "kategorie",
+                "type": "string"
+              },
+              {
+                "name": "kcal_100",
+                "type": "number"
+              },
+              {
+                "name": "protein_100",
+                "type": "number"
+              },
+              {
+                "name": "fett_100",
+                "type": "number"
+              },
+              {
+                "name": "kh_100",
+                "type": "number"
+              },
+              {
+                "name": "werte_quelle",
+                "type": "string"
+              },
+              {
+                "name": "gramm_pro_stk",
+                "type": "number"
+              },
+              {
+                "name": "gramm_quelle",
+                "type": "string"
+              },
+              {
+                "name": "bls_suche",
+                "type": "string"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "d4000000-0002-4000-8000-naehrwert002",
+        "name": "Anfrage bauen",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          220,
+          0
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "language": "javaScript",
+          "jsCode": "// Eingaben -> Anfrage an POST /naehrwerte/ermitteln (mit Speichern in vorrat_produkte)\nconst z = v => (v === null || v === undefined || v === '' || isNaN(Number(v))) ? null : Number(v);\nreturn $input.all().map(i => {\n  const e = i.json;\n  const ki = z(e.kcal_100) !== null ? { kcal: z(e.kcal_100), protein: z(e.protein_100), fett: z(e.fett_100), kh: z(e.kh_100) } : null;\n  return { json: {\n    grocy_product_id: z(e.grocy_product_id), name: e.name || '', marke: e.marke || null, rewe_product_id: e.rewe_product_id ? String(e.rewe_product_id) : null,\n    ean: e.ean ? String(e.ean) : null, einheit: e.einheit || null, kategorie: e.kategorie || null,\n    ki_naehrwerte: ki, werte_quelle: e.werte_quelle === 'manuell' ? 'manuell' : 'ki',\n    gramm_pro_stk: z(e.gramm_pro_stk), gramm_quelle: e.gramm_quelle || 'ki', bls_suche: e.bls_suche || null, speichern: true,\n  } };\n});"
+        }
+      },
+      {
+        "id": "d4000000-0003-4000-8000-naehrwert003",
+        "name": "Ermitteln",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          440,
+          0
+        ],
+        "parameters": {
+          "method": "POST",
+          "url": "http://rewe-service:8000/naehrwerte/ermitteln",
+          "sendBody": true,
+          "contentType": "json",
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify($json) }}",
+          "options": {
+            "timeout": 60000,
+            "batching": {
+              "batch": {
+                "batchSize": 1,
+                "batchInterval": 200
+              }
+            },
+            "response": {
+              "response": {
+                "neverError": true
+              }
+            }
+          }
+        }
+      },
+      {
+        "id": "d4000000-0004-4000-8000-naehrwert004",
+        "name": "Profil laden",
+        "type": "n8n-nodes-base.dataTable",
+        "typeVersion": 1.1,
+        "position": [
+          660,
+          0
+        ],
+        "executeOnce": true,
+        "parameters": {
+          "resource": "row",
+          "operation": "get",
+          "dataTableId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "cT54sdECXIGtpqDT",
+            "cachedResultName": "vorrat_profil"
+          },
+          "filters": {
+            "conditions": [
+              {
+                "keyName": "schluessel",
+                "condition": "eq",
+                "keyValue": "main"
+              }
+            ]
+          },
+          "limit": 1
+        }
+      },
+      {
+        "id": "d4000000-0005-4000-8000-naehrwert005",
+        "name": "Grocy-kcal bekannt?",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          880,
+          0
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "language": "javaScript",
+          "jsCode": "// Grocy-kcal ist nur eine Kopie der View: kcal pro Lagereinheit (g/ml: kcal/100 g ÷ 100, Stück: × Stückgewicht)\nreturn $('Ermitteln').all().map(i => (i.json && i.json.produkt) || {})\n  .filter(p => p.grocy_product_id && p.kcal_pro_einheit !== null && p.kcal_pro_einheit !== undefined)\n  .map(p => ({ json: { id: p.grocy_product_id, calories: p.kcal_pro_einheit } }));"
+        }
+      },
+      {
+        "id": "d4000000-0006-4000-8000-naehrwert006",
+        "name": "Grocy-kcal setzen",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          1100,
+          0
+        ],
+        "credentials": {
+          "httpCustomAuth": {
+            "id": "sWOsDlhSjQx2Y5EN",
+            "name": "Custom Auth account"
+          }
+        },
+        "parameters": {
+          "method": "PUT",
+          "url": "={{ $('Profil laden').first().json.grocy_url }}/api/objects/products/{{ $json.id }}",
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpCustomAuth",
+          "sendBody": true,
+          "contentType": "json",
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ calories: $json.calories }) }}",
+          "options": {
+            "batching": {
+              "batch": {
+                "batchSize": 1,
+                "batchInterval": 200
+              }
+            }
+          }
+        }
+      },
+      {
+        "id": "d4000000-0007-4000-8000-naehrwert007",
+        "name": "Ergebnis",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          880,
+          200
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "language": "javaScript",
+          "jsCode": "// Ergebnis je Produkt (für eBon-Import und Bot): beste Quelle, Rang, Werte, Grocy-kcal\nreturn $('Ermitteln').all().map(i => {\n  const r = i.json || {};\n  const p = r.produkt || {};\n  return { json: {\n    grocy_product_id: p.grocy_product_id ?? null, name: p.name ?? null, quelle: p.naehrwert_quelle ?? r.quelle ?? null,\n    rang: p.naehrwert_rang ?? r.rang ?? null, kcal_100: p.kcal_100 ?? null, protein_100: p.protein_100 ?? null,\n    fett_100: p.fett_100 ?? null, kh_100: p.kh_100 ?? null, gramm_pro_stk: p.gramm_pro_stk ?? null, gramm_quelle: p.gramm_quelle ?? null,\n    geschaetzt: p.geschaetzt ?? true, kcal_pro_einheit: p.kcal_pro_einheit ?? null, rewe_product_id: p.rewe_product_id ?? null,\n    naehrwerte_status: r.naehrwerte_status ?? null, hinweise: r.hinweise || [], schritte: r.schritte || [],\n    fehler: r.error ? (r.error.message || String(r.error)) : (r.detail && !r.quelle && !r.produkt ? r.detail : null),\n  } };\n});"
+        }
+      },
+      {
+        "id": "d4000000-0008-4000-8000-naehrwert008",
+        "name": "Notiz",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          0,
+          -320
+        ],
+        "parameters": {
+          "width": 900,
+          "height": 280,
+          "color": 4,
+          "content": "## Nährwerte ermitteln (Unter-Workflow)\nGenutzt vom eBon-Import, vom Bot-Tool `naehrwerte_merken` und von der Bon-Rückfrage.\n`POST /naehrwerte/ermitteln` arbeitet die Rangfolge ab: REWE (fehlende/über 7 Tage alte Details werden sofort nachgeladen) → Open Food Facts per Barcode → per Name (nur gleiche Marke) → BLS → KI. Gespeichert wird in `vorrat_produkte` (schlechter überschreibt nie besser). Danach wird das kcal-Feld in Grocy aus der View `vorrat_naehrwerte` neu gesetzt.\nRückgabe: je Produkt Quelle, Rang, Werte, `geschaetzt`."
+        }
+      }
+    ],
+    "connections": {
+      "Aufruf von anderem Workflow": {
+        "main": [
+          [
+            {
+              "node": "Anfrage bauen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Anfrage bauen": {
+        "main": [
+          [
+            {
+              "node": "Ermitteln",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Ermitteln": {
+        "main": [
+          [
+            {
+              "node": "Profil laden",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Ergebnis",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Profil laden": {
+        "main": [
+          [
+            {
+              "node": "Grocy-kcal bekannt?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Grocy-kcal bekannt?": {
+        "main": [
+          [
+            {
+              "node": "Grocy-kcal setzen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1",
+      "timezone": "Europe/Berlin",
+      "errorWorkflow": "VorratFehler0001",
+      "callerPolicy": "workflowsFromSameOwner"
+    },
+    "staticData": null,
+    "meta": null,
+    "nodeGroups": [],
+    "pinData": null,
+    "versionId": "9267cc8a-3acb-42dc-adc6-0d910535bda5",
+    "activeVersionId": "9267cc8a-3acb-42dc-adc6-0d910535bda5",
+    "versionCounter": 1,
+    "triggerCount": 0,
+    "sourceWorkflowId": null,
+    "tags": [],
+    "shared": [
+      {
+        "updatedAt": "2026-09-29T13:07:39.765Z",
+        "createdAt": "2026-09-29T13:07:39.765Z",
+        "role": "workflow:owner",
+        "workflowId": "VorratNaehrwert1",
+        "projectId": "nzlXKBBRrLp3C73r",
+        "project": {
+          "updatedAt": "2026-09-27T10:46:36.945Z",
+          "createdAt": "2026-09-27T10:43:38.721Z",
+          "id": "nzlXKBBRrLp3C73r",
+          "name": "Julian Krause <cjuliankrause@icloud.com>",
+          "type": "personal",
+          "icon": null,
+          "description": null,
+          "customTelemetryTags": [],
+          "creatorId": "d119e51b-5188-40f3-82ab-3c4e7b4f489e"
+        }
+      }
+    ],
+    "versionMetadata": {
+      "name": null,
+      "description": null
+    }
+  }
+]

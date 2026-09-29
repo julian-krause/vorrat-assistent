@@ -91,25 +91,25 @@ DETAIL = {"productId": "2662082", "title": "ja! Streichgut ungesalzen 250g", "br
 
 
 def test_einzelprodukt_aktualisieren(test_db, monkeypatch):
-    from app import main, rewe
+    from app import crawler, rewe
     monkeypatch.setattr(rewe, "aufruf", lambda methode, pid, **kw: DETAIL)
     with test_db.verbinden() as con:
-        erg = main.produkt_aktualisieren(con, "2662082")   # noch nicht in der Tabelle -> wird angelegt
+        erg = crawler.produkt_aktualisieren(con, "2662082")   # noch nicht in der Tabelle -> wird angelegt
         assert erg["naehrwerte"] == "neu" and erg["quelle"] == "rewe" and erg["werte"]["kcal"] == 589
         z = con.execute("SELECT name, brand, size_value::float8, ean, details_fetched_at IS NOT NULL FROM rewe_products").fetchone()
         assert z == ("ja! Streichgut ungesalzen 250g", "ja!", 250, "4337256383158", True)
         # REWE liefert plötzlich keine Nährwerte mehr: alte Werte bleiben, kein OFF-Aufruf nötig
         monkeypatch.setattr(rewe, "aufruf", lambda methode, pid, **kw: {**DETAIL, "nutritionFacts": None, "brand": None})
         monkeypatch.setattr(rewe, "openfoodfacts", lambda ean: pytest.fail("OFF darf REWE-Werte nicht ersetzen"))
-        erg = main.produkt_aktualisieren(con, "2662082")
+        erg = crawler.produkt_aktualisieren(con, "2662082")
         assert erg["naehrwerte"] == "leer" and erg["werte"]["kcal"] == 589
         assert con.execute("SELECT brand FROM rewe_products").fetchone()[0] == "ja!"
 
 
 def test_openfoodfacts_nur_ohne_rewe(test_db, monkeypatch):
-    from app import main, rewe
+    from app import crawler, rewe
     monkeypatch.setattr(rewe, "aufruf", lambda methode, pid, **kw: {**DETAIL, "nutritionFacts": None})
     monkeypatch.setattr(rewe, "openfoodfacts", lambda ean: {"kcal": 590, "protein": 0.5, "fett": 65, "kh": 0.6})
     with test_db.verbinden() as con:
-        erg = main.produkt_aktualisieren(con, "2662082")
+        erg = crawler.produkt_aktualisieren(con, "2662082")
         assert erg["quelle"] == "openfoodfacts" and erg["naehrwerte"] == "off_neu"

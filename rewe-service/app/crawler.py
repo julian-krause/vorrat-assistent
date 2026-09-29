@@ -117,6 +117,14 @@ def details_uebernehmen(con, pid: str, d: dict, run_id: int | None = None) -> di
             "quelle": stand["quelle"], "werte": stand["werte"], "ean": ean}
 
 
+def produkt_aktualisieren(con, pid: str) -> dict:
+    """Details eines Produkts sofort live holen und speichern (fehlt es in der Tabelle, wird es angelegt)."""
+    d = rewe.aufruf("produkt_detail", pid, drosseln=False)
+    if not con.execute("SELECT 1 FROM rewe_products WHERE rewe_product_id = %s", (pid,)).fetchone():
+        db.produkt_aus_liste(con, listen_produkt({**d, "productId": pid}, None))
+    return details_uebernehmen(con, pid, d)
+
+
 class Crawler:
     def __init__(self):
         self._thread: threading.Thread | None = None
