@@ -1,7 +1,9 @@
 """Fortsetzbarer Crawl der Lebensmittelkategorien eines REWE-Marktes.
 
 Phase „liste“:   pro Kategorie alle Seiten der Listenansicht -> Upsert (Preis, Größe, last_seen) + Preisverlauf.
-Phase „details“: nur Produkte ohne Details -> Marke, Beschreibung, Nährwerte (REWE, sonst Open Food Facts per EAN).
+Phase „details“: Produkte ohne Details (neu oder Name/Größe geändert), danach die ältesten Details bis zur Grenze
+                 REWE_DETAILS_ERNEUERN -> Marke, Beschreibung, Nährwerte (REWE, sonst Open Food Facts per EAN).
+                 Nährwerte laufen immer über naehrwerte.rewe_speichern (Verlauf, leer überschreibt nie, Plausibilität).
 Der Fortschritt (cursor) wird nach jeder Seite bzw. jedem Produkt gespeichert; ein abgebrochener Lauf
 wird beim nächsten POST /crawl an derselben Stelle fortgesetzt.
 """
@@ -25,6 +27,8 @@ log = logging.getLogger("crawler")
 KATEGORIEN_DATEI = os.environ.get("REWE_KATEGORIEN_DATEI", "/config/kategorien.yml")
 PRO_SEITE = int(os.environ.get("REWE_PRO_SEITE", "60"))
 MAX_FEHLER_IN_FOLGE = 3
+# pro Lauf zusätzlich die ältesten Details erneuern (Nährwerte, Marke, EAN), damit nichts veraltet
+DETAILS_ERNEUERN = int(os.environ.get("REWE_DETAILS_ERNEUERN", "1500"))
 
 
 def kategorien_config() -> list[dict]:
@@ -159,7 +163,8 @@ class Crawler:
     def _laufen(self, run_id: int, params: dict) -> None:
         with db.verbinden() as con:
             cursor, stats = con.execute("SELECT cursor, stats FROM crawl_runs WHERE id = %s", (run_id,)).fetchone()
-            stats = {"neu": 0, "aktualisiert": 0, "details": 0, "ohne_groesse": 0, "ohne_naehrwerte": 0, "fehler": 0, **stats}
+            stats = {"neu": 0, "aktualisiert": 0, "name_groesse_geaendert": 0, "details": 0, "erneuert": 0, "ohne_groesse": 0,
+                     "ohne_naehrwerte": 0, "fehler": 0, **stats}
             status = "fertig"
             try:
                 if cursor.get("phase", "liste") == "liste":
@@ -219,7 +224,12 @@ class Crawler:
                         stats["ohne_groesse"] += 1
                         db.log(con, run_id, "warn", "Größe nicht erkannt",
                                {"rewe_product_id": daten["id"], "name": daten["name"], "grammage": daten["grammage"]})
-                    stats["neu" if db.produkt_aus_liste(con, daten) else "aktualisiert"] += 1
+                    ergebnis = db.produkt_aus_liste(con, daten)
+                    stats["neu" if ergebnis == "neu" else "aktualisiert"] += 1
+                    if ergebnis == "geaendert":
+                        stats["name_groesse_geaendert"] += 1
+                        db.log(con, run_id, "info", "Name oder Größe geändert, Details werden neu geholt",
+                               {"rewe_product_id": daten["id"], "name": daten["name"], "grammage": daten["grammage"]})
                 seiten = int((erg.get("pagination") or {}).get("pageCount") or 0)
             letzte = cursor["seite"] >= seiten or (max_seiten and cursor["seite"] >= max_seiten)
             cursor = {**cursor, "k": cursor["k"] + 1, "seite": 1} if letzte else {**cursor, "seite": cursor["seite"] + 1}
@@ -229,24 +239,42 @@ class Crawler:
             self._speichern(con, run_id, cursor, stats)
         return cursor
 
+    def _naechstes_detail(self, con, run_id, params, cursor):
+        """Reihenfolge: ohne Details (neu oder Name/Größe geändert), dann die ältesten Details bis zur Grenze.
+
+        Alles, was in diesem Lauf schon geholt wurde, hat details_fetched_at > Laufbeginn und kommt nicht erneut.
+        """
+        grenze = params.get("max_erneuern")
+        grenze = DETAILS_ERNEUERN if grenze is None else grenze
+        return con.execute("""
+            SELECT p.rewe_product_id, p.details_fetched_at IS NOT NULL
+            FROM rewe_products p, crawl_runs r
+            WHERE r.id = %(run)s
+              AND (p.details_fetched_at IS NULL OR (%(erneuert)s < %(grenze)s AND p.details_fetched_at < r.started_at))
+            ORDER BY p.details_fetched_at IS NOT NULL, p.details_fetched_at, p.first_seen, p.rewe_product_id
+            LIMIT 1""", {"run": run_id, "erneuert": cursor.get("erneuert", 0), "grenze": grenze}).fetchone()
+
     def _phase_details(self, con, run_id, params, cursor, stats) -> None:
         fehler = [0]
         grenze = params.get("max_details")
         while not self._stop.is_set():
             if grenze is not None and cursor["details_erledigt"] >= grenze:
                 break
-            zeile = con.execute("SELECT rewe_product_id FROM rewe_products WHERE details_fetched_at IS NULL "
-                                "ORDER BY first_seen, rewe_product_id LIMIT 1").fetchone()
+            zeile = self._naechstes_detail(con, run_id, params, cursor)
             if not zeile:
                 break
-            pid = zeile[0]
+            pid, erneuerung = zeile
+            if erneuerung:
+                cursor["erneuert"] = cursor.get("erneuert", 0) + 1
+                stats["erneuert"] += 1
             d = self._mit_wiederholung(con, run_id, stats, fehler, "produkt_detail", pid)
             if d is None:
                 # nach einem Einzelfehler nicht endlos am selben Produkt hängen bleiben
                 con.execute("UPDATE rewe_products SET details_fetched_at = now() WHERE rewe_product_id = %s", (pid,))
+                self._speichern(con, run_id, cursor, stats)
                 continue
             erg = details_uebernehmen(con, pid, d, run_id)
-            if erg["naehrwerte"] in ("leer", "unplausibel") and not erg["hat_naehrwerte"]:
+            if not erg["hat_naehrwerte"]:
                 stats["ohne_naehrwerte"] += 1
             stats["details"] += 1
             cursor["details_erledigt"] += 1

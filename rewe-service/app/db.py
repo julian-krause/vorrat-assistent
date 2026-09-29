@@ -46,9 +46,14 @@ def log(con: psycopg.Connection, run_id: int | None, level: str, message: str, p
                 (run_id, level, message, Jsonb(payload) if payload is not None else None))
 
 
-def produkt_aus_liste(con: psycopg.Connection, p: dict) -> bool:
-    """Upsert aus der Listenansicht (Preis, Größe, last_seen) + Preisverlauf. True = neues Produkt."""
-    zeile = con.execute("""
+def produkt_aus_liste(con: psycopg.Connection, p: dict) -> str:
+    """Upsert aus der Listenansicht (Preis, Größe, last_seen) + Preisverlauf.
+
+    Rückgabe: neu | geaendert (Name oder Größenangabe anders -> Details werden im selben Lauf neu geholt) | gleich.
+    """
+    alt = con.execute("SELECT name, grammage_raw, details_fetched_at FROM rewe_products WHERE rewe_product_id = %s",
+                      (p["id"],)).fetchone()
+    con.execute("""
         INSERT INTO rewe_products (rewe_product_id, article_id, ean, name, category, size_value, size_unit, grammage_raw,
                                    price, price_per_kg_or_l, is_organic, is_vegan, is_vegetarian)
         VALUES (%(id)s, %(article_id)s, %(ean)s, %(name)s, %(category)s, %(size_value)s, %(size_unit)s, %(grammage)s,
@@ -61,11 +66,16 @@ def produkt_aus_liste(con: psycopg.Connection, p: dict) -> bool:
             grammage_raw = EXCLUDED.grammage_raw, price = EXCLUDED.price,
             price_per_kg_or_l = coalesce(EXCLUDED.price_per_kg_or_l, rewe_products.price_per_kg_or_l),
             is_organic = EXCLUDED.is_organic, is_vegan = EXCLUDED.is_vegan, is_vegetarian = EXCLUDED.is_vegetarian,
-            last_seen = now()
-        RETURNING (xmax = 0) AS neu""", p).fetchone()
+            last_seen = now()""", p)
     if p.get("price") is not None:
         con.execute("INSERT INTO rewe_price_history (rewe_product_id, price) VALUES (%s, %s)", (p["id"], p["price"]))
-    return bool(zeile and zeile[0])
+    if alt is None:
+        return "neu"
+    if (alt[0], alt[1]) != (p["name"], p.get("grammage")):
+        if alt[2] is not None:
+            con.execute("UPDATE rewe_products SET details_fetched_at = NULL WHERE rewe_product_id = %s", (p["id"],))
+        return "geaendert"
+    return "gleich"
 
 
 def produkt_details(con: psycopg.Connection, d: dict) -> None:

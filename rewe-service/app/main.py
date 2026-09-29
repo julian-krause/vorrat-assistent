@@ -190,9 +190,11 @@ def crawl(
     max_seiten: int | None = Body(None, description="Seiten pro Kategorie begrenzen (Mini-Crawl)"),
     details: bool = Body(True),
     max_details: int | None = Body(None, description="Detailabrufe begrenzen (Mini-Crawl)"),
+    max_erneuern: int | None = Body(None, description="älteste Details erneuern, Standard REWE_DETAILS_ERNEUERN (1500)"),
     neu: bool = Body(False, description="true = nicht fortsetzen, neuen Lauf beginnen"),
 ):
-    params = {"kategorien": kategorien, "max_seiten": max_seiten, "details": details, "max_details": max_details}
+    params = {"kategorien": kategorien, "max_seiten": max_seiten, "details": details, "max_details": max_details,
+              "max_erneuern": max_erneuern}
     return crawler.starten(params, neu=neu)
 
 

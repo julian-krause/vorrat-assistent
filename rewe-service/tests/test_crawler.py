@@ -95,11 +95,11 @@ def test_kompletter_lauf(umgebung, monkeypatch):
         assert con.execute("SELECT count(*) FROM rewe_price_history").fetchone()[0] == 4
         assert con.execute("SELECT count(*) FROM crawl_log WHERE message = 'Größe nicht erkannt'").fetchone()[0] == 1
 
-    # Folge-Crawl: Preis ändert sich, keine erneuten Detailabrufe, Verlauf wird angehängt
+    # Folge-Crawl ohne Erneuerung: Preis ändert sich, keine erneuten Detailabrufe, Verlauf wird angehängt
     SEITEN[("nudeln-reis", 1)][0]["listing"]["currentRetailPrice"] = 149
     fake2 = FakeRewe()
     monkeypatch.setattr(rewe, "aufruf", fake2)
-    laufen(crawler, {"kategorien": None, "max_seiten": None, "details": True, "max_details": None})
+    laufen(crawler, {"kategorien": None, "max_seiten": None, "details": True, "max_details": None, "max_erneuern": 0}, neu=True)
     assert not [a for a in fake2.aufrufe if a[0] == "produkt_detail"]
     with db.verbinden() as con:
         assert con.execute("SELECT price::float8 FROM rewe_products WHERE rewe_product_id = '2000001'").fetchone()[0] == pytest.approx(1.49)
@@ -139,3 +139,28 @@ def test_mini_crawl(umgebung, monkeypatch):
     listen = [(a[1][0], a[2]["page"]) for a in fake.aufrufe if a[0] == "kategorie_produkte"]
     assert listen == [("obst-gemuese", 1)]
     assert len([a for a in fake.aufrufe if a[0] == "produkt_detail"]) == 1
+
+
+def test_details_aktuell_halten(umgebung, monkeypatch):
+    crawler, rewe, db = umgebung
+    monkeypatch.setattr(rewe, "aufruf", FakeRewe())
+    laufen(crawler, {"kategorien": None, "max_seiten": None, "details": True, "max_details": None})
+    with db.verbinden() as con:
+        # Details künstlich altern lassen: Zucchini am ältesten, dann Bananen
+        con.execute("UPDATE rewe_products SET details_fetched_at = now() - interval '30 days'")
+        con.execute("UPDATE rewe_products SET details_fetched_at = now() - interval '90 days' WHERE rewe_product_id = '1000003'")
+        con.execute("UPDATE rewe_products SET details_fetched_at = now() - interval '60 days' WHERE rewe_product_id = '1000001'")
+
+    # Spaghetti bekommt eine neue Größe -> Details im selben Lauf neu; zusätzlich die 2 ältesten erneuern
+    SEITEN[("nudeln-reis", 1)][0]["listing"]["grammage"] = "400g (1 kg = 4,48 €)"
+    fake = FakeRewe()
+    monkeypatch.setattr(rewe, "aufruf", fake)
+    laufen(crawler, {"kategorien": None, "max_seiten": None, "details": True, "max_details": None, "max_erneuern": 2}, neu=True)
+    SEITEN[("nudeln-reis", 1)][0]["listing"]["grammage"] = "500g (1 kg = 3,58 €)"
+    details = [a[1][0] for a in fake.aufrufe if a[0] == "produkt_detail"]
+    assert details == ["2000001", "1000003", "1000001"]
+    with db.verbinden() as con:
+        stats = con.execute("SELECT stats FROM crawl_runs ORDER BY id DESC").fetchone()[0]
+        assert stats["name_groesse_geaendert"] == 1 and stats["erneuert"] == 2
+        # Nährwerte der Bananen unverändert -> kein zweiter Verlaufseintrag
+        assert con.execute("SELECT count(*) FROM rewe_naehrwert_verlauf WHERE rewe_product_id = '1000001'").fetchone()[0] == 1

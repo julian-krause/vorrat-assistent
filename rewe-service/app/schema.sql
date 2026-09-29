@@ -32,6 +32,7 @@ CREATE INDEX IF NOT EXISTS rewe_products_suche_idx
     ON rewe_products USING gin ((name || ' ' || coalesce(brand, '')) gin_trgm_ops);
 CREATE INDEX IF NOT EXISTS rewe_products_ohne_details_idx
     ON rewe_products (first_seen) WHERE details_fetched_at IS NULL;
+CREATE INDEX IF NOT EXISTS rewe_products_details_alter_idx ON rewe_products (details_fetched_at);
 
 ALTER TABLE rewe_products
     ADD COLUMN IF NOT EXISTS zucker_100 numeric(6, 1),
