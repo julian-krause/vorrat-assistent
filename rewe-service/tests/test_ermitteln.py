@@ -74,3 +74,4 @@ def test_marke_passt():
     assert ermitteln.marke_passt("REWE Bio", "REWE Bio")
     assert not ermitteln.marke_passt("REWE", "Rewe Bio")  # andere Linie
     assert not ermitteln.marke_passt(None, "Arla")
+    assert ermitteln.marke_passt("ja!", ["Ja!"])            # Such-API liefert Listen

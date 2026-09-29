@@ -147,7 +147,7 @@ Beide REWE-Workflows haben zusätzlich einen Node „Manuell starten“, um sie 
 - **Barcode:** Die API hat kein eigenes EAN-Feld, aber die `articleId` ist im Onlineshop meist die GTIN/EAN (geprüft mit Open Food Facts, z. B. Arla Skyr Natur 450 g = 4016241030603). Sie wird gespeichert, wenn die GS1-Prüfziffer stimmt; sonst bleibt `ean` leer (im Test: 40 von 64 Produkten mit EAN).
 - Größe aus Texten wie „500g (1 kg = 3,98 €)“, „6 x 1,5 l“, „10 Stück“ → `size_value`/`size_unit` (g/ml/Stück), daraus `price_per_kg_or_l`. Nicht erkannte Größen landen in `crawl_log`.
 - 2–3 s Pause zwischen Requests. Der Fortschritt wird nach jeder Seite gespeichert; nach einem Abbruch setzt der nächste `POST /crawl` an derselben Stelle fort.
-- Tests: `docker exec rewe-service python -m pytest -q tests` (Parser und Crawler gegen nachgebaute API-Antworten).
+- Tests: `docker exec rewe-service python -m pytest -q tests` (Parser und Crawler gegen nachgebaute API-Antworten; Nährwert-Regeln: Plausibilität, „leer überschreibt nie“, 20-%-Meldung, Rangregel, Korrektur-Job, Regression „REWE-Details fehlen beim Import“; BLS, Stückgewichte, Etikett-Vorschlag). Ohne Neustart des laufenden Dienstes: `docker compose --env-file rewe.env -f rewe.compose.yml run --rm --build --no-deps rewe-service python -m pytest -q -p no:cacheprovider`.
 
 ## Vorratsprodukte und Nährwert-Quellen
 
@@ -166,7 +166,7 @@ Geschrieben wird nur über den rewe-service (`POST /vorrat/produkte/{grocy_id}`)
 
 ### Nährwerte ermitteln (eBon-Import und Bot)
 
-`POST /naehrwerte/ermitteln` arbeitet die Rangfolge ab: REWE-Produkt (fehlen die Details oder sind sie älter als 7 Tage, werden sie sofort über `/products/{id}/aktualisieren` nachgeladen) → Open Food Facts per Barcode → per Name (nur bei exakt gleicher Marke) → BLS → KI-Schätzung. Scheitert Open Food Facts am Anfrage-Limit, landet die Anfrage in `off_warteschlange`; der Nachtjob versucht es erneut. Die KI wählt nur aus (Produkt, BLS-Eintrag), gerechnet wird im Code.
+`POST /naehrwerte/ermitteln` arbeitet die Rangfolge ab: REWE-Produkt (fehlen die Details oder sind sie älter als 7 Tage, werden sie sofort über `/products/{id}/aktualisieren` nachgeladen) → Open Food Facts per Barcode → per Name (nur bei exakt gleicher Marke) → BLS → KI-Schätzung. Die Namenssuche nutzt die Such-API `search.openfoodfacts.org` (die alte `cgi/search.pl` antwortet meist mit 503). Scheitert Open Food Facts am Anfrage-Limit oder ist überlastet, landet die Anfrage in `off_warteschlange`; der Nachtjob versucht es erneut. Die KI wählt nur aus (Produkt, BLS-Eintrag), gerechnet wird im Code.
 
 In n8n kapselt der Unter-Workflow **„Vorrat · Nährwerte ermitteln“** (10) den Aufruf samt Speichern und dem Neusetzen des Grocy-kcal-Felds. Ihn nutzen der eBon-Import (für jeden Artikel, auch schon vorhandene Produkte – ein besserer Rang wird übernommen; Abgleich mit Grocy über die `rewe_product_id`, der Name ist nur Rückfall), das Bot-Tool `naehrwerte_merken` und die Bon-Rückfrage.
 

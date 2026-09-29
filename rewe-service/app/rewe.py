@@ -219,11 +219,15 @@ def openfoodfacts(ean: str) -> dict | None:
 
 
 def openfoodfacts_suche(begriff: str, seiten_groesse: int = 10) -> list[dict]:
-    """Namenssuche (nur deutsche Produkte). OffLimit bei Anfrage-Limit (Suche: ca. 10 Anfragen/Minute)."""
-    r = _off_get("https://world.openfoodfacts.org/cgi/search.pl", {
-        "search_terms": begriff, "search_simple": 1, "action": "process", "json": 1, "page_size": seiten_groesse,
-        "tagtype_0": "countries", "tag_contains_0": "contains", "tag_0": "germany",
-        "fields": "code,product_name,brands,nutriments"})
+    """Namenssuche über die Such-API search.openfoodfacts.org (die alte cgi/search.pl antwortet meist mit 503).
+
+    OffLimit bei Anfrage-Limit oder Überlastung. brands kommt als Liste.
+    """
+    r = _off_get("https://search.openfoodfacts.org/search",
+                 {"q": begriff, "page_size": seiten_groesse, "fields": "code,product_name,product_name_de,brands,nutriments"})
     if r.status_code != 200:
         return []
-    return r.json().get("products") or []
+    treffer = r.json().get("hits") or []
+    for t in treffer:
+        t["product_name"] = t.get("product_name_de") or t.get("product_name") or ""
+    return treffer

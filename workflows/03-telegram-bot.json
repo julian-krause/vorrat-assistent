@@ -1,6 +1,6 @@
 [
   {
-    "updatedAt": "2026-09-29T13:48:26.000Z",
+    "updatedAt": "2026-09-29T13:54:12.000Z",
     "createdAt": "2026-09-27T15:07:02.162Z",
     "id": "JStsSgy75x6xLQzD",
     "name": "Vorrat · Telegram-Bot",
@@ -1811,20 +1811,20 @@
             "value": {
               "grocy_product_id": "={{ $fromAI('grocy_product_id', 'product_id aus grocy_produkt_anlegen bzw. grocy_produkt_suchen', 'number') }}",
               "name": "={{ $fromAI('name', 'Produktname wie in Grocy', 'string') }}",
-              "marke": "={{ $fromAI('marke', 'Marke, z.B. Milbona, ja!, Arla; leer bei loser Ware', 'string') }}",
-              "rewe_product_id": "={{ $fromAI('rewe_product_id', 'rewe_product_id aus rewe_produkt_suchen, sonst leer', 'string') }}",
-              "ean": "={{ $fromAI('ean', 'Barcode, falls bekannt, sonst leer', 'string') }}",
+              "marke": "={{ $fromAI('marke', 'Marke, z.B. Milbona, ja!, Arla; leer bei loser Ware', 'string', '') }}",
+              "rewe_product_id": "={{ $fromAI('rewe_product_id', 'rewe_product_id aus rewe_produkt_suchen, sonst leer', 'string', '') }}",
+              "ean": "={{ $fromAI('ean', 'Barcode, falls bekannt, sonst leer', 'string', '') }}",
               "einheit": "={{ $fromAI('einheit', 'g, ml oder stk', 'string') }}",
-              "kategorie": "={{ $fromAI('kategorie', 'z.B. Milchprodukte, Obst, Fleisch', 'string') }}",
-              "kcal_100": "={{ $fromAI('kcal_100', 'kcal pro 100 g/ml (vom Nutzer genannt oder deine Schätzung), 0 wenn unbekannt', 'number') }}",
-              "protein_100": "={{ $fromAI('protein_100', 'Protein g pro 100 g/ml', 'number') }}",
-              "fett_100": "={{ $fromAI('fett_100', 'Fett g pro 100 g/ml', 'number') }}",
-              "kh_100": "={{ $fromAI('kh_100', 'Kohlenhydrate g pro 100 g/ml', 'number') }}",
-              "werte_quelle": "={{ $fromAI('werte_quelle', 'manuell = der Nutzer hat die Werte genannt; sonst ki', 'string') }}",
-              "gramm_pro_stk": "={{ $fromAI('gramm_pro_stk', 'nur Stückware: Gewicht eines Stücks in g (bei gewogen: das gewogene Gewicht), sonst 0', 'number') }}",
-              "gramm_quelle": "={{ $fromAI('gramm_quelle', 'manuell = vom Nutzer gewogen, sonst ki', 'string') }}",
-              "bls_suche": "={{ $fromAI('bls_suche', 'bei loser Ware ein allgemeiner Lebensmittelname für den Bundeslebensmittelschlüssel, z.B. Banane roh, sonst leer', 'string') }}",
-              "mit_schale": "={{ $fromAI('mit_schale', 'nur wenn gewogen: ja = mit Schale/Kern gewogen, nein = nur der essbare Teil; sonst leer', 'string') }}"
+              "kategorie": "={{ $fromAI('kategorie', 'z.B. Milchprodukte, Obst, Fleisch', 'string', '') }}",
+              "kcal_100": "={{ $fromAI('kcal_100', 'kcal pro 100 g/ml (vom Nutzer genannt oder deine Schätzung), 0 wenn unbekannt', 'number', 0) }}",
+              "protein_100": "={{ $fromAI('protein_100', 'Protein g pro 100 g/ml', 'number', 0) }}",
+              "fett_100": "={{ $fromAI('fett_100', 'Fett g pro 100 g/ml', 'number', 0) }}",
+              "kh_100": "={{ $fromAI('kh_100', 'Kohlenhydrate g pro 100 g/ml', 'number', 0) }}",
+              "werte_quelle": "={{ $fromAI('werte_quelle', 'manuell = der Nutzer hat die Werte genannt; sonst ki', 'string', '') }}",
+              "gramm_pro_stk": "={{ $fromAI('gramm_pro_stk', 'nur Stückware: Gewicht eines Stücks in g (bei gewogen: das gewogene Gewicht), sonst 0', 'number', 0) }}",
+              "gramm_quelle": "={{ $fromAI('gramm_quelle', 'manuell = vom Nutzer gewogen, sonst ki', 'string', '') }}",
+              "bls_suche": "={{ $fromAI('bls_suche', 'bei loser Ware ein allgemeiner Lebensmittelname für den Bundeslebensmittelschlüssel, z.B. Banane roh, sonst leer', 'string', '') }}",
+              "mit_schale": "={{ $fromAI('mit_schale', 'nur wenn gewogen: ja = mit Schale/Kern gewogen, nein = nur der essbare Teil; sonst leer', 'string', '') }}"
             }
           }
         },
@@ -4157,9 +4157,9 @@
       }
     ],
     "pinData": null,
-    "versionId": "5bf4b2f1-985b-4228-8bbd-4117b5a423b5",
-    "activeVersionId": "5bf4b2f1-985b-4228-8bbd-4117b5a423b5",
-    "versionCounter": 17,
+    "versionId": "23800d27-15ba-47cd-82ae-381fba28a9a0",
+    "activeVersionId": "23800d27-15ba-47cd-82ae-381fba28a9a0",
+    "versionCounter": 18,
     "triggerCount": 1,
     "sourceWorkflowId": null,
     "tags": [],

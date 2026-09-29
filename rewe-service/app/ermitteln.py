@@ -31,8 +31,9 @@ def marke_passt(marke: str | None, off_marken: str | None) -> bool:
     m = _norm(marke)
     if not m:
         return False
-    # exakt (OFF führt mehrere Marken durch Komma getrennt): „REWE“ ist nicht „REWE Bio“
-    return any(_norm(x) == m for x in str(off_marken or "").split(","))
+    # exakt (OFF führt mehrere Marken als Liste oder durch Komma getrennt): „REWE“ ist nicht „REWE Bio“
+    liste = off_marken if isinstance(off_marken, list) else str(off_marken or "").split(",")
+    return any(_norm(x) == m for x in liste)
 
 
 def off_name_treffer(name: str, marke: str, produkte: list[dict]) -> dict | None:

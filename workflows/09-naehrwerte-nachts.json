@@ -1,6 +1,6 @@
 [
   {
-    "updatedAt": "2026-09-29T13:48:30.000Z",
+    "updatedAt": "2026-09-29T14:00:51.000Z",
     "createdAt": "2026-09-29T13:11:05.106Z",
     "id": "VorratNachts0001",
     "name": "Vorrat · Nährwerte nachts (03:30)",
@@ -717,8 +717,8 @@
     "meta": null,
     "nodeGroups": [],
     "pinData": null,
-    "versionId": "997b6bea-fdde-4b7b-a9cc-ef2dceccb701",
-    "activeVersionId": "997b6bea-fdde-4b7b-a9cc-ef2dceccb701",
+    "versionId": "fa1f4a03-4d59-4b39-b7ee-bfae85bb2da2",
+    "activeVersionId": "fa1f4a03-4d59-4b39-b7ee-bfae85bb2da2",
     "versionCounter": 4,
     "triggerCount": 1,
     "sourceWorkflowId": null,
