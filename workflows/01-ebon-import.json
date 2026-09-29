@@ -1,6 +1,6 @@
 [
   {
-    "updatedAt": "2026-09-28T18:36:24.000Z",
+    "updatedAt": "2026-09-29T11:26:07.000Z",
     "createdAt": "2026-09-27T15:00:32.007Z",
     "id": "WI7rA3dd4TMM2WVb",
     "name": "Vorrat · eBon-Import (REWE → Grocy)",
@@ -1405,6 +1405,19 @@
             "parse_mode": "HTML"
           }
         }
+      },
+      {
+        "id": "e0000000-0020-4000-8000-rewebon00020",
+        "name": "Nährwertquelle zusammenführen",
+        "type": "n8n-nodes-base.merge",
+        "typeVersion": 3.2,
+        "position": [
+          3820,
+          296
+        ],
+        "parameters": {
+          "mode": "append"
+        }
       }
     ],
     "connections": {
@@ -1591,9 +1604,9 @@
         "main": [
           [
             {
-              "node": "Nährwerte bestimmen",
+              "node": "Nährwertquelle zusammenführen",
               "type": "main",
-              "index": 0
+              "index": 1
             }
           ]
         ]
@@ -1738,7 +1751,7 @@
         "main": [
           [
             {
-              "node": "Nährwerte bestimmen",
+              "node": "Nährwertquelle zusammenführen",
               "type": "main",
               "index": 0
             }
@@ -1793,6 +1806,17 @@
           [
             {
               "node": "Anzahl Vorschläge",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Nährwertquelle zusammenführen": {
+        "main": [
+          [
+            {
+              "node": "Nährwerte bestimmen",
               "type": "main",
               "index": 0
             }
@@ -1878,9 +1902,9 @@
       }
     ],
     "pinData": null,
-    "versionId": "501772f5-ca32-4749-a310-6ebfed346ac4",
-    "activeVersionId": "501772f5-ca32-4749-a310-6ebfed346ac4",
-    "versionCounter": 6,
+    "versionId": "2c639455-a704-4a8b-a1f5-b8a845424105",
+    "activeVersionId": "2c639455-a704-4a8b-a1f5-b8a845424105",
+    "versionCounter": 7,
     "triggerCount": 1,
     "sourceWorkflowId": null,
     "tags": [],
