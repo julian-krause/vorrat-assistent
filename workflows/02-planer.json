@@ -1,11 +1,11 @@
 [
   {
-    "updatedAt": "2026-09-27T15:25:31.911Z",
+    "updatedAt": "2026-09-27T20:54:18.000Z",
     "createdAt": "2026-09-27T14:58:40.924Z",
     "id": "2dBOwb9KJDnwi1Id",
     "name": "Vorrat · Planer (Rezepte & Wochenplan)",
     "description": "Gesunde Rezepte oder Wochenplan aus dem Grocy-Bestand, mit OFF-Nährwerten und Makrozielen; Einkaufsliste per Telegram und in Grocy.",
-    "active": false,
+    "active": true,
     "isArchived": false,
     "nodes": [
       {
@@ -186,11 +186,17 @@
           "method": "GET",
           "url": "={{ $('Profil laden').first().json.grocy_url }}/api/stock",
           "authentication": "genericCredentialType",
-          "genericAuthType": "httpTemplatedCustomAuth",
+          "genericAuthType": "httpCustomAuth",
           "options": {}
         },
         "executeOnce": true,
-        "alwaysOutputData": true
+        "alwaysOutputData": true,
+        "credentials": {
+          "httpCustomAuth": {
+            "id": "sWOsDlhSjQx2Y5EN",
+            "name": "Custom Auth account"
+          }
+        }
       },
       {
         "id": "6b4be76b-a9fb-4bdf-aaec-8f46b628f8fe",
@@ -205,10 +211,16 @@
           "method": "GET",
           "url": "={{ $('Profil laden').first().json.grocy_url }}/api/objects/quantity_units",
           "authentication": "genericCredentialType",
-          "genericAuthType": "httpTemplatedCustomAuth",
+          "genericAuthType": "httpCustomAuth",
           "options": {}
         },
-        "executeOnce": true
+        "executeOnce": true,
+        "credentials": {
+          "httpCustomAuth": {
+            "id": "sWOsDlhSjQx2Y5EN",
+            "name": "Custom Auth account"
+          }
+        }
       },
       {
         "id": "def8d75e-feaf-4b26-b05d-247dd9c00725",
@@ -245,7 +257,7 @@
         "parameters": {
           "mode": "runOnceForAllItems",
           "language": "javaScript",
-          "jsCode": "const norm = $('Eingabe normalisieren').first().json;\nconst profil = $('Profil laden').first().json || {};\nconst klein = x => String(x || '').trim().toLowerCase();\nconst qus = $('Grocy-Einheiten laden').all().map(i => i.json).filter(q => q && q.id);\nconst quCode = {};\nfor (const q of qus) quCode[q.id] = klein(q.name) === 'gramm' ? 'g' : klein(q.name) === 'milliliter' ? 'ml' : klein(q.name) === 'stück' ? 'stk' : q.name;\nconst nw = {};\nfor (const i of $('Nährwerte laden').all()) if (i.json && i.json.grocy_product_id) nw[i.json.grocy_product_id] = i.json;\nconst bestand = $('Grocy-Bestand laden').all().map(i => i.json).filter(r => r && r.product_id && Number(r.amount) > 0);\nconst zone = 'Europe/Berlin';\nconst heute = DateTime.now().setZone(zone).startOf('day');\n\nconst vorrat = bestand.map(r => {\n  const p = r.product || {};\n  const m = r.best_before_date && !String(r.best_before_date).startsWith('2999') ? DateTime.fromISO(String(r.best_before_date).slice(0, 10), { zone }) : null;\n  const n = nw[r.product_id] || {};\n  const e = { product_id: Number(r.product_id), name: p.name, menge: Math.round(Number(r.amount) * 10) / 10, einheit: quCode[p.qu_id_stock] || 'stk', tage_bis_mhd: m ? Math.round(m.diff(heute, 'days').days) : null };\n  if (n.kcal_100 != null) e.pro_100g = { kcal: n.kcal_100, p: n.protein_100, f: n.fett_100, kh: n.kh_100 };\n  if (n.gramm_pro_stk) e.gramm_pro_stk = n.gramm_pro_stk;\n  if (n.nutriscore) e.nutriscore = n.nutriscore;\n  if (n.nova) e.nova = n.nova;\n  return e;\n}).sort((a, b) => (a.tage_bis_mhd ?? 999) - (b.tage_bis_mhd ?? 999));\n\nconst hatZiele = Number(profil.kcal) > 0;\nconst ziele_text = hatZiele\n  ? 'Tagesziel: ' + profil.kcal + ' kcal, ' + profil.protein_g + ' g Protein, ' + profil.fett_g + ' g Fett, ' + profil.kh_g + ' g Kohlenhydrate.'\n  : 'Keine Ziele hinterlegt: ausgewogen mit ca. 2000 kcal pro Tag und ca. 25-30 % Protein planen.';\nconst mahlzeiten = Number(profil.mahlzeiten_pro_tag) || 3;\nconst slots = ['Frühstück', 'Mittag', 'Abend', 'Snack', 'Snack 2'].slice(0, Math.max(1, Math.min(5, mahlzeiten)));\nconst start = heute.plus({ days: 1 });\n\nlet aufgabe;\nif (norm.modus === 'wochenplan') {\n  aufgabe = 'AUFGABE: Erstelle einen gesunden Wochenplan für 7 Tage von ' + start.toISODate() + ' bis ' + start.plus({ days: 6 }).toISODate()\n    + ' mit genau diesen Mahlzeiten pro Tag: ' + slots.join(', ') + '. '\n    + 'Die Summe aller Mahlzeiten eines Tages soll die Tagesziele möglichst genau treffen (Abweichung max. 10 %). '\n    + 'Verplane zuerst Zutaten, die bald ablaufen (kleine tage_bis_mhd zuerst). '\n    + 'Nutze Meal-Prep: Reste vom Abendessen dürfen am nächsten Tag mittags wiederkommen. Frühstück darf sich wiederholen. '\n    + 'Setze bei jedem Rezept das Feld \"tag\" auf das Datum.';\n} else {\n  aufgabe = 'AUFGABE: Schlage genau 3 einfache, gesunde Rezepte (je 1 Portion) vor, die überwiegend den vorhandenen Vorrat nutzen. '\n    + 'Priorisiere Zutaten mit tage_bis_mhd <= 3. Jede Portion soll etwa ein Tagesziel geteilt durch ' + mahlzeiten + ' treffen. '\n    + 'Setze \"tag\" auf ' + heute.toISODate() + ' und \"mahlzeit\" passend (Frühstück/Mittag/Abend/Snack).';\n}\nif (norm.hinweis) aufgabe += ' Zusatzwunsch des Nutzers: ' + norm.hinweis;\n\nconst format = 'ANTWORTFORMAT (nur dieses JSON, nichts anderes):\\n'\n  + '{\"hinweis\":\"1 kurzer Satz, welche Zutaten zuerst verbraucht werden sollten\",'\n  + '\"rezepte\":[{\"titel\":\"...\",\"tag\":\"YYYY-MM-DD\",\"mahlzeit\":\"Frühstück\",\"portionen\":1,\"dauer_min\":20,'\n  + '\"kcal\":550,\"protein_g\":40,\"fett_g\":18,\"kh_g\":55,'\n  + '\"zutaten\":[{\"product_id\":12,\"name\":\"Zucchini\",\"menge\":200,\"einheit\":\"g\"}],'\n  + '\"anleitung\":[\"Schritt 1\",\"Schritt 2\"]}]}\\n'\n  + 'REGELN: product_id nur aus dem VORRAT verwenden und dann exakt dessen Einheit nutzen. '\n  + 'Zutaten, die nicht im Vorrat sind, mit \"product_id\": null angeben (landen auf der Einkaufsliste). '\n  + 'Berechne kcal und Makros aus den Mengen und den Werten pro_100g (bei stk über gramm_pro_stk); nur wo diese fehlen, realistisch schätzen. '\n  + 'Bevorzuge Produkte mit Nutri-Score A/B und NOVA 1-3; Produkte mit Nutri-Score D/E oder NOVA 4 nur sparsam einsetzen.';\n\nconst system = 'Du bist Ernährungscoach und Koch. Alles muss gesund sein: viel Gemüse, Hülsenfrüchte, Vollkorn, mageres Protein, gesunde Fette, '\n  + 'wenig Zucker und wenig stark verarbeitete Lebensmittel. Rezepte sind einfach: max. 8 Zutaten, max. 30 Minuten, Alltagsküche. '\n  + 'Grundzutaten (Salz, Pfeffer, Gewürze, Öl, Essig, Senf, Brühe) gelten als vorhanden und werden nicht als Zutat aufgeführt. '\n  + 'Vorlieben des Nutzers: ' + (profil.vorlieben || 'keine') + '. Antworte ausschließlich mit gültigem JSON.';\n\nconst prompt = aufgabe + '\\n\\n' + ziele_text + '\\n\\nVORRAT (sortiert nach Ablaufdatum):\\n' + JSON.stringify(vorrat) + '\\n\\n' + format;\n\nreturn [{ json: { modus: norm.modus, chat_id: String(profil.chat_id || ''), ziele_text, vorrat, system, prompt } }];"
+          "jsCode": "const norm = $('Eingabe normalisieren').first().json;\nconst profil = $('Profil laden').first().json || {};\nconst klein = x => String(x || '').trim().toLowerCase();\nconst zahl = v => { const x = Number(v); return Number.isFinite(x) ? x : 0; };\nconst qus = $('Grocy-Einheiten laden').all().map(i => i.json).filter(q => q && q.id);\nconst quCode = {};\nfor (const q of qus) quCode[q.id] = klein(q.name) === 'gramm' ? 'g' : klein(q.name) === 'milliliter' ? 'ml' : klein(q.name) === 'stück' ? 'stk' : q.name;\nconst nw = {};\nfor (const i of $('Nährwerte laden').all()) if (i.json && i.json.grocy_product_id) nw[i.json.grocy_product_id] = i.json;\nconst bestand = $('Grocy-Bestand laden').all().map(i => i.json).filter(r => r && r.product_id && Number(r.amount) > 0);\nconst zone = 'Europe/Berlin';\nconst heute = DateTime.now().setZone(zone).startOf('day');\n\nconst vorrat = bestand.map(r => {\n  const p = r.product || {};\n  const m = r.best_before_date && !String(r.best_before_date).startsWith('2999') ? DateTime.fromISO(String(r.best_before_date).slice(0, 10), { zone }) : null;\n  const n = nw[r.product_id] || {};\n  const e = { product_id: Number(r.product_id), name: p.name, menge: Math.round(Number(r.amount) * 10) / 10, einheit: quCode[p.qu_id_stock] || 'stk', tage_bis_mhd: m ? Math.round(m.diff(heute, 'days').days) : null };\n  if (n.kcal_100 != null) e.pro_100g = { kcal: n.kcal_100, p: n.protein_100, f: n.fett_100, kh: n.kh_100 };\n  if (n.gramm_pro_stk) e.gramm_pro_stk = n.gramm_pro_stk;\n  if (n.nutriscore) e.nutriscore = n.nutriscore;\n  if (n.nova) e.nova = n.nova;\n  return e;\n}).sort((a, b) => (a.tage_bis_mhd ?? 999) - (b.tage_bis_mhd ?? 999));\n\n// Tagesziele (fehlende Makros sinnvoll ergänzen)\nconst hatZiele = zahl(profil.kcal) > 0;\nconst ziel = hatZiele\n  ? { kcal: zahl(profil.kcal), p: zahl(profil.protein_g), f: zahl(profil.fett_g), kh: zahl(profil.kh_g) }\n  : { kcal: 2000, p: 0, f: 0, kh: 0 };\nif (!ziel.p) ziel.p = Math.round(ziel.kcal * 0.3 / 4);\nif (!ziel.f) ziel.f = Math.round(ziel.kcal * 0.28 / 9);\nif (!ziel.kh) ziel.kh = Math.round(Math.max(0, ziel.kcal - ziel.p * 4 - ziel.f * 9) / 4);\n\n// Verteilung der Tagesziele auf die Mahlzeiten\nconst VERTEILUNG = {\n  1: [['Mittag', 1]],\n  2: [['Frühstück', 0.45], ['Abend', 0.55]],\n  3: [['Frühstück', 0.3], ['Mittag', 0.35], ['Abend', 0.35]],\n  4: [['Frühstück', 0.25], ['Mittag', 0.3], ['Abend', 0.3], ['Snack', 0.15]],\n  5: [['Frühstück', 0.22], ['Mittag', 0.28], ['Abend', 0.28], ['Snack', 0.11], ['Snack 2', 0.11]],\n};\nconst anzahl = Math.max(1, Math.min(5, Math.round(zahl(profil.mahlzeiten_pro_tag)) || 3));\nconst slots = VERTEILUNG[anzahl].map(([name, anteil]) => ({\n  name, anteil,\n  kcal: Math.round(ziel.kcal * anteil / 10) * 10,\n  p: Math.round(ziel.p * anteil), f: Math.round(ziel.f * anteil), kh: Math.round(ziel.kh * anteil),\n}));\nconst slotText = slots.map(s => '- ' + s.name + ': ca. ' + s.kcal + ' kcal, ' + s.p + ' g Protein, ' + s.f + ' g Fett, ' + s.kh + ' g KH').join('\\n');\nconst ziele_text = (hatZiele ? 'Ziel pro Tag: ' : 'Keine Ziele hinterlegt, Standard: ') + ziel.kcal + ' kcal · P ' + ziel.p + ' g · F ' + ziel.f + ' g · KH ' + ziel.kh + ' g';\nconst kcalProMahlzeit = ziel.kcal / anzahl;\nconst start = heute.plus({ days: 1 });\n\nlet aufgabe;\nif (norm.modus === 'wochenplan') {\n  aufgabe = 'AUFGABE: Erstelle einen Wochenplan für 7 Tage von ' + start.toISODate() + ' bis ' + start.plus({ days: 6 }).toISODate()\n    + ' mit genau diesen ' + anzahl + ' Mahlzeiten pro Tag: ' + slots.map(s => s.name).join(', ') + ' (also ' + (7 * anzahl) + ' Rezepte). '\n    + 'Setze bei jedem Rezept \"tag\" auf das Datum und \"mahlzeit\" exakt auf einen dieser Namen.\\n'\n    + 'Verplane zuerst Vorrat, der bald abläuft (kleine tage_bis_mhd zuerst).\\n'\n    + 'Abwechslung: Jedes Mittag- oder Abendgericht höchstens 2x pro Woche (Meal-Prep: ein Abendessen darf am nächsten Tag als Mittag wiederkommen). '\n    + 'Frühstück und Snacks dürfen sich wiederholen, aber nutze mindestens 3 verschiedene Frühstücke.';\n} else {\n  aufgabe = 'AUFGABE: Schlage genau 3 einfache, gesunde Rezepte (je 1 Portion) für verschiedene Mahlzeiten vor, die überwiegend den vorhandenen Vorrat nutzen. '\n    + 'Priorisiere Zutaten mit tage_bis_mhd <= 3. Setze \"tag\" auf ' + heute.toISODate() + ' und \"mahlzeit\" auf einen dieser Namen: ' + slots.map(s => s.name).join(', ') + '.';\n}\nif (norm.hinweis) aufgabe += '\\nZusatzwunsch des Nutzers (hat Vorrang, solange gesund): ' + norm.hinweis;\n\nconst proteinAnteil = ziel.p * 4 / ziel.kcal;\nconst ziele = 'ZIELE PRO MAHLZEIT (wähle die Portionsgrößen danach, 1 Rezept = 1 Portion):\\n' + slotText\n  + '\\nSumme pro Tag: ' + ziel.kcal + ' kcal, ' + ziel.p + ' g Protein, ' + ziel.f + ' g Fett, ' + ziel.kh + ' g KH.'\n  + (proteinAnteil >= 0.2\n    ? '\\nPROTEIN: Jedes Rezept braucht mindestens eine eiweißreiche Hauptzutat (Hähnchen, Pute, mageres Rind, Fisch, Garnelen, Eier, Magerquark, Skyr, Hüttenkäse, Tofu, Tempeh, Seitan, Proteinpulver), '\n      + 'die allein schon etwa zwei Drittel des Protein-Ziels der Mahlzeit liefert. Hülsenfrüchte, Nüsse und Joghurt allein reichen dafür nicht.'\n    : '')\n  + (kcalProMahlzeit >= 900\n    ? '\\nDie Portionen sind groß. Erreiche die Kalorien mit energiedichten, gesunden Zutaten (Haferflocken, Nüsse, Nussmus, Olivenöl, Avocado, Reis, Vollkornnudeln, Kartoffeln, Käse, Vollmilch, Skyr, Hülsenfrüchte) statt mit riesigen Gemüsemengen.'\n    : '');\n\nconst format = 'ANTWORTFORMAT (nur dieses JSON, nichts anderes):\\n'\n  + '{\"hinweis\":\"1 kurzer Satz, welche Zutaten zuerst verbraucht werden sollten\",'\n  + '\"rezepte\":[{\"titel\":\"Porridge mit Banane und Erdnussmus\",\"tag\":\"YYYY-MM-DD\",\"mahlzeit\":\"Frühstück\",\"dauer_min\":10,'\n  + '\"zutaten\":['\n  + '{\"product_id\":null,\"name\":\"Haferflocken\",\"menge\":100,\"einheit\":\"g\",\"packung\":500,\"pro_100g\":{\"kcal\":372,\"p\":13.5,\"f\":7,\"kh\":58.7}},'\n  + '{\"product_id\":null,\"name\":\"Banane\",\"menge\":1,\"einheit\":\"stk\",\"gramm\":120,\"pro_100g\":{\"kcal\":93,\"p\":1.2,\"f\":0.2,\"kh\":20}},'\n  + '{\"product_id\":null,\"name\":\"Erdnussmus\",\"menge\":20,\"einheit\":\"g\",\"packung\":350,\"basis\":true,\"pro_100g\":{\"kcal\":620,\"p\":25,\"f\":50,\"kh\":12}}'\n  + '],\"anleitung\":[\"Schritt 1\",\"Schritt 2\"]}]}\\n'\n  + 'REGELN ZU DEN ZUTATEN:\\n'\n  + '- einheit ist \"g\", \"ml\" oder \"stk\". Alles, was man im Supermarkt stückweise kauft (Eier, Bananen, Äpfel, Zwiebeln, Paprika, Zucchini, Avocados, Brötchen, Wraps, Brokkoli, Salatköpfe …), als \"stk\" mit ganzen oder halben Stück und zusätzlich \"gramm\" = Gesamtgewicht dieser Stücke.\\n'\n  + '- Bei \"g\"/\"ml\" zusätzlich \"packung\" = übliche Packungsgröße im deutschen Supermarkt in derselben Einheit (z.B. Haferflocken 500, Skyr 450, Magerquark 500, Hähnchenbrustfilet 400, Reis 1000, Milch 1000, Passata 500, Kichererbsen Dose 400). '\n  + 'Bei \"stk\" nur für Ware, die in Packungen verkauft wird, \"packung\" = Stück pro Packung (Eier 10, Brötchen 6, Wraps 6). Brot und Toast immer in \"g\" (z.B. 2 Scheiben = 100 g, packung 500).\\n'\n  + '- Reste-Mahlzeiten (Meal-Prep) bekommen denselben Titel wie das Original und dessen vollständige Zutatenliste für diese Portion, niemals das fertige Gericht als Zutat.\\n'\n  + '- Zutatennamen schlicht und einheitlich halten (immer \"Kartoffeln\", nicht \"Kartoffeln (Rest)\"); gleiche Zutat = gleicher Name im ganzen Plan.\\n'\n  + '- product_id nur aus dem VORRAT und dann exakt dessen Einheit verwenden; pro_100g ist dort schon bekannt und kann entfallen.\\n'\n  + '- Zutaten, die nicht im Vorrat sind: \"product_id\": null und \"pro_100g\" mit typischen Nährwerten pro 100 g laut Nährwerttabelle (roh bzw. wie eingekauft).\\n'\n  + '- Öl, Butter, Nussmus, Honig, Sahne, Käse usw. IMMER mit Menge aufführen, sie liefern Kalorien. Grundzutaten, die man meist zu Hause hat (Öl, Butter, Honig, Nussmus, Brühe, Senf, Essig, Sojasauce), mit \"basis\": true markieren. Salz, Pfeffer, Gewürze, Knoblauch und Kräuter weglassen.\\n'\n  + '- Max. 8 Zutaten pro Rezept (ohne basis), max. 30 Minuten. kcal und Makros NICHT selbst ausrechnen, das macht das System aus deinen Mengen und pro_100g.\\n'\n  + '- Bevorzuge Produkte mit Nutri-Score A/B und NOVA 1-3; Nutri-Score D/E oder NOVA 4 nur sparsam.';\n\nconst system = 'Du bist Ernährungscoach und Koch. Alles muss gesund sein: viel Gemüse, Hülsenfrüchte, Vollkorn, mageres Protein, gesunde Fette, '\n  + 'wenig Zucker und wenig stark verarbeitete Lebensmittel. Rezepte sind einfache Alltagsküche. Deine Nährwertangaben pro 100 g müssen realistischen Tabellenwerten entsprechen. '\n  + 'Vorlieben des Nutzers: ' + (profil.vorlieben || 'keine') + '. Antworte ausschließlich mit gültigem JSON.';\n\nconst prompt = aufgabe + '\\n\\n' + ziele + '\\n\\nVORRAT (sortiert nach Ablaufdatum):\\n' + JSON.stringify(vorrat) + '\\n\\n' + format;\n\nreturn [{ json: { modus: norm.modus, chat_id: String(profil.chat_id || ''), ziel, slots, anzahl, ziele_text, vorrat, system, prompt } }];"
         }
       },
       {
@@ -265,13 +277,20 @@
           "sendBody": true,
           "contentType": "json",
           "specifyBody": "json",
-          "jsonBody": "={{ JSON.stringify({ model: \"MiniMax-M2\", temperature: 0.5, max_tokens: 24000, messages: [ { role: \"system\", content: $json.system }, { role: \"user\", content: $json.prompt } ] }) }}",
+          "jsonBody": "={{ JSON.stringify({ model: \"MiniMax-M3\", thinking: { type: \"disabled\" }, temperature: 0.6, max_tokens: 32000, messages: [ { role: \"system\", content: $json.system }, { role: \"user\", content: $json.prompt } ] }) }}",
           "options": {
-            "timeout": 300000
+            "timeout": 600000
           }
         },
         "retryOnFail": true,
-        "maxTries": 2
+        "maxTries": 2,
+        "credentials": {
+          "openAiApi": {
+            "id": "MiniMaxOpenAi01",
+            "name": "MiniMax (OpenAI-kompatibel)"
+          }
+        },
+        "waitBetweenTries": 5000
       },
       {
         "id": "455d6964-6bae-43a3-b972-b5b124f6f6db",
@@ -285,7 +304,7 @@
         "parameters": {
           "mode": "runOnceForAllItems",
           "language": "javaScript",
-          "jsCode": "const ctx = $('Kontext bauen').first().json;\nconst res = $input.first().json;\nlet s = String((res.choices && res.choices[0] && res.choices[0].message && res.choices[0].message.content) || '');\nif (s.includes('</think>')) s = s.split('</think>').pop();\nconst a = s.indexOf('{');\nconst b = s.lastIndexOf('}');\nif (a < 0 || b < 0) throw new Error('KI-Antwort enthält kein JSON: ' + s.slice(0, 300));\nconst data = JSON.parse(s.slice(a, b + 1));\n\nconst esc = t => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nconst r1 = x => Math.round((Number(x) || 0) * 10) / 10;\nconst inv = {};\nfor (const v of ctx.vorrat) inv[v.product_id] = v;\nconst bedarf = {};\nconst einkauf = {};\nconst addEinkauf = (name, menge, einheit, product_id) => {\n  const k = String(name || '').toLowerCase().trim() + '|' + (einheit || '');\n  if (!einkauf[k]) einkauf[k] = { name, menge: 0, einheit: einheit || '', product_id: product_id || null };\n  einkauf[k].menge += Number(menge) || 0;\n};\nconst heute = DateTime.now().setZone('Europe/Berlin').toISODate();\nconst rezepte = Array.isArray(data.rezepte) ? data.rezepte : [];\nif (!rezepte.length) throw new Error('KI hat keine Rezepte geliefert');\n\nconst out = rezepte.map(r => {\n  const zutaten = (r.zutaten || []).map(z => {\n    const v = z.product_id != null ? inv[z.product_id] : null;\n    return { product_id: v ? v.product_id : null, name: z.name || (v && v.name) || '?', menge: Number(z.menge) || 0, einheit: v ? v.einheit : (z.einheit || '') };\n  });\n  for (const z of zutaten) {\n    if (z.product_id != null) bedarf[z.product_id] = (bedarf[z.product_id] || 0) + z.menge;\n    else addEinkauf(z.name, z.menge, z.einheit);\n  }\n  const schritte = Array.isArray(r.anleitung) ? r.anleitung : String(r.anleitung || '').split('\\n').filter(Boolean);\n  const anleitung = schritte.map((t, i) => (i + 1) + '. ' + String(t).replace(/^\\s*\\d+[.)]\\s*/, '')).join('\\n');\n  const zText = zutaten.map(z => '• ' + (z.menge ? r1(z.menge) + ' ' + esc(z.einheit) + ' ' : '') + esc(z.name) + (z.product_id == null ? ' 🛒' : '')).join('\\n');\n  const kcal = Math.round(r.kcal || 0), p = Math.round(r.protein_g || 0), f = Math.round(r.fett_g || 0), kh = Math.round(r.kh_g || 0);\n  const nachricht = '<b>🍳 ' + esc(r.titel) + '</b>\\n'\n    + (r.mahlzeit ? esc(r.mahlzeit) + ' · ' : '') + kcal + ' kcal · P ' + p + ' g · F ' + f + ' g · KH ' + kh + ' g'\n    + (r.dauer_min ? ' · ⏱ ' + r.dauer_min + ' Min' : '')\n    + '\\n\\n<b>Zutaten</b> (🛒 = fehlt noch)\\n' + zText\n    + '\\n\\n<b>Zubereitung</b>\\n' + esc(anleitung);\n  return { titel: String(r.titel || 'Rezept'), typ: ctx.modus, geplant_fuer: r.tag || heute, mahlzeit: String(r.mahlzeit || ''), portionen: Number(r.portionen) || 1,\n    kcal, protein_g: p, fett_g: f, kh_g: kh, zutaten_json: JSON.stringify(zutaten), anleitung, status: 'vorgeschlagen', nachricht };\n});\n\nfor (const id of Object.keys(bedarf)) {\n  const v = inv[id];\n  const fehlt = bedarf[id] - (Number(v.menge) || 0);\n  if (fehlt > 0.01) addEinkauf(v.name, fehlt, v.einheit, v.product_id);\n}\nconst liste = Object.values(einkauf).sort((x, y) => String(x.name).localeCompare(String(y.name)))\n  .map(e => '☐ ' + (e.menge ? Math.ceil(e.menge) + ' ' + esc(e.einheit) + ' ' : '') + esc(e.name)).join('\\n');\nconst einkaufText = '<b>🛒 Einkaufsliste für die Woche</b>\\n' + (liste || 'Alles da, nichts einzukaufen! 🎉');\n\nconst reihenfolge = { 'Frühstück': 0, 'Mittag': 1, 'Abend': 2, 'Snack': 3, 'Snack 2': 4 };\nconst tage = {};\nfor (const r of out) (tage[r.geplant_fuer] = tage[r.geplant_fuer] || []).push(r);\nlet uebersicht = (data.hinweis ? '💡 ' + esc(data.hinweis) + '\\n\\n' : '') + '<b>📅 Dein Wochenplan</b>\\n' + esc(ctx.ziele_text) + '\\n';\nfor (const tag of Object.keys(tage).sort()) {\n  const l = tage[tag].sort((x, y) => (reihenfolge[x.mahlzeit] ?? 9) - (reihenfolge[y.mahlzeit] ?? 9));\n  const sum = k => l.reduce((acc, r) => acc + (Number(r[k]) || 0), 0);\n  uebersicht += '\\n<b>' + DateTime.fromISO(tag).setLocale('de').toFormat('ccc dd.LL.') + '</b> · ' + sum('kcal') + ' kcal · P ' + sum('protein_g') + ' / F ' + sum('fett_g') + ' / KH ' + sum('kh_g') + ' g\\n'\n    + l.map(r => '  ' + esc(r.mahlzeit) + ': ' + esc(r.titel) + ' (' + r.kcal + ' kcal)').join('\\n') + '\\n';\n}\nuebersicht += '\\nDie Rezepte bekommst du jeden Morgen einzeln mit „✅ Gekocht“-Button.';\n\nif (ctx.modus !== 'wochenplan' && data.hinweis) out[0].nachricht = '💡 ' + esc(data.hinweis) + '\\n\\n' + out[0].nachricht;\nconst einkaufListe = Object.values(einkauf).map(e => ({ ...e, menge: Math.ceil(e.menge) }));\nreturn out.map(o => ({ json: { ...o, uebersicht, einkaufText, einkauf: einkaufListe, chat_id: ctx.chat_id } }));"
+          "jsCode": "const ctx = $('Kontext bauen').first().json;\nconst res = $input.first().json;\nconst choice = (res.choices && res.choices[0]) || {};\nlet s = String((choice.message && choice.message.content) || '');\nif (s.includes('</think>')) s = s.split('</think>').pop();\ns = s.replace(/```(?:json)?/g, '');\nconst a = s.indexOf('{');\nconst b = s.lastIndexOf('}');\nconst abgeschnitten = choice.finish_reason === 'length' ? ' (Antwort abgeschnitten, max_tokens zu klein)' : '';\nif (a < 0 || b < 0) throw new Error('KI-Antwort enthält kein JSON' + abgeschnitten + ': ' + s.slice(0, 300));\nlet data;\ntry { data = JSON.parse(s.slice(a, b + 1)); } catch (e) { throw new Error('KI-JSON ungültig' + abgeschnitten + ': ' + e.message); }\nconst rezepteRoh = Array.isArray(data.rezepte) ? data.rezepte : [];\nif (!rezepteRoh.length) throw new Error('KI hat keine Rezepte geliefert');\n\nconst zone = 'Europe/Berlin';\nconst heute = DateTime.now().setZone(zone).toISODate();\nconst esc = t => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nconst klein = x => String(x || '').trim().toLowerCase();\nconst zahl = v => { const x = Number(v); return Number.isFinite(x) ? x : 0; };\nconst clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, x));\n// „Kartoffeln (festkochend)“, „Lachs … (Rest vom 28.)“ → Grundname ohne Klammerzusatz\nconst grundname = name => String(name || '').replace(/\\s*\\([^)]*\\)\\s*/g, ' ').replace(/\\s+/g, ' ').trim() || String(name || '');\nconst ziel = ctx.ziel;\nconst slotNach = {};\nfor (const sl of ctx.slots) slotNach[klein(sl.name)] = sl;\nconst slotStandard = { kcal: ziel.kcal / ctx.anzahl, p: ziel.p / ctx.anzahl };\nconst inv = {};\nfor (const v of ctx.vorrat) inv[v.product_id] = v;\n\n// Nährwerte pro 100 g prüfen: kcal muss grob zu P/F/KH passen (Atwater 4/9/4)\nconst naehr = q => {\n  if (!q || typeof q !== 'object') return null;\n  const p = clamp(zahl(q.p ?? q.protein), 0, 100), f = clamp(zahl(q.f ?? q.fett), 0, 100), kh = clamp(zahl(q.kh), 0, 100);\n  let kcal = zahl(q.kcal);\n  const atwater = 4 * p + 9 * f + 4 * kh;\n  if (atwater > 0 && (kcal <= 0 || Math.abs(kcal - atwater) / atwater > 0.25)) kcal = atwater;\n  if (kcal <= 0) return null;\n  return { kcal: Math.min(kcal, 900), p, f, kh };\n};\n\nconst einheitNorm = e => {\n  e = klein(e);\n  if (['g', 'gramm', 'gr'].includes(e)) return 'g';\n  if (['ml', 'milliliter'].includes(e)) return 'ml';\n  if (['kg', 'l'].includes(e)) return e;\n  return 'stk';\n};\n\nconst zutatAufbereiten = z => {\n  const v = z.product_id != null ? inv[Number(z.product_id)] : null;\n  let einheit = v ? v.einheit : einheitNorm(z.einheit);\n  let menge = zahl(z.menge);\n  if (einheit === 'kg') { einheit = 'g'; menge *= 1000; }\n  if (einheit === 'l') { einheit = 'ml'; menge *= 1000; }\n  let gProEinheit = 1;\n  if (einheit !== 'g' && einheit !== 'ml') {\n    const ausVorrat = v && zahl(v.gramm_pro_stk);\n    const ausKi = menge > 0 && zahl(z.gramm) > 0 ? zahl(z.gramm) / menge : 0;\n    gProEinheit = ausVorrat || ausKi || 100;\n  }\n  return {\n    product_id: v ? v.product_id : null,\n    name: String(z.name || (v && v.name) || '?').trim(),\n    menge, einheit, g_pro_einheit: gProEinheit,\n    pro_100g: naehr(v && v.pro_100g) || naehr(z.pro_100g),\n    packung: (einheit === 'g' || einheit === 'ml')\n      ? (zahl(z.packung) >= 10 ? zahl(z.packung) * (klein(z.einheit) === 'kg' || klein(z.einheit) === 'l' ? 1000 : 1) : 0)\n      : (zahl(z.packung) >= 2 ? Math.round(zahl(z.packung)) : /^eier?\\b/i.test(String(z.name || '').trim()) ? 10 : 0),\n    basis: !v && z.basis === true,\n  };\n};\n\nconst makros = zl => zl.reduce((acc, z) => {\n  if (!z.pro_100g) return acc;\n  const f = z.menge * z.g_pro_einheit / 100;\n  acc.kcal += z.pro_100g.kcal * f; acc.p += z.pro_100g.p * f; acc.f += z.pro_100g.f * f; acc.kh += z.pro_100g.kh * f;\n  return acc;\n}, { kcal: 0, p: 0, f: 0, kh: 0 });\n\n// Zutaten nach dominantem Energieträger gruppieren: Protein, Fett oder Kohlenhydrate\nconst gruppe = z => {\n  if (!z.pro_100g) return 'kh';\n  const n = z.pro_100g;\n  if (n.p * 4 / n.kcal >= 0.35) return 'p';\n  if (n.f * 9 / n.kcal >= 0.5) return 'f';\n  return 'kh';\n};\n\n// Mengenfaktor je Gruppe so wählen, dass kcal, Protein, Fett und KH möglichst nah am Ziel liegen\n// (gewichtete Kleinste-Quadrate mit Faktor-Grenzen, gelöst per Koordinatenabstieg).\nconst GEWICHT = { kcal: 4, p: 2, f: 1, kh: 1 };\nconst skalieren = (zl, t, lo, hi) => {\n  const G = ['p', 'f', 'kh'].map(g => ({ g, m: makros(zl.filter(z => gruppe(z) === g)) })).filter(x => x.m.kcal > 0);\n  if (!G.length || !(t.kcal > 0)) return;\n  const keys = Object.keys(GEWICHT).filter(k => t[k] > 0);\n  const w = {};\n  for (const k of keys) w[k] = GEWICHT[k] / (t[k] * t[k]);\n  const x = G.map(() => clamp(t.kcal / G.reduce((acc, y) => acc + y.m.kcal, 0), lo, hi));\n  for (let iter = 0; iter < 60; iter++) {\n    for (let i = 0; i < G.length; i++) {\n      let zaehler = 0, nenner = 0;\n      for (const k of keys) {\n        const rest = G.reduce((acc, y, j) => acc + (j === i ? 0 : x[j] * y.m[k]), 0);\n        zaehler += w[k] * G[i].m[k] * (t[k] - rest);\n        nenner += w[k] * G[i].m[k] * G[i].m[k];\n      }\n      if (nenner > 0) x[i] = clamp(zaehler / nenner, lo, hi);\n    }\n  }\n  const faktor = {};\n  G.forEach((y, i) => { faktor[y.g] = x[i]; });\n  for (const z of zl) z.menge *= faktor[gruppe(z)] ?? 1;\n};\n\nconst runden = z => {\n  if (z.einheit === 'g' || z.einheit === 'ml') {\n    const step = z.menge < 20 ? 1 : z.menge < 100 ? 5 : 10;\n    z.menge = Math.max(step, Math.round(z.menge / step) * step);\n  } else if (z.g_pro_einheit <= 70) {\n    z.menge = Math.max(1, Math.round(z.menge));\n  } else {\n    z.menge = Math.max(0.5, Math.round(z.menge * 2) / 2);\n  }\n};\n\n// Reste-Mahlzeiten: Führt die KI das fertige Gericht als einzige Zutat auf, die Zutaten des Originalrezepts übernehmen\nconst titelKey = t => klein(grundname(t));\nconst original = {};\nfor (const r of rezepteRoh) if (Array.isArray(r.zutaten) && r.zutaten.length > 1 && !original[titelKey(r.titel)]) original[titelKey(r.titel)] = r.zutaten;\nfor (const r of rezepteRoh) {\n  const z = Array.isArray(r.zutaten) ? r.zutaten : [];\n  if (z.length > 1) continue;\n  const quelle = original[titelKey(r.titel)] || (z[0] && original[titelKey(z[0].name)]);\n  if (quelle) r.zutaten = JSON.parse(JSON.stringify(quelle));\n}\n\n// Im Wochenplan pro Tag und Mahlzeit nur ein Rezept (die KI plant manchmal doppelt)\nconst gesehen = new Set();\nconst rezepteEindeutig = ctx.modus !== 'wochenplan' ? rezepteRoh : rezepteRoh.filter(r => {\n  const k = String(r.tag) + '|' + klein(r.mahlzeit);\n  if (gesehen.has(k)) return false;\n  gesehen.add(k);\n  return true;\n});\n\n// Rezepte aufbereiten und pro Mahlzeit auf das Ziel skalieren\nconst rezepte = rezepteEindeutig.map(r => {\n  const zutaten = (Array.isArray(r.zutaten) ? r.zutaten : []).map(zutatAufbereiten).filter(z => z.menge > 0);\n  const slot = slotNach[klein(r.mahlzeit)] || slotStandard;\n  const tag = /^\\d{4}-\\d{2}-\\d{2}$/.test(String(r.tag || '')) ? r.tag : heute;\n  const mitWerten = makros(zutaten).kcal > 0;\n  if (mitWerten) {\n    skalieren(zutaten, slot, 0.35, 3);\n  } else if (zahl(r.kcal) > 0) {\n    // Fallback: keine Nährwerte je Zutat, nur Rezeptwerte der KI\n    const f = clamp(slot.kcal / zahl(r.kcal), 0.4, 3);\n    for (const z of zutaten) z.menge *= f;\n  }\n  return { r, tag, slot, zutaten, mitWerten };\n});\n\n// Feinkorrektur pro Tag (z.B. wenn eine Mahlzeit fehlt oder Faktoren begrenzt wurden)\nif (ctx.modus === 'wochenplan') {\n  const proTag = {};\n  for (const x of rezepte) (proTag[x.tag] = proTag[x.tag] || []).push(x);\n  for (const liste of Object.values(proTag)) skalieren(liste.flatMap(x => x.zutaten), ziel, 0.7, 1.4);\n}\n\nconst r0 = x => Math.round(zahl(x));\nconst mengeText = z => {\n  if (z.einheit === 'g' || z.einheit === 'ml') return z.menge >= 1000 ? (Math.round(z.menge / 100) / 10).toLocaleString('de-DE') + (z.einheit === 'g' ? ' kg' : ' l') : z.menge + ' ' + z.einheit;\n  return (z.menge % 1 ? z.menge.toLocaleString('de-DE') : z.menge) + '×';\n};\n\nconst out = rezepte.map(({ r, tag, zutaten, mitWerten }) => {\n  zutaten.forEach(runden);\n  const m = mitWerten ? makros(zutaten) : { kcal: zahl(r.kcal), p: zahl(r.protein_g), f: zahl(r.fett_g), kh: zahl(r.kh_g) };\n  const kcal = r0(m.kcal), p = r0(m.p), f = r0(m.f), kh = r0(m.kh);\n  const schritte = Array.isArray(r.anleitung) ? r.anleitung : String(r.anleitung || '').split('\\n').filter(Boolean);\n  const anleitung = schritte.map((t, i) => (i + 1) + '. ' + String(t).replace(/^\\s*\\d+[.)]\\s*/, '')).join('\\n');\n  const zText = zutaten.map(z => '• ' + esc(mengeText(z)) + ' ' + esc(z.name) + (z.product_id == null && !z.basis ? ' 🛒' : '')).join('\\n');\n  const nachricht = ('<b>🍳 ' + esc(r.titel) + '</b>\\n'\n    + (r.mahlzeit ? esc(r.mahlzeit) + ' · ' : '') + kcal + ' kcal · P ' + p + ' g · F ' + f + ' g · KH ' + kh + ' g'\n    + (r.dauer_min ? ' · ⏱ ' + r0(r.dauer_min) + ' Min' : '')\n    + '\\n\\n<b>Zutaten</b> (🛒 = einkaufen)\\n' + zText\n    + '\\n\\n<b>Zubereitung</b>\\n' + esc(anleitung)).slice(0, 4000);\n  const zutatenJson = zutaten.map(z => ({ product_id: z.product_id, name: z.name, menge: z.menge, einheit: z.einheit === 'stk' ? 'Stk' : z.einheit, gramm: Math.round(z.menge * z.g_pro_einheit), basis: z.basis }));\n  return { titel: String(r.titel || 'Rezept'), typ: ctx.modus, geplant_fuer: tag, mahlzeit: String(r.mahlzeit || ''), portionen: 1,\n    kcal, protein_g: p, fett_g: f, kh_g: kh, zutaten_json: JSON.stringify(zutatenJson), anleitung, status: 'vorgeschlagen', nachricht, _zutaten: zutaten };\n});\n\n// Einkaufsliste: Vorratsprodukte nur, soweit der Bestand nicht reicht; Grundzutaten separat\nconst bedarf = {};\nconst einkauf = {};\nconst basis = {};\n// „Kartoffeln (festkochend)“, „Kartoffeln (Rest)“ usw. zu einem Posten zusammenfassen\nconst add =(ziel, name, menge, einheit, product_id, packung) => {\n  name = product_id ? name : grundname(name);\n  const k = klein(name) + '|' + einheit;\n  if (!ziel[k]) ziel[k] = { name, menge: 0, einheit, product_id: product_id || null, packung: 0 };\n  ziel[k].menge += menge;\n  ziel[k].packung = Math.max(ziel[k].packung, packung || 0);\n};\nfor (const o of out) for (const z of o._zutaten) {\n  if (z.product_id != null) bedarf[z.product_id] = (bedarf[z.product_id] || 0) + z.menge;\n  else add(z.basis ? basis : einkauf, z.name, z.menge, z.einheit, null, z.packung);\n}\nfor (const id of Object.keys(bedarf)) {\n  const v = inv[id];\n  const fehlt = bedarf[id] - (Number(v.menge) || 0);\n  if (fehlt > 0.01) add(einkauf, v.name, fehlt, v.einheit, v.product_id, 0);\n}\n// In kaufbaren Einheiten: Stückware ganze Stück, sonst ganze Packungen (oder grob gerundet, wenn lose Ware)\nconst gewicht = (x, e) => x >= 1000 ? (Math.round(x / 100) / 10).toLocaleString('de-DE') + (e === 'g' ? ' kg' : ' l') : x + ' ' + e;\nconst kaufbar = e => {\n  if (e.einheit !== 'g' && e.einheit !== 'ml') {\n    const n = Math.ceil(e.menge - 0.01);\n    if (e.packung >= 2 && n >= e.packung / 2) {\n      const p = Math.ceil(n / e.packung);\n      return { ...e, menge: n, text: p + '× ' + e.name + ' (' + e.packung + 'er-Packung, du brauchst ' + n + ')' };\n    }\n    return { ...e, menge: n, text: n + '× ' + e.name };\n  }\n  if (e.packung > 0) {\n    const n = Math.max(1, Math.ceil(e.menge / e.packung - 0.05));\n    return { ...e, menge: Math.ceil(e.menge), text: n + '× ' + e.name + ' à ' + gewicht(e.packung, e.einheit) + (n * e.packung - e.menge > e.packung * 0.3 ? ' (du brauchst ca. ' + gewicht(Math.ceil(e.menge / 10) * 10, e.einheit) + ')' : '') };\n  }\n  const step = e.menge < 200 ? 50 : 100;\n  const m = Math.ceil(e.menge / step) * step;\n  return { ...e, menge: m, text: 'ca. ' + gewicht(m, e.einheit) + ' ' + e.name };\n};\nconst sortiert = l => Object.values(l).map(kaufbar).sort((x, y) => String(x.name).localeCompare(String(y.name), 'de'));\nconst einkaufListe = sortiert(einkauf);\nconst basisListe = sortiert(basis);\nlet einkaufText = '<b>🛒 Einkaufsliste für die Woche</b>\\n' + (einkaufListe.map(e => '☐ ' + esc(e.text)).join('\\n') || 'Alles da, nichts einzukaufen! 🎉');\nif (basisListe.length) einkaufText += '\\n\\n<b>Grundzutaten, bitte prüfen, ob genug da ist</b>\\n' + basisListe.map(e => '• ' + esc(e.text)).join('\\n');\neinkaufText = einkaufText.slice(0, 4000);\n\n// Wochenübersicht mit Ist/Ziel je Tag\nconst reihenfolge = { 'frühstück': 0, 'mittag': 1, 'abend': 2, 'snack': 3, 'snack 2': 4 };\nconst tage = {};\nfor (const o of out) (tage[o.geplant_fuer] = tage[o.geplant_fuer] || []).push(o);\nlet uebersicht = (data.hinweis ? '💡 ' + esc(data.hinweis) + '\\n\\n' : '') + '<b>📅 Dein Wochenplan</b>\\n' + esc(ctx.ziele_text) + '\\n';\nfor (const tag of Object.keys(tage).sort()) {\n  const l = tage[tag].sort((x, y) => (reihenfolge[klein(x.mahlzeit)] ?? 9) - (reihenfolge[klein(y.mahlzeit)] ?? 9));\n  const sum = k => l.reduce((acc, o) => acc + (Number(o[k]) || 0), 0);\n  const kcal = sum('kcal'), p = sum('protein_g');\n  const passt = Math.abs(kcal - ziel.kcal) / ziel.kcal <= 0.05 && Math.abs(p - ziel.p) / ziel.p <= 0.1;\n  uebersicht += '\\n<b>' + DateTime.fromISO(tag).setLocale('de').toFormat('ccc dd.LL.') + '</b> ' + (passt ? '✅' : '⚠️') + ' ' + kcal + ' kcal · P ' + p + ' / F ' + sum('fett_g') + ' / KH ' + sum('kh_g') + ' g\\n'\n    + l.map(o => '  ' + esc(o.mahlzeit) + ': ' + esc(o.titel) + ' (' + o.kcal + ' kcal)').join('\\n') + '\\n';\n}\nuebersicht += '\\nNährwerte sind aus den Zutatenmengen berechnet, die Portionen sind auf deine Ziele angepasst. Die Rezepte bekommst du jeden Morgen einzeln mit „✅ Gekocht“-Button.';\nif (ziel.kcal / ctx.anzahl >= 1000) uebersicht += '\\n\\n💡 Bei ' + ziel.kcal + ' kcal in ' + ctx.anzahl + ' Mahlzeiten werden die Portionen sehr groß. Schreib mir z.B. „5 Mahlzeiten pro Tag“, dann plane ich mit Snacks.';\nuebersicht = uebersicht.slice(0, 4000);\n\nif (ctx.modus !== 'wochenplan' && data.hinweis) out[0].nachricht = ('💡 ' + esc(data.hinweis) + '\\n\\n' + out[0].nachricht).slice(0, 4000);\nconst kwMarke = 'Wochenplan KW ' + DateTime.now().setZone(zone).plus({ days: 1 }).toFormat('W/kkkk');\nreturn out.map(({ _zutaten, ...o }) => ({ json: { ...o, uebersicht, einkaufText, einkauf: einkaufListe, kw_marke: kwMarke, chat_id: ctx.chat_id } }));"
         }
       },
       {
@@ -502,7 +521,13 @@
             "parse_mode": "HTML"
           }
         },
-        "webhookId": "548d08e0-bd88-45e0-95d0-ca7d3bb16541"
+        "webhookId": "548d08e0-bd88-45e0-95d0-ca7d3bb16541",
+        "credentials": {
+          "telegramApi": {
+            "id": "R0Ye0fbcmRICFU8r",
+            "name": "Telegram account"
+          }
+        }
       },
       {
         "id": "8bd988cf-48a9-4223-be64-1b74c233adcf",
@@ -524,7 +549,13 @@
           }
         },
         "executeOnce": true,
-        "webhookId": "c49bb8e6-a678-4013-b704-66ff3c0591d5"
+        "webhookId": "c49bb8e6-a678-4013-b704-66ff3c0591d5",
+        "credentials": {
+          "telegramApi": {
+            "id": "R0Ye0fbcmRICFU8r",
+            "name": "Telegram account"
+          }
+        }
       },
       {
         "id": "68fe07d1-c27f-4db0-b83a-95d59b7a6fe7",
@@ -546,44 +577,63 @@
           }
         },
         "executeOnce": true,
-        "webhookId": "cf36bfcb-033e-4bdd-bc44-300ada1e6a25"
+        "webhookId": "cf36bfcb-033e-4bdd-bc44-300ada1e6a25",
+        "credentials": {
+          "telegramApi": {
+            "id": "R0Ye0fbcmRICFU8r",
+            "name": "Telegram account"
+          }
+        }
       },
       {
         "id": "6d88526e-2a87-4ffe-a6af-fa38121dcdd7",
-        "name": "Einkaufsposten für Grocy",
+        "name": "Einkaufsliste abgleichen",
         "type": "n8n-nodes-base.code",
         "typeVersion": 2,
         "position": [
-          3136,
+          3356,
           192
         ],
         "parameters": {
           "mode": "runOnceForAllItems",
           "language": "javaScript",
-          "jsCode": "const liste = $('Antwort auswerten').first().json.einkauf || [];\nconst kw = DateTime.now().setZone('Europe/Berlin').plus({ days: 1 }).toFormat('W');\nreturn liste.map(e => ({ json: { body: e.product_id\n  ? { shopping_list_id: 1, product_id: e.product_id, amount: e.menge, note: 'Wochenplan KW ' + kw }\n  : { shopping_list_id: 1, amount: 1, note: e.name + (e.menge ? ' (' + e.menge + ' ' + e.einheit + ')' : '') + ' – Wochenplan KW ' + kw } } }));"
+          "jsCode": "const erg = $('Antwort auswerten').first().json;\nconst marke = erg.kw_marke;\nconst alteMarke = marke.split('/')[0];\nconst base = $('Profil laden').first().json.grocy_url + '/api/objects/shopping_list';\n// Posten eines früheren Plans für dieselbe Woche entfernen (auch altes Format ohne Jahr)\nconst loeschen = $input.all().map(i => i.json)\n  .filter(p => p && p.id && (String(p.note || '').endsWith(marke) || String(p.note || '').endsWith(alteMarke)))\n  .map(p => ({ json: { method: 'DELETE', url: base + '/' + p.id, body: null } }));\nconst neu = (erg.einkauf || []).map(e => ({ json: { method: 'POST', url: base, body: e.product_id\n  ? { shopping_list_id: 1, product_id: e.product_id, amount: e.menge, note: marke }\n  : { shopping_list_id: 1, amount: 1, note: e.text + ' – ' + marke } } }));\nreturn [...loeschen, ...neu];"
         }
       },
       {
         "id": "8b4fa503-8b29-433e-bd99-8d6cd97fd0a7",
-        "name": "Auf Grocy-Einkaufsliste",
+        "name": "Grocy-Einkaufsliste aktualisieren",
         "type": "n8n-nodes-base.httpRequest",
         "typeVersion": 4.2,
         "position": [
-          3360,
+          3576,
           192
         ],
         "parameters": {
-          "method": "POST",
-          "url": "={{ $('Profil laden').first().json.grocy_url }}/api/objects/shopping_list",
+          "method": "={{ $json.method }}",
+          "url": "={{ $json.url }}",
           "authentication": "genericCredentialType",
-          "genericAuthType": "httpTemplatedCustomAuth",
-          "sendBody": true,
+          "genericAuthType": "httpCustomAuth",
+          "sendBody": "={{ $json.method === \"POST\" }}",
           "contentType": "json",
           "specifyBody": "json",
-          "jsonBody": "={{ JSON.stringify($json.body) }}",
-          "options": {}
+          "jsonBody": "={{ JSON.stringify($json.body || {}) }}",
+          "options": {
+            "batching": {
+              "batch": {
+                "batchSize": 1,
+                "batchInterval": 0
+              }
+            }
+          }
         },
-        "onError": "continueRegularOutput"
+        "onError": "continueRegularOutput",
+        "credentials": {
+          "httpCustomAuth": {
+            "id": "sWOsDlhSjQx2Y5EN",
+            "name": "Custom Auth account"
+          }
+        }
       },
       {
         "id": "778e6fb7-d505-4874-8660-58e3e8bedb23",
@@ -595,8 +645,41 @@
           192
         ],
         "parameters": {
-          "content": "## Planer\nWird vom eBon-Import und vom Telegram-Bot aufgerufen (modus = rezepte | wochenplan) und läuft sonntags 10 Uhr automatisch als Wochenplan.\nVorrat kommt live aus Grocy, Nährwerte aus OpenFoodFacts (Cache `vorrat_produkte`).\n\n**Modell ändern:** im Node „MiniMax plant Rezepte“ das Feld `model` im Body anpassen.",
+          "content": "## Planer\nWird vom eBon-Import und vom Telegram-Bot aufgerufen (modus = rezepte | wochenplan) und läuft sonntags 10 Uhr automatisch als Wochenplan.\n\n**Ablauf:** Die KI liefert nur Rezepte mit Zutatenmengen und Nährwerten pro 100 g. „Antwort auswerten“ rechnet kcal/Makros selbst aus (Vorrat: OpenFoodFacts-Werte), skaliert die Mengen pro Mahlzeit und Tag auf die Ziele aus `vorrat_profil` und rundet sinnvoll.\nEin neuer Wochenplan ersetzt die Grocy-Einkaufsposten derselben Kalenderwoche.\n\n**Modell ändern:** im Node „MiniMax plant Rezepte“ das Feld `model` im Body anpassen.",
           "color": 4
+        }
+      },
+      {
+        "id": "a1d2c3e4-0001-4a5b-9c6d-planer000001",
+        "name": "Alte Einkaufsposten laden",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          3136,
+          192
+        ],
+        "alwaysOutputData": true,
+        "credentials": {
+          "httpCustomAuth": {
+            "id": "sWOsDlhSjQx2Y5EN",
+            "name": "Custom Auth account"
+          }
+        },
+        "parameters": {
+          "method": "GET",
+          "url": "={{ $('Profil laden').first().json.grocy_url }}/api/objects/shopping_list",
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpCustomAuth",
+          "sendQuery": true,
+          "queryParameters": {
+            "parameters": [
+              {
+                "name": "query[]",
+                "value": "=note~{{ $('Antwort auswerten').first().json.kw_marke.split('/')[0] }}"
+              }
+            ]
+          },
+          "options": {}
         }
       }
     ],
@@ -766,18 +849,29 @@
         "main": [
           [
             {
-              "node": "Einkaufsposten für Grocy",
+              "node": "Alte Einkaufsposten laden",
               "type": "main",
               "index": 0
             }
           ]
         ]
       },
-      "Einkaufsposten für Grocy": {
+      "Alte Einkaufsposten laden": {
         "main": [
           [
             {
-              "node": "Auf Grocy-Einkaufsliste",
+              "node": "Einkaufsliste abgleichen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Einkaufsliste abgleichen": {
+        "main": [
+          [
+            {
+              "node": "Grocy-Einkaufsliste aktualisieren",
               "type": "main",
               "index": 0
             }
@@ -788,9 +882,19 @@
     "settings": {
       "executionOrder": "v1",
       "availableInMCP": true,
-      "timezone": "Europe/Berlin"
+      "timezone": "Europe/Berlin",
+      "errorWorkflow": "VorratFehler0001"
     },
-    "staticData": null,
+    "staticData": {
+      "node:Sonntag 10 Uhr Wochenplan": {
+        "recurrenceRules": [
+          null
+        ],
+        "recurrenceRuleSignatures": [
+          null
+        ]
+      }
+    },
     "meta": {
       "aiBuilderAssisted": true,
       "builderVariant": "mcp"
@@ -835,10 +939,10 @@
       }
     ],
     "pinData": null,
-    "versionId": "08692f7f-a817-46ff-b724-6a68e5aaf676",
-    "activeVersionId": null,
-    "versionCounter": 2,
-    "triggerCount": 0,
+    "versionId": "7a7bf19a-95a9-4768-a124-869b1fbf73b5",
+    "activeVersionId": "7a7bf19a-95a9-4768-a124-869b1fbf73b5",
+    "versionCounter": 3,
+    "triggerCount": 1,
     "sourceWorkflowId": null,
     "tags": [],
     "shared": [

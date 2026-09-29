@@ -1,11 +1,11 @@
 [
   {
-    "updatedAt": "2026-09-27T15:00:32.007Z",
+    "updatedAt": "2026-09-28T18:36:24.000Z",
     "createdAt": "2026-09-27T15:00:32.007Z",
     "id": "WI7rA3dd4TMM2WVb",
     "name": "Vorrat · eBon-Import (REWE → Grocy)",
     "description": "REWE-eBon aus iCloud → MiniMax-Auswertung → Produktabgleich/Anlage in Grocy mit OpenFoodFacts-Nährwerten → Bestand mit MHD buchen → Telegram + Rezeptvorschläge.",
-    "active": false,
+    "active": true,
     "isArchived": false,
     "nodes": [
       {
@@ -24,6 +24,12 @@
           "dataPropertyAttachmentsPrefixName": "attachment_",
           "options": {
             "customEmailConfig": "[\"UNSEEN\", [\"FROM\", \"rewe\"]]"
+          }
+        },
+        "credentials": {
+          "imap": {
+            "id": "YzW0Asz28QKan6NA",
+            "name": "IMAP account"
           }
         }
       },
@@ -151,13 +157,19 @@
           "sendBody": true,
           "contentType": "json",
           "specifyBody": "json",
-          "jsonBody": "={{ JSON.stringify({ model: \"MiniMax-M2\", temperature: 0.1, max_tokens: 16000, messages: [ { role: \"system\", content: $json.system }, { role: \"user\", content: $json.prompt } ] }) }}",
+          "jsonBody": "={{ JSON.stringify({ model: \"MiniMax-M3\", thinking: { type: \"disabled\" }, temperature: 0.1, max_tokens: 16000, messages: [ { role: \"system\", content: $json.system }, { role: \"user\", content: $json.prompt } ] }) }}",
           "options": {
             "timeout": 240000
           }
         },
         "retryOnFail": true,
-        "maxTries": 2
+        "maxTries": 2,
+        "credentials": {
+          "openAiApi": {
+            "id": "MiniMaxOpenAi01",
+            "name": "MiniMax (OpenAI-kompatibel)"
+          }
+        }
       },
       {
         "id": "49a1ab97-2222-4cbb-aae6-50748023f68b",
@@ -180,7 +192,7 @@
         "type": "n8n-nodes-base.dataTable",
         "typeVersion": 1.1,
         "position": [
-          1792,
+          2452,
           96
         ],
         "parameters": {
@@ -211,18 +223,24 @@
         "type": "n8n-nodes-base.httpRequest",
         "typeVersion": 4.2,
         "position": [
-          2016,
+          2676,
           96
         ],
         "parameters": {
           "method": "GET",
           "url": "={{ $('Profil laden').first().json.grocy_url }}/api/objects/products",
           "authentication": "genericCredentialType",
-          "genericAuthType": "httpTemplatedCustomAuth",
+          "genericAuthType": "httpCustomAuth",
           "options": {}
         },
         "executeOnce": true,
-        "alwaysOutputData": true
+        "alwaysOutputData": true,
+        "credentials": {
+          "httpCustomAuth": {
+            "id": "sWOsDlhSjQx2Y5EN",
+            "name": "Custom Auth account"
+          }
+        }
       },
       {
         "id": "8b9c39f5-89a9-4460-bfa8-218ce3ceacb6",
@@ -230,17 +248,23 @@
         "type": "n8n-nodes-base.httpRequest",
         "typeVersion": 4.2,
         "position": [
-          2240,
+          2900,
           96
         ],
         "parameters": {
           "method": "GET",
           "url": "={{ $('Profil laden').first().json.grocy_url }}/api/objects/quantity_units",
           "authentication": "genericCredentialType",
-          "genericAuthType": "httpTemplatedCustomAuth",
+          "genericAuthType": "httpCustomAuth",
           "options": {}
         },
-        "executeOnce": true
+        "executeOnce": true,
+        "credentials": {
+          "httpCustomAuth": {
+            "id": "sWOsDlhSjQx2Y5EN",
+            "name": "Custom Auth account"
+          }
+        }
       },
       {
         "id": "a4e6913d-da5f-42bc-a172-512479da4608",
@@ -248,17 +272,23 @@
         "type": "n8n-nodes-base.httpRequest",
         "typeVersion": 4.2,
         "position": [
-          2464,
+          3124,
           96
         ],
         "parameters": {
           "method": "GET",
           "url": "={{ $('Profil laden').first().json.grocy_url }}/api/objects/locations",
           "authentication": "genericCredentialType",
-          "genericAuthType": "httpTemplatedCustomAuth",
+          "genericAuthType": "httpCustomAuth",
           "options": {}
         },
-        "executeOnce": true
+        "executeOnce": true,
+        "credentials": {
+          "httpCustomAuth": {
+            "id": "sWOsDlhSjQx2Y5EN",
+            "name": "Custom Auth account"
+          }
+        }
       },
       {
         "id": "6cc2a830-2c95-444f-9d03-ecf717760545",
@@ -266,13 +296,13 @@
         "type": "n8n-nodes-base.code",
         "typeVersion": 2,
         "position": [
-          2688,
+          3348,
           96
         ],
         "parameters": {
           "mode": "runOnceForAllItems",
           "language": "javaScript",
-          "jsCode": "const norm = s => String(s || '').toLowerCase().replace(/[^a-z0-9äöüß%,.]+/g, ' ').trim();\nconst arts = $('Artikel aufbereiten').all().map(i => i.json);\nconst prods = $('Grocy-Produkte laden').all().map(i => i.json).filter(p => p && p.id);\nconst qus = $('Grocy-Einheiten laden').all().map(i => i.json).filter(p => p && p.id);\nconst locs = $('Grocy-Lagerorte laden').all().map(i => i.json).filter(p => p && p.id);\nconst quId = n => (qus.find(q => norm(q.name) === norm(n)) || {}).id;\nconst quIds = { g: quId('Gramm'), ml: quId('Milliliter'), stk: quId('Stück') };\nif (!quIds.g || !quIds.ml || !quIds.stk) throw new Error('In Grocy fehlen die Einheiten Gramm/Milliliter/Stück – bitte einmal den Workflow „Vorrat · Grocy einrichten“ ausführen.');\nconst quCode = { [quIds.g]: 'g', [quIds.ml]: 'ml', [quIds.stk]: 'stk' };\nconst locId = n => (locs.find(l => norm(l.name) === norm(n)) || locs[0] || {}).id;\nconst byName = {};\nfor (const p of prods) byName[norm(p.name)] = p;\n\nreturn arts.map(a => {\n  const p = byName[norm(a.name)];\n  let menge = a.menge;\n  let einheit = a.einheit;\n  if (p) {\n    const pe = quCode[p.qu_id_stock];\n    if (pe && pe !== einheit) {\n      if (pe === 'g' && einheit === 'stk' && a.gramm_pro_stk) menge = a.menge * a.gramm_pro_stk;\n      else if (pe === 'stk' && einheit === 'g' && a.gramm_pro_stk) menge = Math.max(1, Math.round(a.menge / a.gramm_pro_stk));\n      einheit = pe;\n    }\n  }\n  return { json: { ...a, product_id: p ? p.id : null, menge, einheit, qu_id: quIds[einheit], location_id: locId(a.lagerort) } };\n});"
+          "jsCode": "const norm = s => String(s || '').toLowerCase().replace(/[^a-z0-9äöüß%,.]+/g, ' ').trim();\nconst arts = $('REWE-Daten übernehmen').all().map(i => i.json);\nconst prods = $('Grocy-Produkte laden').all().map(i => i.json).filter(p => p && p.id);\nconst qus = $('Grocy-Einheiten laden').all().map(i => i.json).filter(p => p && p.id);\nconst locs = $('Grocy-Lagerorte laden').all().map(i => i.json).filter(p => p && p.id);\nconst quId = n => (qus.find(q => norm(q.name) === norm(n)) || {}).id;\nconst quIds = { g: quId('Gramm'), ml: quId('Milliliter'), stk: quId('Stück') };\nif (!quIds.g || !quIds.ml || !quIds.stk) throw new Error('In Grocy fehlen die Einheiten Gramm/Milliliter/Stück – bitte einmal den Workflow „Vorrat · Grocy einrichten“ ausführen.');\nconst quCode = { [quIds.g]: 'g', [quIds.ml]: 'ml', [quIds.stk]: 'stk' };\nconst locId = n => (locs.find(l => norm(l.name) === norm(n)) || locs[0] || {}).id;\nconst byName = {};\nfor (const p of prods) byName[norm(p.name)] = p;\n\nreturn arts.map(a => {\n  const p = byName[norm(a.name)];\n  let menge = a.menge;\n  let einheit = a.einheit;\n  if (p) {\n    const pe = quCode[p.qu_id_stock];\n    if (pe && pe !== einheit) {\n      if (pe === 'g' && einheit === 'stk' && a.gramm_pro_stk) menge = a.menge * a.gramm_pro_stk;\n      else if (pe === 'stk' && einheit === 'g' && a.gramm_pro_stk) menge = Math.max(1, Math.round(a.menge / a.gramm_pro_stk));\n      einheit = pe;\n    }\n  }\n  return { json: { ...a, product_id: p ? p.id : null, menge, einheit, qu_id: quIds[einheit], location_id: locId(a.lagerort) } };\n});"
         }
       },
       {
@@ -281,7 +311,7 @@
         "type": "n8n-nodes-base.if",
         "typeVersion": 2.2,
         "position": [
-          2912,
+          3572,
           96
         ],
         "parameters": {
@@ -312,7 +342,7 @@
         "type": "n8n-nodes-base.merge",
         "typeVersion": 3.2,
         "position": [
-          4032,
+          4692,
           0
         ],
         "parameters": {
@@ -325,7 +355,7 @@
         "type": "n8n-nodes-base.httpRequest",
         "typeVersion": 4.2,
         "position": [
-          3136,
+          3796,
           176
         ],
         "parameters": {
@@ -406,13 +436,13 @@
         "type": "n8n-nodes-base.code",
         "typeVersion": 2,
         "position": [
-          3360,
+          4020,
           176
         ],
         "parameters": {
           "mode": "runOnceForEachItem",
           "language": "javaScript",
-          "jsCode": "const a = $('Produkte zuordnen').item.json;\nconst hits = ($json && Array.isArray($json.products)) ? $json.products : [];\nconst norm = s => String(s || '').toLowerCase().replace(/[^a-z0-9äöüß]+/g, ' ').trim();\nconst woerter = norm(a.name).split(' ').filter(w => w.length > 2);\nlet best = null;\nlet bestScore = 0;\nfor (const p of hits) {\n  const n = p.nutriments || {};\n  if (n['energy-kcal_100g'] == null) continue;\n  const pn = norm((p.product_name || '') + ' ' + (p.brands || ''));\n  const score = woerter.length ? woerter.filter(w => pn.includes(w)).length / woerter.length : 0;\n  if (score > bestScore) { best = p; bestScore = score; }\n}\nconst ok = !!best && bestScore >= (a.frischware ? 1 : 0.5);\nconst n = ok ? best.nutriments : {};\nconst r1 = v => (v === null || v === undefined || isNaN(Number(v))) ? null : Math.round(Number(v) * 10) / 10;\nlet menge = a.menge;\nif (ok && a.menge_geschaetzt && ['g', 'ml'].includes(a.einheit) && Number(best.product_quantity) > 0) menge = Number(best.product_quantity) * (a.packungen || 1);\nconst kcal_100 = ok ? r1(n['energy-kcal_100g']) : r1(a.ki_kcal_100);\nconst faktor = a.einheit === 'stk' ? (a.gramm_pro_stk || 100) / 100 : 0.01;\nconst hinweis = ok ? ['Nutri-Score ' + String(best.nutriscore_grade || '?').toUpperCase(), best.nova_group ? 'NOVA ' + best.nova_group : '', 'OFF ' + best.code].filter(Boolean).join(' · ') : 'Nährwerte geschätzt';\nreturn { json: {\n  ...a,\n  menge,\n  kcal_100,\n  protein_100: ok ? r1(n.proteins_100g) : r1(a.ki_protein_100),\n  fett_100: ok ? r1(n.fat_100g) : r1(a.ki_fett_100),\n  kh_100: ok ? r1(n.carbohydrates_100g) : r1(a.ki_kh_100),\n  nutriscore: ok && best.nutriscore_grade && best.nutriscore_grade.length === 1 ? best.nutriscore_grade.toUpperCase() : '',\n  nova: ok && best.nova_group ? Number(best.nova_group) : null,\n  off_code: ok ? String(best.code || '') : '',\n  off_name: ok ? String((best.brands ? best.brands + ' ' : '') + (best.product_name || '')) : '',\n  quelle: ok ? 'openfoodfacts' : 'ki-schaetzung',\n  kcal_pro_einheit: kcal_100 == null ? 0 : Math.round(kcal_100 * faktor * 100) / 100,\n  beschreibung: hinweis\n} };"
+          "jsCode": "const a = $('Produkte zuordnen').item.json;\n// REWE-Treffer: Nährwerte aus den REWE-Produktdaten (sonst KI-Schätzung), Barcode als off_code\nif (a.rewe_product_id) {\n  const z = v => (v === null || v === undefined || isNaN(Number(v))) ? null : Math.round(Number(v) * 10) / 10;\n  const n = a.rewe_naehrwerte;\n  const kcal = n ? z(n.kcal) : z(a.ki_kcal_100);\n  const faktor = a.einheit === 'stk' ? (a.gramm_pro_stk || 100) / 100 : 0.01;\n  const preis = a.rewe_preis != null ? Number(a.rewe_preis).toFixed(2).replace('.', ',') + ' €' : '';\n  return { json: { ...a, kcal_100: kcal, protein_100: n ? z(n.protein) : z(a.ki_protein_100), fett_100: n ? z(n.fett) : z(a.ki_fett_100),\n    kh_100: n ? z(n.kh) : z(a.ki_kh_100), nutriscore: '', nova: null, off_code: a.ean || '', off_name: ((a.marke ? a.marke + ' ' : '') + a.name).trim(),\n    quelle: n ? 'rewe' : 'ki-schaetzung', kcal_pro_einheit: kcal == null ? 0 : Math.round(kcal * faktor * 100) / 100,\n    beschreibung: ['REWE', a.marke, preis, 'REWE-ID ' + a.rewe_product_id, a.ean ? 'EAN ' + a.ean : '', n ? '' : 'Nährwerte geschätzt'].filter(Boolean).join(' · ') } };\n}\nconst hits = ($json && Array.isArray($json.products)) ? $json.products : [];\nconst norm = s => String(s || '').toLowerCase().replace(/[^a-z0-9äöüß]+/g, ' ').trim();\nconst woerter = norm(a.name).split(' ').filter(w => w.length > 2);\nlet best = null;\nlet bestScore = 0;\nfor (const p of hits) {\n  const n = p.nutriments || {};\n  if (n['energy-kcal_100g'] == null) continue;\n  const pn = norm((p.product_name || '') + ' ' + (p.brands || ''));\n  const score = woerter.length ? woerter.filter(w => pn.includes(w)).length / woerter.length : 0;\n  if (score > bestScore) { best = p; bestScore = score; }\n}\nconst ok = !!best && bestScore >= (a.frischware ? 1 : 0.5);\nconst n = ok ? best.nutriments : {};\nconst r1 = v => (v === null || v === undefined || isNaN(Number(v))) ? null : Math.round(Number(v) * 10) / 10;\nlet menge = a.menge;\nif (ok && a.menge_geschaetzt && ['g', 'ml'].includes(a.einheit) && Number(best.product_quantity) > 0) menge = Number(best.product_quantity) * (a.packungen || 1);\nconst kcal_100 = ok ? r1(n['energy-kcal_100g']) : r1(a.ki_kcal_100);\nconst faktor = a.einheit === 'stk' ? (a.gramm_pro_stk || 100) / 100 : 0.01;\nconst hinweis = ok ? ['Nutri-Score ' + String(best.nutriscore_grade || '?').toUpperCase(), best.nova_group ? 'NOVA ' + best.nova_group : '', 'OFF ' + best.code].filter(Boolean).join(' · ') : 'Nährwerte geschätzt';\nreturn { json: {\n  ...a,\n  menge,\n  kcal_100,\n  protein_100: ok ? r1(n.proteins_100g) : r1(a.ki_protein_100),\n  fett_100: ok ? r1(n.fat_100g) : r1(a.ki_fett_100),\n  kh_100: ok ? r1(n.carbohydrates_100g) : r1(a.ki_kh_100),\n  nutriscore: ok && best.nutriscore_grade && best.nutriscore_grade.length === 1 ? best.nutriscore_grade.toUpperCase() : '',\n  nova: ok && best.nova_group ? Number(best.nova_group) : null,\n  off_code: ok ? String(best.code || '') : '',\n  off_name: ok ? String((best.brands ? best.brands + ' ' : '') + (best.product_name || '')) : '',\n  quelle: ok ? 'openfoodfacts' : 'ki-schaetzung',\n  kcal_pro_einheit: kcal_100 == null ? 0 : Math.round(kcal_100 * faktor * 100) / 100,\n  beschreibung: hinweis\n} };"
         }
       },
       {
@@ -421,20 +451,36 @@
         "type": "n8n-nodes-base.httpRequest",
         "typeVersion": 4.2,
         "position": [
-          3584,
+          4244,
           176
         ],
         "parameters": {
           "method": "POST",
           "url": "={{ $('Profil laden').first().json.grocy_url }}/api/objects/products",
           "authentication": "genericCredentialType",
-          "genericAuthType": "httpTemplatedCustomAuth",
+          "genericAuthType": "httpCustomAuth",
           "sendBody": true,
           "contentType": "json",
           "specifyBody": "json",
           "jsonBody": "={{ JSON.stringify({ name: $json.name, description: $json.beschreibung, location_id: $json.location_id, qu_id_purchase: $json.qu_id, qu_id_stock: $json.qu_id, qu_id_consume: $json.qu_id, qu_id_price: $json.qu_id, default_best_before_days: $json.haltbarkeit_tage, calories: $json.kcal_pro_einheit }) }}",
-          "options": {}
-        }
+          "options": {
+            "batching": {
+              "batch": {
+                "batchSize": 1,
+                "batchInterval": 300
+              }
+            }
+          }
+        },
+        "credentials": {
+          "httpCustomAuth": {
+            "id": "sWOsDlhSjQx2Y5EN",
+            "name": "Custom Auth account"
+          }
+        },
+        "retryOnFail": true,
+        "maxTries": 3,
+        "waitBetweenTries": 2000
       },
       {
         "id": "005c2f26-ee66-448a-bc69-0e588ce23644",
@@ -442,7 +488,7 @@
         "type": "n8n-nodes-base.code",
         "typeVersion": 2,
         "position": [
-          3808,
+          4468,
           176
         ],
         "parameters": {
@@ -501,7 +547,13 @@
           }
         },
         "executeOnce": true,
-        "webhookId": "67795c84-da8a-453a-b60b-ecc6d00e424f"
+        "webhookId": "67795c84-da8a-453a-b60b-ecc6d00e424f",
+        "credentials": {
+          "telegramApi": {
+            "id": "R0Ye0fbcmRICFU8r",
+            "name": "Telegram account"
+          }
+        }
       },
       {
         "id": "b1cf5f58-3967-4462-a038-31ff33ae10e5",
@@ -509,7 +561,7 @@
         "type": "n8n-nodes-base.dataTable",
         "typeVersion": 1.1,
         "position": [
-          4032,
+          4692,
           224
         ],
         "parameters": {
@@ -677,20 +729,36 @@
         "type": "n8n-nodes-base.httpRequest",
         "typeVersion": 4.2,
         "position": [
-          4256,
+          4916,
           0
         ],
         "parameters": {
           "method": "POST",
           "url": "={{ $('Profil laden').first().json.grocy_url }}/api/stock/products/{{ $json.product_id }}/add",
           "authentication": "genericCredentialType",
-          "genericAuthType": "httpTemplatedCustomAuth",
+          "genericAuthType": "httpCustomAuth",
           "sendBody": true,
           "contentType": "json",
           "specifyBody": "json",
           "jsonBody": "={{ JSON.stringify({ amount: $json.menge, best_before_date: $json.mhd, purchased_date: $json.kaufdatum, transaction_type: \"purchase\", location_id: $json.location_id }) }}",
-          "options": {}
-        }
+          "options": {
+            "batching": {
+              "batch": {
+                "batchSize": 1,
+                "batchInterval": 300
+              }
+            }
+          }
+        },
+        "credentials": {
+          "httpCustomAuth": {
+            "id": "sWOsDlhSjQx2Y5EN",
+            "name": "Custom Auth account"
+          }
+        },
+        "retryOnFail": true,
+        "maxTries": 3,
+        "waitBetweenTries": 2000
       },
       {
         "id": "d1bc7ee0-fb87-4476-acc7-d003e0dafda5",
@@ -698,7 +766,7 @@
         "type": "n8n-nodes-base.code",
         "typeVersion": 2,
         "position": [
-          4480,
+          5140,
           0
         ],
         "parameters": {
@@ -713,7 +781,7 @@
         "type": "n8n-nodes-base.dataTable",
         "typeVersion": 1.1,
         "position": [
-          4704,
+          5364,
           0
         ],
         "parameters": {
@@ -781,7 +849,7 @@
         "type": "n8n-nodes-base.telegram",
         "typeVersion": 1.2,
         "position": [
-          4928,
+          5588,
           0
         ],
         "parameters": {
@@ -795,7 +863,13 @@
           }
         },
         "executeOnce": true,
-        "webhookId": "3ddf618f-a997-4d96-a61a-d53a9d1d9911"
+        "webhookId": "3ddf618f-a997-4d96-a61a-d53a9d1d9911",
+        "credentials": {
+          "telegramApi": {
+            "id": "R0Ye0fbcmRICFU8r",
+            "name": "Telegram account"
+          }
+        }
       },
       {
         "id": "ff082760-7bf8-49b6-8736-e62b9903d856",
@@ -803,7 +877,7 @@
         "type": "n8n-nodes-base.executeWorkflow",
         "typeVersion": 1.3,
         "position": [
-          5152,
+          5812,
           0
         ],
         "parameters": {
@@ -857,12 +931,479 @@
         "type": "n8n-nodes-base.stickyNote",
         "typeVersion": 1,
         "position": [
-          2512,
+          3172,
           288
         ],
         "parameters": {
-          "content": "## eBon-Import → Grocy\n1. iCloud: ungelesene Mails von „rewe“, PDF-Text lesen (eBons sind Text-PDFs, OCR unnötig)\n2. MiniMax strukturiert Artikel, schätzt MHD, Packungsgröße und Nährwerte\n3. Produkt schon in Grocy? → direkt einbuchen. Neu? → OpenFoodFacts-Suche (max. ~9/min, daher 6,5 s Abstand) → Produkt anlegen → Nährwerte in `vorrat_produkte` merken\n4. Bestand mit MHD in Grocy buchen → Telegram-Info → Rezeptvorschläge",
+          "content": "## eBon-Import → Grocy\n1. iCloud: ungelesene Mails von „rewe“, PDF-Text lesen (eBons sind Text-PDFs, OCR unnötig)\n2. MiniMax strukturiert Artikel, schätzt MHD, Packungsgröße und Nährwerte\n3. Produkt schon in Grocy? → direkt einbuchen. Neu? → OpenFoodFacts-Suche (max. ~9/min, daher 6,5 s Abstand) → Produkt anlegen → Nährwerte in `vorrat_produkte` merken\n4. Bestand mit MHD in Grocy buchen → Telegram-Info → Rezeptvorschläge\n\n**REWE-Zuordnung:** Der rewe-service liest die Bonzeilen (Preis, Stückzahl, Gewicht) und ordnet sie über Lerntabelle, Preis und Kassentext den REWE-Produkten zu. Sichere Treffer bekommen REWE-Name, Marke, Barcode, Packungsgröße und REWE-Nährwerte; unsichere Zeilen lösen nach dem Einbuchen eine Rückfrage mit Buttons aus (Antwort im Telegram-Bot → Lerntabelle).",
           "color": 4
+        }
+      },
+      {
+        "id": "e0000000-0001-4000-8000-rewebon00001",
+        "name": "REWE-Anfrage bauen",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1788,
+          96
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "language": "javaScript",
+          "jsCode": "// Pro Bon eine Anfrage an den REWE-Dienst: Bontext + Kassentexte der KI-Artikel (Reihenfolge bleibt erhalten)\nconst arts = $('Artikel aufbereiten').all().map(i => i.json);\nconst pdfs = $('PDF-Anhang finden').all().map(i => i.json);\nconst texte = $('Text aus PDF lesen').all().map(i => i.json);\nconst textNach = {};\npdfs.forEach((p, i) => { textNach[p.message_id] = String((texte[i] || {}).text || ''); });\nconst bons = {};\nfor (const a of arts) (bons[a.bon_id] = bons[a.bon_id] || []).push(a);\nreturn Object.entries(bons).map(([bon_id, l]) => ({ json: { bon_id, body: { bon_id, text: textNach[bon_id] || '', kaufdatum: l[0].kaufdatum, artikel_texte: l.map(a => a.bon_text || a.name) } } }));"
+        }
+      },
+      {
+        "id": "e0000000-0002-4000-8000-rewebon00002",
+        "name": "REWE-Zuordnung",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          2008,
+          96
+        ],
+        "onError": "continueRegularOutput",
+        "parameters": {
+          "method": "POST",
+          "url": "http://rewe-service:8000/bon/zuordnen",
+          "sendBody": true,
+          "contentType": "json",
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify($json.body) }}",
+          "options": {
+            "timeout": 60000,
+            "response": {
+              "response": {
+                "neverError": true
+              }
+            }
+          }
+        }
+      },
+      {
+        "id": "e0000000-0003-4000-8000-rewebon00003",
+        "name": "REWE-Daten übernehmen",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          2228,
+          96
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "language": "javaScript",
+          "jsCode": "// Sichere REWE-Treffer: exakter Produktname, Marke, Barcode, Packungsgröße und REWE-Nährwerte übernehmen.\n// Unsichere Zeilen behalten die KI-Werte und bekommen nach dem Einbuchen eine Rückfrage per Telegram.\nconst arts = $('Artikel aufbereiten').all().map(i => i.json);\nconst anfragen = $('REWE-Anfrage bauen').all().map(i => i.json);\nconst antworten = $input.all().map(i => i.json);\nconst nachBon = {};\nanfragen.forEach((a, i) => { nachBon[a.bon_id] = antworten[i] || {}; });\nconst zaehler = {};\nreturn arts.map(a => {\n  const erg = nachBon[a.bon_id] || {};\n  const idx = (zaehler[a.bon_id] = (zaehler[a.bon_id] ?? -1) + 1);\n  const z = Array.isArray(erg.artikel) ? erg.artikel[idx] : null;\n  if (!z) return { json: { ...a, rewe_status: 'keine' } };\n  const basis = { ...a, rewe_status: z.status, rewe_zeile_id: z.zeile_id, rewe_kandidaten: z.kandidaten || [], einzelpreis: z.einzelpreis };\n  const p = z.produkt;\n  if (z.status !== 'sicher' || !p) return { json: basis };\n  const anzahl = z.gewicht_kg ? 1 : (z.anzahl || a.packungen || 1);\n  let menge = a.menge, einheit = a.einheit;\n  if (z.gewicht_kg) { menge = Math.round(z.gewicht_kg * 1000); einheit = 'g'; }\n  else if (p.size_value && ['g', 'ml'].includes(p.size_unit)) { menge = p.size_value * anzahl; einheit = p.size_unit; }\n  else if (p.size_unit === 'Stück' && p.size_value) { menge = p.size_value * anzahl; einheit = 'stk'; }\n  const nw = p.kcal_100 != null ? { kcal: p.kcal_100, protein: p.protein_100, fett: p.fett_100, kh: p.kh_100 } : null;\n  return { json: { ...basis, name: p.name, marke: p.brand || '', rewe_product_id: p.rewe_product_id, ean: p.ean || '',\n    menge, einheit, packungen: anzahl, menge_geschaetzt: false, rewe_naehrwerte: nw, rewe_preis: p.price } };\n});"
+        }
+      },
+      {
+        "id": "e0000000-0004-4000-8000-rewebon00004",
+        "name": "Nährwerte von REWE?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          3576,
+          336
+        ],
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose"
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "rewe",
+                "leftValue": "={{ !!$json.rewe_product_id }}",
+                "rightValue": "",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                }
+              }
+            ]
+          },
+          "options": {}
+        }
+      },
+      {
+        "id": "e0000000-0005-4000-8000-rewebon00005",
+        "name": "Barcode bekannt?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          4688,
+          376
+        ],
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose"
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "ean",
+                "leftValue": "={{ /^\\d{8,14}$/.test(String($json.ean || '')) }}",
+                "rightValue": "",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                }
+              }
+            ]
+          },
+          "options": {}
+        }
+      },
+      {
+        "id": "e0000000-0006-4000-8000-rewebon00006",
+        "name": "Barcode in Grocy speichern",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          4908,
+          376
+        ],
+        "credentials": {
+          "httpCustomAuth": {
+            "id": "sWOsDlhSjQx2Y5EN",
+            "name": "Custom Auth account"
+          }
+        },
+        "parameters": {
+          "method": "POST",
+          "url": "={{ $('Profil laden').first().json.grocy_url }}/api/objects/product_barcodes",
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpCustomAuth",
+          "sendBody": true,
+          "contentType": "json",
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ product_id: $json.product_id, barcode: String($json.ean), note: \"REWE \" + ($json.rewe_product_id || \"\") }) }}",
+          "options": {
+            "response": {
+              "response": {
+                "neverError": true
+              }
+            },
+            "batching": {
+              "batch": {
+                "batchSize": 1,
+                "batchInterval": 300
+              }
+            }
+          }
+        },
+        "retryOnFail": true,
+        "maxTries": 3,
+        "waitBetweenTries": 2000
+      },
+      {
+        "id": "e0000000-0007-4000-8000-rewebon00007",
+        "name": "Rückfragen bauen",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          5588,
+          220
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "language": "javaScript",
+          "jsCode": "// Für unsichere Bonzeilen: „Welches Produkt war …?“ mit bis zu 3 Vorschlägen + „Keins davon“ als Buttons.\n// callback_data: bon:<zeile_id>:<rewe_product_id oder 0>:<grocy product_id>\nconst chat_id = String($('Profil laden').first().json.chat_id || '');\nif (!chat_id) return [];\nconst esc = t => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nconst euro = n => n == null ? '' : Number(n).toFixed(2).replace('.', ',') + ' €';\nconst kurz = (s, n) => s.length > n ? s.slice(0, n - 1) + '…' : s;\nconst offen = $('Alle Artikel').all().map(i => i.json).filter(a => a.rewe_status === 'unsicher' && a.rewe_zeile_id && (a.rewe_kandidaten || []).length);\nreturn offen.slice(0, 10).map(a => {\n  const k = a.rewe_kandidaten.slice(0, 3);\n  const item = { chat_id, anzahl: k.length, keins: `bon:${a.rewe_zeile_id}:0:${a.product_id || 0}`,\n    text: `🤔 Welches Produkt war „<b>${esc(a.bon_text)}</b>“ (${euro(a.einzelpreis)})?\\nEingebucht ist es erst mal als „${esc(a.name)}“.` };\n  k.forEach((p, i) => {\n    item['k' + (i + 1) + '_text'] = kurz(`${p.name} · ${euro(p.price)}`, 60);\n    item['k' + (i + 1) + '_data'] = `bon:${a.rewe_zeile_id}:${p.rewe_product_id}:${a.product_id || 0}`;\n  });\n  return { json: item };\n});"
+        }
+      },
+      {
+        "id": "e0000000-0008-4000-8000-rewebon00008",
+        "name": "Anzahl Vorschläge",
+        "type": "n8n-nodes-base.switch",
+        "typeVersion": 3.2,
+        "position": [
+          5808,
+          220
+        ],
+        "parameters": {
+          "rules": {
+            "values": [
+              {
+                "outputKey": "1",
+                "renameOutput": true,
+                "conditions": {
+                  "options": {
+                    "caseSensitive": true,
+                    "leftValue": "",
+                    "typeValidation": "loose"
+                  },
+                  "combinator": "and",
+                  "conditions": [
+                    {
+                      "id": "n1",
+                      "leftValue": "={{ $json.anzahl }}",
+                      "rightValue": 1,
+                      "operator": {
+                        "type": "number",
+                        "operation": "equals"
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "outputKey": "2",
+                "renameOutput": true,
+                "conditions": {
+                  "options": {
+                    "caseSensitive": true,
+                    "leftValue": "",
+                    "typeValidation": "loose"
+                  },
+                  "combinator": "and",
+                  "conditions": [
+                    {
+                      "id": "n2",
+                      "leftValue": "={{ $json.anzahl }}",
+                      "rightValue": 2,
+                      "operator": {
+                        "type": "number",
+                        "operation": "equals"
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "outputKey": "3",
+                "renameOutput": true,
+                "conditions": {
+                  "options": {
+                    "caseSensitive": true,
+                    "leftValue": "",
+                    "typeValidation": "loose"
+                  },
+                  "combinator": "and",
+                  "conditions": [
+                    {
+                      "id": "n3",
+                      "leftValue": "={{ $json.anzahl }}",
+                      "rightValue": 3,
+                      "operator": {
+                        "type": "number",
+                        "operation": "equals"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "options": {}
+        }
+      },
+      {
+        "id": "e0000000-0011-4000-8000-rewebon00011",
+        "name": "Rückfrage (1 Vorschlag)",
+        "type": "n8n-nodes-base.telegram",
+        "typeVersion": 1.2,
+        "position": [
+          6028,
+          120
+        ],
+        "credentials": {
+          "telegramApi": {
+            "id": "R0Ye0fbcmRICFU8r",
+            "name": "Telegram account"
+          }
+        },
+        "parameters": {
+          "resource": "message",
+          "operation": "sendMessage",
+          "chatId": "={{ $json.chat_id }}",
+          "text": "={{ $json.text }}",
+          "replyMarkup": "inlineKeyboard",
+          "inlineKeyboard": {
+            "rows": [
+              {
+                "row": {
+                  "buttons": [
+                    {
+                      "text": "={{ $json.k1_text }}",
+                      "additionalFields": {
+                        "callback_data": "={{ $json.k1_data }}"
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "row": {
+                  "buttons": [
+                    {
+                      "text": "❌ Keins davon",
+                      "additionalFields": {
+                        "callback_data": "={{ $json.keins }}"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "additionalFields": {
+            "appendAttribution": false,
+            "parse_mode": "HTML"
+          }
+        }
+      },
+      {
+        "id": "e0000000-0012-4000-8000-rewebon00012",
+        "name": "Rückfrage (2 Vorschläge)",
+        "type": "n8n-nodes-base.telegram",
+        "typeVersion": 1.2,
+        "position": [
+          6028,
+          300
+        ],
+        "credentials": {
+          "telegramApi": {
+            "id": "R0Ye0fbcmRICFU8r",
+            "name": "Telegram account"
+          }
+        },
+        "parameters": {
+          "resource": "message",
+          "operation": "sendMessage",
+          "chatId": "={{ $json.chat_id }}",
+          "text": "={{ $json.text }}",
+          "replyMarkup": "inlineKeyboard",
+          "inlineKeyboard": {
+            "rows": [
+              {
+                "row": {
+                  "buttons": [
+                    {
+                      "text": "={{ $json.k1_text }}",
+                      "additionalFields": {
+                        "callback_data": "={{ $json.k1_data }}"
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "row": {
+                  "buttons": [
+                    {
+                      "text": "={{ $json.k2_text }}",
+                      "additionalFields": {
+                        "callback_data": "={{ $json.k2_data }}"
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "row": {
+                  "buttons": [
+                    {
+                      "text": "❌ Keins davon",
+                      "additionalFields": {
+                        "callback_data": "={{ $json.keins }}"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "additionalFields": {
+            "appendAttribution": false,
+            "parse_mode": "HTML"
+          }
+        }
+      },
+      {
+        "id": "e0000000-0013-4000-8000-rewebon00013",
+        "name": "Rückfrage (3 Vorschläge)",
+        "type": "n8n-nodes-base.telegram",
+        "typeVersion": 1.2,
+        "position": [
+          6028,
+          480
+        ],
+        "credentials": {
+          "telegramApi": {
+            "id": "R0Ye0fbcmRICFU8r",
+            "name": "Telegram account"
+          }
+        },
+        "parameters": {
+          "resource": "message",
+          "operation": "sendMessage",
+          "chatId": "={{ $json.chat_id }}",
+          "text": "={{ $json.text }}",
+          "replyMarkup": "inlineKeyboard",
+          "inlineKeyboard": {
+            "rows": [
+              {
+                "row": {
+                  "buttons": [
+                    {
+                      "text": "={{ $json.k1_text }}",
+                      "additionalFields": {
+                        "callback_data": "={{ $json.k1_data }}"
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "row": {
+                  "buttons": [
+                    {
+                      "text": "={{ $json.k2_text }}",
+                      "additionalFields": {
+                        "callback_data": "={{ $json.k2_data }}"
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "row": {
+                  "buttons": [
+                    {
+                      "text": "={{ $json.k3_text }}",
+                      "additionalFields": {
+                        "callback_data": "={{ $json.k3_data }}"
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "row": {
+                  "buttons": [
+                    {
+                      "text": "❌ Keins davon",
+                      "additionalFields": {
+                        "callback_data": "={{ $json.keins }}"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "additionalFields": {
+            "appendAttribution": false,
+            "parse_mode": "HTML"
+          }
         }
       }
     ],
@@ -955,7 +1496,7 @@
         "main": [
           [
             {
-              "node": "Profil laden",
+              "node": "REWE-Anfrage bauen",
               "type": "main",
               "index": 0
             }
@@ -1028,7 +1569,7 @@
           ],
           [
             {
-              "node": "OpenFoodFacts suchen",
+              "node": "Nährwerte von REWE?",
               "type": "main",
               "index": 0
             }
@@ -1091,6 +1632,11 @@
               "node": "Nährwerte merken",
               "type": "main",
               "index": 0
+            },
+            {
+              "node": "Barcode bekannt?",
+              "type": "main",
+              "index": 0
             }
           ]
         ]
@@ -1146,6 +1692,109 @@
               "node": "Rezeptvorschläge anstoßen",
               "type": "main",
               "index": 0
+            },
+            {
+              "node": "Rückfragen bauen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "REWE-Anfrage bauen": {
+        "main": [
+          [
+            {
+              "node": "REWE-Zuordnung",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "REWE-Zuordnung": {
+        "main": [
+          [
+            {
+              "node": "REWE-Daten übernehmen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "REWE-Daten übernehmen": {
+        "main": [
+          [
+            {
+              "node": "Profil laden",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Nährwerte von REWE?": {
+        "main": [
+          [
+            {
+              "node": "Nährwerte bestimmen",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "OpenFoodFacts suchen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Barcode bekannt?": {
+        "main": [
+          [
+            {
+              "node": "Barcode in Grocy speichern",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Anzahl Vorschläge": {
+        "main": [
+          [
+            {
+              "node": "Rückfrage (1 Vorschlag)",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Rückfrage (2 Vorschläge)",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Rückfrage (3 Vorschläge)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Rückfragen bauen": {
+        "main": [
+          [
+            {
+              "node": "Anzahl Vorschläge",
+              "type": "main",
+              "index": 0
             }
           ]
         ]
@@ -1153,7 +1802,8 @@
     },
     "settings": {
       "executionOrder": "v1",
-      "availableInMCP": true
+      "availableInMCP": true,
+      "errorWorkflow": "VorratFehler0001"
     },
     "staticData": null,
     "meta": {
@@ -1228,10 +1878,10 @@
       }
     ],
     "pinData": null,
-    "versionId": "50d502ef-fa89-4f99-b261-b641fbdd3e8d",
-    "activeVersionId": null,
-    "versionCounter": 1,
-    "triggerCount": 0,
+    "versionId": "501772f5-ca32-4749-a310-6ebfed346ac4",
+    "activeVersionId": "501772f5-ca32-4749-a310-6ebfed346ac4",
+    "versionCounter": 6,
+    "triggerCount": 1,
     "sourceWorkflowId": null,
     "tags": [],
     "shared": [

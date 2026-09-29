@@ -1,11 +1,11 @@
 [
   {
-    "updatedAt": "2026-09-27T15:07:02.162Z",
+    "updatedAt": "2026-09-28T18:28:34.000Z",
     "createdAt": "2026-09-27T15:07:02.162Z",
     "id": "JStsSgy75x6xLQzD",
     "name": "Vorrat · Telegram-Bot",
     "description": "Telegram-Bot: Gekocht-Buttons buchen Zutaten in Grocy aus, MHD-Buttons, /rezepte /wochenplan /inventar, KI-Chat mit Grocy-Werkzeugen und Makrozielen.",
-    "active": false,
+    "active": true,
     "isArchived": false,
     "nodes": [
       {
@@ -24,7 +24,13 @@
           ],
           "additionalFields": {}
         },
-        "webhookId": "be4e6b03-97fb-4127-be03-2e30655599f6"
+        "webhookId": "be4e6b03-97fb-4127-be03-2e30655599f6",
+        "credentials": {
+          "telegramApi": {
+            "id": "R0Ye0fbcmRICFU8r",
+            "name": "Telegram account"
+          }
+        }
       },
       {
         "id": "600406ef-14fc-4cbb-8113-3d480526815d",
@@ -70,7 +76,7 @@
         "parameters": {
           "mode": "runOnceForAllItems",
           "language": "javaScript",
-          "jsCode": "const u = $('Telegram Trigger').first().json;\nconst profil = $input.first().json || {};\nconst cb = u.callback_query;\nconst msg = u.message || (cb && cb.message) || {};\nconst chatId = String((msg.chat && msg.chat.id) || '');\nconst text = String((u.message && u.message.text) || '').trim();\nif (!chatId) return [];\nif (profil.chat_id && String(profil.chat_id) !== chatId) return [];\n\nlet aktion = 'chat';\nlet param = '';\nconst lower = text.toLowerCase();\nconst rest = text.includes(' ') ? text.slice(text.indexOf(' ') + 1).trim() : '';\nif (cb) {\n  const teile = String(cb.data || '').split(':');\n  const art = teile.shift();\n  param = teile.join(':');\n  if (art === 'cook') aktion = 'kochen';\n  else if (art === 'inv') aktion = 'inventar_aktion';\n  else if (art === 'cmd' && param === 'rezepte') aktion = 'rezepte';\n  else aktion = 'hilfe';\n} else if (lower.startsWith('/start')) aktion = 'start';\nelse if (lower.startsWith('/rezepte')) { aktion = 'rezepte'; param = rest; }\nelse if (lower.startsWith('/wochenplan')) { aktion = 'wochenplan'; param = rest; }\nelse if (lower.startsWith('/inventar') || lower.startsWith('/vorrat')) aktion = 'inventar';\nelse if (lower.startsWith('/hilfe') || lower.startsWith('/help')) aktion = 'hilfe';\nelse if (!text) aktion = 'hilfe';\n\nreturn [{ json: { aktion, param, chat_id: chatId, text, callback_id: cb ? String(cb.id) : '' } }];"
+          "jsCode": "const u = $('Telegram Trigger').first().json;\nconst profil = $input.first().json || {};\nconst cb = u.callback_query;\nconst msg = u.message || (cb && cb.message) || {};\nconst chatId = String((msg.chat && msg.chat.id) || '');\nconst text = String((u.message && u.message.text) || '').trim();\nif (!chatId) return [];\nif (profil.chat_id && String(profil.chat_id) !== chatId) return [];\n\nlet aktion = 'chat';\nlet param = '';\nconst lower = text.toLowerCase();\nconst rest = text.includes(' ') ? text.slice(text.indexOf(' ') + 1).trim() : '';\nif (cb) {\n  const teile = String(cb.data || '').split(':');\n  const art = teile.shift();\n  param = teile.join(':');\n  if (art === 'cook') aktion = 'kochen';\n  else if (art === 'inv') aktion = 'inventar_aktion';\n  else if (art === 'bon') aktion = 'bon_antwort';\n  else if (art === 'cmd' && param === 'rezepte') aktion = 'rezepte';\n  else aktion = 'hilfe';\n} else if (lower.startsWith('/start')) aktion = 'start';\nelse if (lower.startsWith('/rezepte')) { aktion = 'rezepte'; param = rest; }\nelse if (lower.startsWith('/wochenplan')) { aktion = 'wochenplan'; param = rest; }\nelse if (lower.startsWith('/inventar') || lower.startsWith('/vorrat')) aktion = 'inventar';\nelse if (lower.startsWith('/hilfe') || lower.startsWith('/help')) aktion = 'hilfe';\nelse if (!text) aktion = 'hilfe';\n\nreturn [{ json: { aktion, param, chat_id: chatId, text, callback_id: cb ? String(cb.id) : '' } }];"
         }
       },
       {
@@ -238,6 +244,29 @@
                   ],
                   "combinator": "and"
                 }
+              },
+              {
+                "renameOutput": true,
+                "outputKey": "eBon-Antwort",
+                "conditions": {
+                  "options": {
+                    "caseSensitive": true,
+                    "leftValue": "",
+                    "typeValidation": "strict"
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{ $json.aktion }}",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      },
+                      "rightValue": "bon_antwort",
+                      "id": "bon-antwort"
+                    }
+                  ],
+                  "combinator": "and"
+                }
               }
             ]
           },
@@ -265,7 +294,13 @@
           }
         },
         "onError": "continueRegularOutput",
-        "webhookId": "0df58bb4-f2c9-484f-8d89-305622714369"
+        "webhookId": "0df58bb4-f2c9-484f-8d89-305622714369",
+        "credentials": {
+          "telegramApi": {
+            "id": "R0Ye0fbcmRICFU8r",
+            "name": "Telegram account"
+          }
+        }
       },
       {
         "id": "7d5cbce3-9860-4bbb-8175-a9edc31d4256",
@@ -311,11 +346,17 @@
           "method": "GET",
           "url": "={{ $('Profil laden').first().json.grocy_url }}/api/stock",
           "authentication": "genericCredentialType",
-          "genericAuthType": "httpTemplatedCustomAuth",
+          "genericAuthType": "httpCustomAuth",
           "options": {}
         },
         "executeOnce": true,
-        "alwaysOutputData": true
+        "alwaysOutputData": true,
+        "credentials": {
+          "httpCustomAuth": {
+            "id": "sWOsDlhSjQx2Y5EN",
+            "name": "Custom Auth account"
+          }
+        }
       },
       {
         "id": "d0ee3190-589f-4c3c-bd45-fcca7fdabc08",
@@ -330,10 +371,16 @@
           "method": "GET",
           "url": "={{ $('Profil laden').first().json.grocy_url }}/api/objects/quantity_units",
           "authentication": "genericCredentialType",
-          "genericAuthType": "httpTemplatedCustomAuth",
+          "genericAuthType": "httpCustomAuth",
           "options": {}
         },
-        "executeOnce": true
+        "executeOnce": true,
+        "credentials": {
+          "httpCustomAuth": {
+            "id": "sWOsDlhSjQx2Y5EN",
+            "name": "Custom Auth account"
+          }
+        }
       },
       {
         "id": "cc12a66b-f239-494c-9ab6-29a265620062",
@@ -393,14 +440,20 @@
           "method": "POST",
           "url": "={{ $('Profil laden').first().json.grocy_url }}/api/stock/products/{{ $json.product_id }}/consume",
           "authentication": "genericCredentialType",
-          "genericAuthType": "httpTemplatedCustomAuth",
+          "genericAuthType": "httpCustomAuth",
           "sendBody": true,
           "contentType": "json",
           "specifyBody": "json",
           "jsonBody": "={{ JSON.stringify({ amount: $json.amount, spoiled: false, transaction_type: \"consume\" }) }}",
           "options": {}
         },
-        "onError": "continueRegularOutput"
+        "onError": "continueRegularOutput",
+        "credentials": {
+          "httpCustomAuth": {
+            "id": "sWOsDlhSjQx2Y5EN",
+            "name": "Custom Auth account"
+          }
+        }
       },
       {
         "id": "3736cd7e-8657-4aa7-bbdb-1038b5a5649a",
@@ -420,7 +473,13 @@
           }
         },
         "onError": "continueRegularOutput",
-        "webhookId": "ba987559-402b-4484-8089-1a5f793ade30"
+        "webhookId": "ba987559-402b-4484-8089-1a5f793ade30",
+        "credentials": {
+          "telegramApi": {
+            "id": "R0Ye0fbcmRICFU8r",
+            "name": "Telegram account"
+          }
+        }
       },
       {
         "id": "e3b001be-858d-4a5c-aff6-fe8aa0258e7a",
@@ -435,8 +494,14 @@
           "method": "GET",
           "url": "={{ $('Profil laden').first().json.grocy_url }}/api/stock/products/{{ $('Update auswerten').first().json.param.split(':')[0] }}",
           "authentication": "genericCredentialType",
-          "genericAuthType": "httpTemplatedCustomAuth",
+          "genericAuthType": "httpCustomAuth",
           "options": {}
+        },
+        "credentials": {
+          "httpCustomAuth": {
+            "id": "sWOsDlhSjQx2Y5EN",
+            "name": "Custom Auth account"
+          }
         }
       },
       {
@@ -452,11 +517,17 @@
           "method": "GET",
           "url": "={{ $('Profil laden').first().json.grocy_url }}/api/stock/products/{{ $('Update auswerten').first().json.param.split(':')[0] }}/entries",
           "authentication": "genericCredentialType",
-          "genericAuthType": "httpTemplatedCustomAuth",
+          "genericAuthType": "httpCustomAuth",
           "options": {}
         },
         "executeOnce": true,
-        "alwaysOutputData": true
+        "alwaysOutputData": true,
+        "credentials": {
+          "httpCustomAuth": {
+            "id": "sWOsDlhSjQx2Y5EN",
+            "name": "Custom Auth account"
+          }
+        }
       },
       {
         "id": "149049d5-d22c-4624-9a6a-35a557fea151",
@@ -516,14 +587,20 @@
           "method": "={{ $json.method }}",
           "url": "={{ $('Profil laden').first().json.grocy_url }}{{ $json.pfad }}",
           "authentication": "genericCredentialType",
-          "genericAuthType": "httpTemplatedCustomAuth",
+          "genericAuthType": "httpCustomAuth",
           "sendBody": true,
           "contentType": "json",
           "specifyBody": "json",
           "jsonBody": "={{ JSON.stringify($json.body) }}",
           "options": {}
         },
-        "onError": "continueRegularOutput"
+        "onError": "continueRegularOutput",
+        "credentials": {
+          "httpCustomAuth": {
+            "id": "sWOsDlhSjQx2Y5EN",
+            "name": "Custom Auth account"
+          }
+        }
       },
       {
         "id": "b3e879bb-e932-489b-9ee8-389f9649e598",
@@ -592,7 +669,13 @@
           }
         },
         "executeOnce": true,
-        "webhookId": "ba7e0453-6564-4eef-a85f-8a54820613fb"
+        "webhookId": "ba7e0453-6564-4eef-a85f-8a54820613fb",
+        "credentials": {
+          "telegramApi": {
+            "id": "R0Ye0fbcmRICFU8r",
+            "name": "Telegram account"
+          }
+        }
       },
       {
         "id": "c87a67a8-7f47-4823-8eb7-82de25d0ee69",
@@ -612,7 +695,13 @@
             "appendAttribution": false
           }
         },
-        "webhookId": "a0e40489-1c35-4d6b-a579-23f38adcd59f"
+        "webhookId": "a0e40489-1c35-4d6b-a579-23f38adcd59f",
+        "credentials": {
+          "telegramApi": {
+            "id": "R0Ye0fbcmRICFU8r",
+            "name": "Telegram account"
+          }
+        }
       },
       {
         "id": "b4b3e97d-1dc4-481c-a3de-58fb1221ac09",
@@ -685,7 +774,13 @@
             "appendAttribution": false
           }
         },
-        "webhookId": "8aa87f05-076f-4201-a505-bcef071c251f"
+        "webhookId": "8aa87f05-076f-4201-a505-bcef071c251f",
+        "credentials": {
+          "telegramApi": {
+            "id": "R0Ye0fbcmRICFU8r",
+            "name": "Telegram account"
+          }
+        }
       },
       {
         "id": "48c8251d-a5bd-44ff-bb43-de7ec0e13213",
@@ -753,10 +848,16 @@
           "method": "GET",
           "url": "={{ $('Profil laden').first().json.grocy_url }}/api/stock",
           "authentication": "genericCredentialType",
-          "genericAuthType": "httpTemplatedCustomAuth",
+          "genericAuthType": "httpCustomAuth",
           "options": {}
         },
-        "alwaysOutputData": true
+        "alwaysOutputData": true,
+        "credentials": {
+          "httpCustomAuth": {
+            "id": "sWOsDlhSjQx2Y5EN",
+            "name": "Custom Auth account"
+          }
+        }
       },
       {
         "id": "63d22d38-8aea-449d-9913-c9caf2dacb66",
@@ -771,10 +872,16 @@
           "method": "GET",
           "url": "={{ $('Profil laden').first().json.grocy_url }}/api/objects/locations",
           "authentication": "genericCredentialType",
-          "genericAuthType": "httpTemplatedCustomAuth",
+          "genericAuthType": "httpCustomAuth",
           "options": {}
         },
-        "executeOnce": true
+        "executeOnce": true,
+        "credentials": {
+          "httpCustomAuth": {
+            "id": "sWOsDlhSjQx2Y5EN",
+            "name": "Custom Auth account"
+          }
+        }
       },
       {
         "id": "076752a6-c0a6-46b2-9d6e-f7c2d4c05d3e",
@@ -789,10 +896,16 @@
           "method": "GET",
           "url": "={{ $('Profil laden').first().json.grocy_url }}/api/objects/quantity_units",
           "authentication": "genericCredentialType",
-          "genericAuthType": "httpTemplatedCustomAuth",
+          "genericAuthType": "httpCustomAuth",
           "options": {}
         },
-        "executeOnce": true
+        "executeOnce": true,
+        "credentials": {
+          "httpCustomAuth": {
+            "id": "sWOsDlhSjQx2Y5EN",
+            "name": "Custom Auth account"
+          }
+        }
       },
       {
         "id": "aac47abe-d777-40a5-869e-4cfaa632804a",
@@ -828,7 +941,13 @@
             "parse_mode": "HTML"
           }
         },
-        "webhookId": "65b115df-2fa3-4043-b9d7-5fe937308d99"
+        "webhookId": "65b115df-2fa3-4043-b9d7-5fe937308d99",
+        "credentials": {
+          "telegramApi": {
+            "id": "R0Ye0fbcmRICFU8r",
+            "name": "Telegram account"
+          }
+        }
       },
       {
         "id": "db1d5fea-ad22-4739-adf0-f19734ab7358",
@@ -849,7 +968,13 @@
             "parse_mode": "HTML"
           }
         },
-        "webhookId": "e244c4d9-4ef0-4ca8-9e3b-de28559b352a"
+        "webhookId": "e244c4d9-4ef0-4ca8-9e3b-de28559b352a",
+        "credentials": {
+          "telegramApi": {
+            "id": "R0Ye0fbcmRICFU8r",
+            "name": "Telegram account"
+          }
+        }
       },
       {
         "id": "1cfae810-915e-4928-9ade-94d3fe097abb",
@@ -864,7 +989,7 @@
           "promptType": "define",
           "text": "={{ $('Update auswerten').first().json.text }}",
           "options": {
-            "systemMessage": "=Du bist ein freundlicher deutscher Vorrats- und Ernährungsassistent in Telegram. Der Vorrat wird in Grocy geführt. Heute ist {{ $now.setZone(\"Europe/Berlin\").toFormat(\"cccc, dd.LL.yyyy\") }}.\n\nWerkzeuge:\n- grocy_bestand: aktuellen Bestand abrufen. Rufe es IMMER zuerst auf, um die richtige product_id und Menge zu kennen.\n- grocy_verbrauchen: gegessen/verbraucht (spoiled false) oder weggeworfen (spoiled true) ausbuchen. Menge in die Lagereinheit des Produkts umrechnen und nie mehr als vorhanden.\n- grocy_einbuchen: Einkauf eines existierenden Produkts einbuchen (vorher mit grocy_produkt_suchen die id finden, MHD realistisch schätzen). Gibt es das Produkt noch nicht, bitte den Nutzer, es in Grocy per Barcode zu scannen.\n- grocy_eintraege + grocy_mhd_aendern: MHD korrigieren, z.B. „Joghurt hält bis 15.10.“.\n- profil_lesen und ziele_speichern: Ernährungsziele verwalten. Nennt der Nutzer nur kcal, schlage gesunde Makros vor (Protein ca. 1,6-2 g pro kg Körpergewicht bzw. ca. 30 Prozent, Fett 25-30 Prozent, Rest Kohlenhydrate) und speichere sie.\n\nRegeln: Wenn unklar ist, welches Produkt gemeint ist, frag nach. Antworte kurz auf Deutsch, bestätige konkret was du gebucht hast und nutze passende Emojis. Für Rezeptideen verweise auf /rezepte, für die Wochenplanung auf /wochenplan. Keine Markdown-Tabellen.",
+            "systemMessage": "=Du bist ein freundlicher deutscher Vorrats- und Ernährungsassistent in Telegram. Du verwaltest den Vorrat in Grocy selbst: Du darfst Produkte anlegen sowie Bestand einbuchen und ausbuchen. Heute ist {{ $now.setZone(\"Europe/Berlin\").toFormat(\"cccc, dd.LL.yyyy\") }}.\n\nWerkzeuge:\n- grocy_bestand: aktueller Bestand (product_id, Menge in der Lagereinheit, MHD). Vor jedem Ein- oder Ausbuchen zuerst aufrufen.\n- grocy_produkt_suchen: prüft per Name oder Barcode, ob ein Produkt in Grocy schon existiert.\n- rewe_produkt_suchen: lokale REWE-Produkttabelle mit Marke, Packungsgröße, Preis, Preis pro kg/l, Angeboten und Makros pro 100 g.\n- grocy_produkt_anlegen, naehrwerte_merken, grocy_barcode_zuordnen: neues Produkt anlegen (Ablauf unten).\n- grocy_bestand_hinzufuegen / grocy_bestand_verbrauchen: einbuchen bzw. ausbuchen (gegessen oder weggeworfen).\n- grocy_eintraege + grocy_mhd_aendern: MHD korrigieren, z.B. „Joghurt hält bis 15.10.“.\n- profil_lesen und ziele_speichern: Ernährungsziele verwalten. Nennt der Nutzer nur kcal, schlage gesunde Makros vor (Protein ca. 1,6-2 g pro kg Körpergewicht bzw. ca. 30 Prozent, Fett 25-30 Prozent, Rest Kohlenhydrate) und speichere sie.\n\nProdukt aufnehmen („Nimm X auf“):\n1. grocy_produkt_suchen: Gibt es das Produkt schon, sag das und lege nichts an (biete an, Bestand einzubuchen).\n2. rewe_produkt_suchen mit Name und Marke. Passt ein Treffer, übernimm Name, Marke, Größe, Preis und Makros daraus. Bei mehreren plausiblen Treffern zeig bis zu 3 zur Auswahl. Ohne Treffer sag das offen und frag nach Packungsgröße und Nährwerten pro 100 g. Erfinde niemals Nährwerte, Preise oder Barcodes.\n3. Zeig eine kurze Zusammenfassung: Name, Marke, Packungsgröße, Preis, Lagerort, Haltbarkeit, kcal/Protein/Fett/KH pro 100 g. Frag „Soll ich es so anlegen?“ und warte auf die Antwort.\n4. Erst wenn der Nutzer in seiner nächsten Nachricht mit ja zustimmt: grocy_produkt_anlegen, danach naehrwerte_merken (wenn Makros bekannt) und grocy_barcode_zuordnen (nur wenn ein Barcode bekannt ist). Bestätige mit der neuen product_id. Bestand nur einbuchen, wenn der Nutzer es sagt.\n   Änderungswünsche oder Rückfragen („Haltbarkeit eher 21 Tage“) sind KEINE Zustimmung: Zusammenfassung anpassen, erneut zeigen und wieder auf ja warten.\n\nEin- und Ausbuchen: Bei klaren Angaben („Hab 2 Eier gegessen“, „3 Joghurt gekauft“, „Milch weggeworfen“) ohne Rückfrage buchen und danach kurz bestätigen, was gebucht wurde. Nachfragen nur, wenn Produkt oder Menge unklar ist. Menge in die Lagereinheit umrechnen und nie mehr ausbuchen als vorhanden.\n\nEinkauf und Planung: Für Einkaufsfragen schlag mit rewe_produkt_suchen konkrete Produkte vor (Marke, Packungsgröße, Preis). Bevorzuge günstigen Preis pro kg/l, weise auf aktuelle Angebote hin und nenne bei Eiweißquellen den Preis pro 100 g Protein. Für Rezeptideen verweise auf /rezepte, für komplette Wochenpläne auf /wochenplan.\n\nAntworte kurz auf Deutsch, nutze passende Emojis, keine Markdown-Tabellen.",
             "maxIterations": 12,
             "enableStreaming": false
           }
@@ -883,13 +1008,19 @@
           "model": {
             "__rl": true,
             "mode": "id",
-            "value": "MiniMax-M2"
+            "value": "MiniMax-M3"
           },
           "responsesApiEnabled": false,
           "options": {
             "baseURL": "https://api.minimax.io/v1",
             "temperature": 0.3,
             "timeout": 120000
+          }
+        },
+        "credentials": {
+          "openAiApi": {
+            "id": "MiniMaxOpenAi01",
+            "name": "MiniMax (OpenAI-kompatibel)"
           }
         }
       },
@@ -904,7 +1035,7 @@
         ],
         "parameters": {
           "sessionIdType": "customKey",
-          "sessionKey": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+          "sessionKey": "={{ String($('Telegram Trigger').first().json.message?.chat?.id ?? $('Telegram Trigger').first().json.callback_query?.message?.chat?.id) }}",
           "contextWindowLength": 10
         }
       },
@@ -922,17 +1053,23 @@
           "method": "GET",
           "url": "={{ $('Profil laden').first().json.grocy_url }}/api/stock",
           "authentication": "genericCredentialType",
-          "genericAuthType": "httpTemplatedCustomAuth",
+          "genericAuthType": "httpCustomAuth",
           "optimizeResponse": true,
           "responseType": "json",
           "fieldsToInclude": "selected",
           "fields": "product_id,amount,best_before_date,product.name,product.qu_id_stock",
           "options": {}
+        },
+        "credentials": {
+          "httpCustomAuth": {
+            "id": "sWOsDlhSjQx2Y5EN",
+            "name": "Custom Auth account"
+          }
         }
       },
       {
         "id": "5673cd5b-49bb-4509-9f2b-6d0153e553a0",
-        "name": "grocy_verbrauchen",
+        "name": "grocy_bestand_verbrauchen",
         "type": "n8n-nodes-base.httpRequestTool",
         "typeVersion": 4.2,
         "position": [
@@ -940,21 +1077,27 @@
           1968
         ],
         "parameters": {
-          "toolDescription": "Bucht eine Menge eines Produkts als verbraucht (gegessen) oder mit spoiled=true als weggeworfen aus.",
+          "toolDescription": "Bucht eine Menge eines Produkts als verbraucht/gegessen (spoiled=false) oder weggeworfen (spoiled=true) aus. Bei klaren Angaben wie „Hab 2 Eier gegessen“ ohne Rückfrage nutzen. Nie mehr als vorhanden.",
           "method": "POST",
           "url": "={{ $('Profil laden').first().json.grocy_url }}/api/stock/products/{{ $fromAI('product_id', 'Grocy product_id', 'number') }}/consume",
           "authentication": "genericCredentialType",
-          "genericAuthType": "httpTemplatedCustomAuth",
+          "genericAuthType": "httpCustomAuth",
           "sendBody": true,
           "contentType": "json",
           "specifyBody": "json",
           "jsonBody": "={{ JSON.stringify({ amount: $fromAI(\"amount\", \"Menge in der Lagereinheit des Produkts\", \"number\"), spoiled: $fromAI(\"spoiled\", \"true wenn weggeworfen, sonst false\", \"boolean\"), transaction_type: \"consume\" }) }}",
           "options": {}
+        },
+        "credentials": {
+          "httpCustomAuth": {
+            "id": "sWOsDlhSjQx2Y5EN",
+            "name": "Custom Auth account"
+          }
         }
       },
       {
         "id": "b9b94679-9e42-4cd6-9d36-acdb06999ad6",
-        "name": "grocy_einbuchen",
+        "name": "grocy_bestand_hinzufuegen",
         "type": "n8n-nodes-base.httpRequestTool",
         "typeVersion": 4.2,
         "position": [
@@ -962,16 +1105,22 @@
           1968
         ],
         "parameters": {
-          "toolDescription": "Bucht einen Einkauf eines BEREITS in Grocy existierenden Produkts ein.",
+          "toolDescription": "Bucht einen Einkauf eines in Grocy existierenden Produkts ein (Menge in der Lagereinheit, MHD realistisch schätzen). Bei klaren Angaben wie „3 Joghurt gekauft“ ohne Rückfrage nutzen.",
           "method": "POST",
           "url": "={{ $('Profil laden').first().json.grocy_url }}/api/stock/products/{{ $fromAI('product_id', 'Grocy product_id', 'number') }}/add",
           "authentication": "genericCredentialType",
-          "genericAuthType": "httpTemplatedCustomAuth",
+          "genericAuthType": "httpCustomAuth",
           "sendBody": true,
           "contentType": "json",
           "specifyBody": "json",
           "jsonBody": "={{ JSON.stringify({ amount: $fromAI(\"amount\", \"Menge in der Lagereinheit\", \"number\"), best_before_date: $fromAI(\"best_before_date\", \"geschätztes MHD YYYY-MM-DD\", \"string\"), transaction_type: \"purchase\" }) }}",
           "options": {}
+        },
+        "credentials": {
+          "httpCustomAuth": {
+            "id": "sWOsDlhSjQx2Y5EN",
+            "name": "Custom Auth account"
+          }
         }
       },
       {
@@ -984,16 +1133,28 @@
           1968
         ],
         "parameters": {
-          "toolDescription": "Sucht Produkte in Grocy nach Namen (auch wenn gerade nicht im Bestand).",
+          "toolDescription": "Prüft, ob ein Produkt in Grocy schon existiert: per Barcode (EAN) oder per Namensteil. Vor jedem Anlegen aufrufen. Leeres Ergebnis oder „No product with barcode“ = existiert noch nicht.",
           "method": "GET",
-          "url": "={{ $('Profil laden').first().json.grocy_url }}/api/objects/products?query[]=name~{{ encodeURIComponent($fromAI('suchbegriff', 'Teil des Produktnamens', 'string')) }}",
+          "url": "={{ $('Profil laden').first().json.grocy_url }}/api/{{ $fromAI('barcode', 'EAN-Barcode, nur wenn bekannt, sonst leer', 'string', '') ? 'stock/products/by-barcode/' + $fromAI('barcode', 'EAN-Barcode, nur wenn bekannt, sonst leer', 'string', '') : 'objects/products?query[]=name~' + encodeURIComponent($fromAI('suchbegriff', 'Teil des Produktnamens, z.B. Skyr', 'string', '')) }}",
           "authentication": "genericCredentialType",
-          "genericAuthType": "httpTemplatedCustomAuth",
+          "genericAuthType": "httpCustomAuth",
           "optimizeResponse": true,
           "responseType": "json",
           "fieldsToInclude": "selected",
-          "fields": "id,name,qu_id_stock",
-          "options": {}
+          "fields": "id,name,description,qu_id_stock,location_id,product.id,product.name,product.description",
+          "options": {
+            "response": {
+              "response": {
+                "neverError": true
+              }
+            }
+          }
+        },
+        "credentials": {
+          "httpCustomAuth": {
+            "id": "sWOsDlhSjQx2Y5EN",
+            "name": "Custom Auth account"
+          }
         }
       },
       {
@@ -1010,8 +1171,14 @@
           "method": "GET",
           "url": "={{ $('Profil laden').first().json.grocy_url }}/api/stock/products/{{ $fromAI('product_id', 'Grocy product_id', 'number') }}/entries",
           "authentication": "genericCredentialType",
-          "genericAuthType": "httpTemplatedCustomAuth",
+          "genericAuthType": "httpCustomAuth",
           "options": {}
+        },
+        "credentials": {
+          "httpCustomAuth": {
+            "id": "sWOsDlhSjQx2Y5EN",
+            "name": "Custom Auth account"
+          }
         }
       },
       {
@@ -1028,12 +1195,18 @@
           "method": "PUT",
           "url": "={{ $('Profil laden').first().json.grocy_url }}/api/stock/entry/{{ $fromAI('entry_id', 'id des Bestandseintrags', 'number') }}",
           "authentication": "genericCredentialType",
-          "genericAuthType": "httpTemplatedCustomAuth",
+          "genericAuthType": "httpCustomAuth",
           "sendBody": true,
           "contentType": "json",
           "specifyBody": "json",
           "jsonBody": "={{ JSON.stringify({ amount: $fromAI(\"amount\", \"Menge des Eintrags (unverändert)\", \"number\"), best_before_date: $fromAI(\"best_before_date\", \"neues MHD YYYY-MM-DD\", \"string\"), location_id: $fromAI(\"location_id\", \"location_id des Eintrags\", \"number\"), purchased_date: $fromAI(\"purchased_date\", \"purchased_date des Eintrags\", \"string\") }) }}",
           "options": {}
+        },
+        "credentials": {
+          "httpCustomAuth": {
+            "id": "sWOsDlhSjQx2Y5EN",
+            "name": "Custom Auth account"
+          }
         }
       },
       {
@@ -1201,7 +1374,13 @@
             "parse_mode": "HTML"
           }
         },
-        "webhookId": "3e504e38-fd12-47b4-8d31-4af0ab0a9703"
+        "webhookId": "3e504e38-fd12-47b4-8d31-4af0ab0a9703",
+        "credentials": {
+          "telegramApi": {
+            "id": "R0Ye0fbcmRICFU8r",
+            "name": "Telegram account"
+          }
+        }
       },
       {
         "id": "7e22727f-47c5-45fc-9afe-e538aac932e2",
@@ -1272,7 +1451,13 @@
           }
         },
         "executeOnce": true,
-        "webhookId": "2b64db8d-10c6-4d4a-9687-ec165d218124"
+        "webhookId": "2b64db8d-10c6-4d4a-9687-ec165d218124",
+        "credentials": {
+          "telegramApi": {
+            "id": "R0Ye0fbcmRICFU8r",
+            "name": "Telegram account"
+          }
+        }
       },
       {
         "id": "f80e8b48-ac5b-4a81-9436-833679659fc2",
@@ -1294,7 +1479,13 @@
           }
         },
         "executeOnce": true,
-        "webhookId": "683bab12-ed36-4b40-97b8-36a26d3cb9db"
+        "webhookId": "683bab12-ed36-4b40-97b8-36a26d3cb9db",
+        "credentials": {
+          "telegramApi": {
+            "id": "R0Ye0fbcmRICFU8r",
+            "name": "Telegram account"
+          }
+        }
       },
       {
         "id": "b5e03ebf-bf51-49c6-bf4e-a55faab8cf5a",
@@ -1308,6 +1499,616 @@
         "parameters": {
           "content": "## Telegram-Bot\nButtons: `cook:<rezept-id>` bucht ein Rezept in Grocy ab, `inv:<product-id>:verbraucht|weg|plus3` kommt vom MHD-Wächter.\nBefehle: /start /rezepte /wochenplan /inventar /hilfe\nFreitext → KI-Agent mit Grocy-Werkzeugen und Zielen.\n\n**Sicherheit:** Die erste Chat-ID, die /start sendet, wird gespeichert – andere Chats werden ignoriert.",
           "color": 4
+        }
+      },
+      {
+        "id": "c1a2b3d4-0001-4e5f-8a9b-grocyanlegen1",
+        "name": "grocy_produkt_anlegen",
+        "type": "n8n-nodes-base.httpRequestTool",
+        "typeVersion": 4.2,
+        "position": [
+          2688,
+          1968
+        ],
+        "credentials": {
+          "httpCustomAuth": {
+            "id": "sWOsDlhSjQx2Y5EN",
+            "name": "Custom Auth account"
+          }
+        },
+        "parameters": {
+          "toolDescription": "Legt ein NEUES Produkt in Grocy an. NUR aufrufen, nachdem du dem Nutzer die Zusammenfassung gezeigt und er in seiner letzten Nachricht mit „ja“ zugestimmt hat. Vorher mit grocy_produkt_suchen Duplikate ausschließen. Antwortet mit {\"created_object_id\": <product_id>}. Enthält die Antwort „ABGELEHNT_kein_ja_vom_Nutzer“, ist das KEIN technischer Fehler: die letzte Nachricht des Nutzers war keine Zustimmung. Dann die (aktualisierte) Zusammenfassung zeigen und auf „ja“ warten, nicht erneut versuchen.",
+          "method": "POST",
+          "url": "={{ $('Profil laden').first().json.grocy_url }}/api/objects/products",
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpCustomAuth",
+          "sendBody": true,
+          "contentType": "json",
+          "specifyBody": "json",
+          "jsonBody": "={{ (() => { const ja = /^\\s*(ja|jo|jap|jep|jup|yes|ok|okay|passt|genau|mach|leg|anlegen|bestätig|gerne|klar|👍)/i.test($('Update auswerten').first().json.text || ''); const qu = { g: 4, ml: 6, 'stück': 5, stk: 5 }[String($fromAI('einheit', 'Lagereinheit: g, ml oder Stück', 'string')).toLowerCase()] || 5; const lagerort = { 'kühlschrank': 3, 'tiefkühler': 4, 'vorratsschrank': 5 }[String($fromAI('lagerort', 'Kühlschrank, Tiefkühler oder Vorratsschrank', 'string')).toLowerCase()] || 5; const kcal100 = Number($fromAI('kcal_100', 'kcal pro 100 g bzw. 100 ml, 0 wenn unbekannt', 'number')) || 0; const gps = Number($fromAI('gramm_pro_stueck', 'Gewicht eines Stücks in g, nur bei Einheit Stück, sonst 0', 'number')) || 0; const body = { name: $fromAI('name', 'Produktname ohne Marke, z.B. Skyr Natur', 'string'), description: $fromAI('beschreibung', 'Marke, Packungsgröße, Preis und ggf. REWE-ID, z.B. Milbona · 500 g · 1,29 €', 'string'), location_id: lagerort, qu_id_purchase: qu, qu_id_stock: qu, qu_id_consume: qu, qu_id_price: qu, default_best_before_days: Math.max(0, Math.round(Number($fromAI('haltbarkeit_tage', 'übliche Haltbarkeit ab Kauf in Tagen', 'number')) || 0)), calories: kcal100 > 0 ? Math.round((qu === 5 ? kcal100 * gps / 100 : kcal100 / 100) * 100) / 100 : 0 }; if (!ja) body.ABGELEHNT_kein_ja_vom_Nutzer_erst_Zusammenfassung_zeigen_und_auf_ja_warten = 1; return JSON.stringify(body); })() }}",
+          "options": {
+            "response": {
+              "response": {
+                "neverError": true
+              }
+            }
+          }
+        }
+      },
+      {
+        "id": "c1a2b3d4-0002-4e5f-8a9b-grocybarcode1",
+        "name": "grocy_barcode_zuordnen",
+        "type": "n8n-nodes-base.httpRequestTool",
+        "typeVersion": 4.2,
+        "position": [
+          2816,
+          1968
+        ],
+        "credentials": {
+          "httpCustomAuth": {
+            "id": "sWOsDlhSjQx2Y5EN",
+            "name": "Custom Auth account"
+          }
+        },
+        "parameters": {
+          "toolDescription": "Speichert einen EAN-Barcode zu einem gerade angelegten Grocy-Produkt. Nur nutzen, wenn ein Barcode bekannt ist.",
+          "method": "POST",
+          "url": "={{ $('Profil laden').first().json.grocy_url }}/api/objects/product_barcodes",
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpCustomAuth",
+          "sendBody": true,
+          "contentType": "json",
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ product_id: $fromAI('product_id', 'Grocy product_id', 'number'), barcode: String($fromAI('barcode', 'EAN-Barcode', 'string')) }) }}",
+          "options": {
+            "response": {
+              "response": {
+                "neverError": true
+              }
+            }
+          }
+        }
+      },
+      {
+        "id": "c1a2b3d4-0003-4e5f-8a9b-naehrwerte001",
+        "name": "naehrwerte_merken",
+        "type": "n8n-nodes-base.dataTableTool",
+        "typeVersion": 1.1,
+        "position": [
+          2944,
+          1968
+        ],
+        "parameters": {
+          "descriptionType": "manual",
+          "toolDescription": "Speichert die Nährwerte pro 100 g/ml eines gerade angelegten Grocy-Produkts für Wochenplan und Rezepte. Direkt nach grocy_produkt_anlegen aufrufen, wenn Nährwerte bekannt sind.",
+          "resource": "row",
+          "operation": "insert",
+          "dataTableId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "kil5ZUYaG9x3uGat",
+            "cachedResultName": "vorrat_produkte"
+          },
+          "columns": {
+            "mappingMode": "defineBelow",
+            "matchingColumns": [],
+            "value": {
+              "grocy_product_id": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('grocy_product_id', 'product_id aus grocy_produkt_anlegen', 'number') }}",
+              "name": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('name', 'Produktname wie in Grocy', 'string') }}",
+              "einheit": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('einheit', 'g, ml oder stk', 'string') }}",
+              "kategorie": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('kategorie', 'z.B. Milchprodukte, Obst, Fleisch', 'string') }}",
+              "kcal_100": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('kcal_100', 'kcal pro 100 g/ml', 'number') }}",
+              "protein_100": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('protein_100', 'Protein g pro 100 g/ml', 'number') }}",
+              "fett_100": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fett_100', 'Fett g pro 100 g/ml', 'number') }}",
+              "kh_100": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('kh_100', 'Kohlenhydrate g pro 100 g/ml', 'number') }}",
+              "gramm_pro_stk": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('gramm_pro_stk', 'Gewicht eines Stücks in g, sonst 0', 'number') }}",
+              "off_name": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('marke_und_name', 'Marke und Produktname, z.B. Milbona Skyr', 'string') }}",
+              "quelle": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('quelle', 'rewe, wenn aus rewe_produkt_suchen, sonst nutzer', 'string') }}"
+            },
+            "schema": [
+              {
+                "id": "grocy_product_id",
+                "displayName": "grocy_product_id",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "number",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "name",
+                "displayName": "name",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "einheit",
+                "displayName": "einheit",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "kategorie",
+                "displayName": "kategorie",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "kcal_100",
+                "displayName": "kcal_100",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "number",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "protein_100",
+                "displayName": "protein_100",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "number",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "fett_100",
+                "displayName": "fett_100",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "number",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "kh_100",
+                "displayName": "kh_100",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "number",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "gramm_pro_stk",
+                "displayName": "gramm_pro_stk",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "number",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "off_name",
+                "displayName": "off_name",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "quelle",
+                "displayName": "quelle",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              }
+            ]
+          },
+          "options": {}
+        }
+      },
+      {
+        "id": "c1a2b3d4-0004-4e5f-8a9b-rewesuche0001",
+        "name": "rewe_produkt_suchen",
+        "type": "n8n-nodes-base.postgresTool",
+        "typeVersion": 2.6,
+        "position": [
+          3072,
+          1968
+        ],
+        "credentials": {
+          "postgres": {
+            "id": "RewePostgres0001",
+            "name": "REWE Postgres"
+          }
+        },
+        "parameters": {
+          "descriptionType": "manual",
+          "toolDescription": "Durchsucht die lokale REWE-Produkttabelle (monatlich aus dem Markt gecrawlt) nach Name und/oder Marke. Liefert Marke, Packungsgröße (size_value/size_unit), Preis, Preis pro kg/l, aktuelles Angebot (angebotspreis, angebot_bis), Makros pro 100 g und preis_pro_100g_protein. Nutzen beim Anlegen von Produkten und für konkrete Einkaufsvorschläge.",
+          "operation": "executeQuery",
+          "query": "SELECT * FROM produkt_suche($1, 12);",
+          "options": {
+            "queryReplacement": "={{ [ $fromAI('suchbegriff', 'Produktname und/oder Marke, z.B. skyr oder skyr milbona', 'string') ] }}"
+          }
+        }
+      },
+      {
+        "id": "f1000000-0001-4000-8000-botbon000001",
+        "name": "Button bestätigen (Bon)",
+        "type": "n8n-nodes-base.telegram",
+        "typeVersion": 1.2,
+        "position": [
+          1472,
+          -264
+        ],
+        "credentials": {
+          "telegramApi": {
+            "id": "R0Ye0fbcmRICFU8r",
+            "name": "Telegram account"
+          }
+        },
+        "parameters": {
+          "resource": "callback",
+          "operation": "answerQuery",
+          "queryId": "={{ $json.callback_id }}",
+          "additionalFields": {
+            "text": "👍 Wird gemerkt…"
+          }
+        }
+      },
+      {
+        "id": "f1000000-0002-4000-8000-botbon000002",
+        "name": "Bon-Antwort speichern",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          1692,
+          -264
+        ],
+        "parameters": {
+          "method": "POST",
+          "url": "http://rewe-service:8000/bon/antwort",
+          "sendBody": true,
+          "contentType": "json",
+          "specifyBody": "json",
+          "jsonBody": "={{ (() => { const t = String($('Update auswerten').first().json.param || '').split(':'); return JSON.stringify({ zeile_id: Number(t[0]), rewe_product_id: t[1] && t[1] !== '0' ? t[1] : null }); })() }}",
+          "options": {
+            "timeout": 30000,
+            "response": {
+              "response": {
+                "neverError": true
+              }
+            }
+          }
+        }
+      },
+      {
+        "id": "f1000000-0003-4000-8000-botbon000003",
+        "name": "Bon-Korrektur vorbereiten",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1912,
+          -264
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "language": "javaScript",
+          "jsCode": "const ctx = $('Update auswerten').first().json;\nconst t = String(ctx.param || '').split(':');\nconst grocy_id = Number(t[2]) || 0;\nconst r = $input.first().json || {};\nconst esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nconst p = r.produkt;\nlet text;\nif (!r.ok) text = '⚠️ Konnte die Antwort nicht speichern: ' + esc(r.fehler || r.detail || 'REWE-Dienst nicht erreichbar');\nelse if (!p) text = '👌 Okay, „' + esc(r.bon_text) + '“ bleibt wie eingebucht.';\nelse text = '✅ Gemerkt: „' + esc(r.bon_text) + '“ = <b>' + esc(p.name) + '</b>' + (p.brand ? ' (' + esc(p.brand) + ')' : '')\n  + (grocy_id ? '\\nIn Grocy umbenannt' + (p.ean ? ', Barcode gespeichert' : '') + (p.kcal_100 != null ? ', REWE-Nährwerte übernommen' : '') + '.' : '')\n  + '\\nBeim nächsten Bon erkenne ich es automatisch.';\nconst preis = p && p.price != null ? Number(p.price).toFixed(2).replace('.', ',') + ' €' : '';\nreturn [{ json: { chat_id: ctx.chat_id, text, grocy_id, gewaehlt: !!(r.ok && p && grocy_id), produkt: p || {},\n  beschreibung: p ? ['REWE', p.brand, preis, 'REWE-ID ' + p.rewe_product_id, p.ean ? 'EAN ' + p.ean : ''].filter(Boolean).join(' · ') : '' } }];"
+        }
+      },
+      {
+        "id": "f1000000-0004-4000-8000-botbon000004",
+        "name": "Produkt gewählt?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          2132,
+          -264
+        ],
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose"
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "g",
+                "leftValue": "={{ $json.gewaehlt }}",
+                "rightValue": "",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                }
+              }
+            ]
+          },
+          "options": {}
+        }
+      },
+      {
+        "id": "f1000000-0005-4000-8000-botbon000005",
+        "name": "Grocy-Produkt korrigieren",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          2352,
+          -364
+        ],
+        "credentials": {
+          "httpCustomAuth": {
+            "id": "sWOsDlhSjQx2Y5EN",
+            "name": "Custom Auth account"
+          }
+        },
+        "parameters": {
+          "method": "PUT",
+          "url": "={{ $('Profil laden').first().json.grocy_url }}/api/objects/products/{{ $json.grocy_id }}",
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpCustomAuth",
+          "sendBody": true,
+          "contentType": "json",
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ name: $json.produkt.name, description: $json.beschreibung }) }}",
+          "options": {
+            "response": {
+              "response": {
+                "neverError": true
+              }
+            }
+          }
+        }
+      },
+      {
+        "id": "f1000000-0006-4000-8000-botbon000006",
+        "name": "Nährwerte korrigieren",
+        "type": "n8n-nodes-base.dataTable",
+        "typeVersion": 1.1,
+        "position": [
+          2572,
+          -364
+        ],
+        "alwaysOutputData": true,
+        "onError": "continueRegularOutput",
+        "parameters": {
+          "resource": "row",
+          "operation": "update",
+          "dataTableId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "kil5ZUYaG9x3uGat",
+            "cachedResultName": "vorrat_produkte"
+          },
+          "filters": {
+            "conditions": [
+              {
+                "keyName": "grocy_product_id",
+                "condition": "eq",
+                "keyValue": "={{ $('Bon-Korrektur vorbereiten').first().json.grocy_id }}"
+              }
+            ]
+          },
+          "columns": {
+            "mappingMode": "defineBelow",
+            "matchingColumns": [],
+            "value": {
+              "name": "={{ $('Bon-Korrektur vorbereiten').first().json.produkt.name }}",
+              "kcal_100": "={{ $('Bon-Korrektur vorbereiten').first().json.produkt.kcal_100 }}",
+              "protein_100": "={{ $('Bon-Korrektur vorbereiten').first().json.produkt.protein_100 }}",
+              "fett_100": "={{ $('Bon-Korrektur vorbereiten').first().json.produkt.fett_100 }}",
+              "kh_100": "={{ $('Bon-Korrektur vorbereiten').first().json.produkt.kh_100 }}",
+              "off_code": "={{ $('Bon-Korrektur vorbereiten').first().json.produkt.ean || '' }}",
+              "off_name": "={{ (($('Bon-Korrektur vorbereiten').first().json.produkt.brand || '') + ' ' + $('Bon-Korrektur vorbereiten').first().json.produkt.name).trim() }}",
+              "quelle": "rewe"
+            },
+            "schema": [
+              {
+                "id": "name",
+                "displayName": "name",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "off_code",
+                "displayName": "off_code",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "off_name",
+                "displayName": "off_name",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "quelle",
+                "displayName": "quelle",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "kcal_100",
+                "displayName": "kcal_100",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "number",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "protein_100",
+                "displayName": "protein_100",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "number",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "fett_100",
+                "displayName": "fett_100",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "number",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "kh_100",
+                "displayName": "kh_100",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "number",
+                "canBeUsedToMatch": true
+              }
+            ]
+          },
+          "options": {}
+        }
+      },
+      {
+        "id": "f1000000-0007-4000-8000-botbon000007",
+        "name": "Barcode bekannt? (Bon)",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          2792,
+          -364
+        ],
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose"
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "e",
+                "leftValue": "={{ /^\\d{8,14}$/.test(String($('Bon-Korrektur vorbereiten').first().json.produkt.ean || '')) }}",
+                "rightValue": "",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                }
+              }
+            ]
+          },
+          "options": {}
+        }
+      },
+      {
+        "id": "f1000000-0008-4000-8000-botbon000008",
+        "name": "Barcode zuordnen (Bon)",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          3012,
+          -464
+        ],
+        "credentials": {
+          "httpCustomAuth": {
+            "id": "sWOsDlhSjQx2Y5EN",
+            "name": "Custom Auth account"
+          }
+        },
+        "parameters": {
+          "method": "POST",
+          "url": "={{ $('Profil laden').first().json.grocy_url }}/api/objects/product_barcodes",
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpCustomAuth",
+          "sendBody": true,
+          "contentType": "json",
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ product_id: $('Bon-Korrektur vorbereiten').first().json.grocy_id, barcode: String($('Bon-Korrektur vorbereiten').first().json.produkt.ean), note: 'REWE ' + $('Bon-Korrektur vorbereiten').first().json.produkt.rewe_product_id }) }}",
+          "options": {
+            "response": {
+              "response": {
+                "neverError": true
+              }
+            }
+          }
+        }
+      },
+      {
+        "id": "f1000000-0009-4000-8000-botbon000009",
+        "name": "Bon-Antwort melden",
+        "type": "n8n-nodes-base.telegram",
+        "typeVersion": 1.2,
+        "position": [
+          3232,
+          -264
+        ],
+        "credentials": {
+          "telegramApi": {
+            "id": "R0Ye0fbcmRICFU8r",
+            "name": "Telegram account"
+          }
+        },
+        "parameters": {
+          "resource": "message",
+          "operation": "sendMessage",
+          "chatId": "={{ $('Bon-Korrektur vorbereiten').first().json.chat_id }}",
+          "text": "={{ $('Bon-Korrektur vorbereiten').first().json.text }}",
+          "additionalFields": {
+            "appendAttribution": false,
+            "parse_mode": "HTML"
+          }
+        }
+      },
+      {
+        "id": "f1000000-0010-4000-8000-botbon000010",
+        "name": "REWE-Nährwerte vorhanden?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          2462,
+          -204
+        ],
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose"
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "n",
+                "leftValue": "={{ $('Bon-Korrektur vorbereiten').first().json.produkt.kcal_100 != null }}",
+                "rightValue": "",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                }
+              }
+            ]
+          },
+          "options": {}
         }
       }
     ],
@@ -1392,6 +2193,13 @@
           [
             {
               "node": "Hilfe senden",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Button bestätigen (Bon)",
               "type": "main",
               "index": 0
             }
@@ -1657,28 +2465,6 @@
           ]
         ]
       },
-      "grocy_verbrauchen": {
-        "ai_tool": [
-          [
-            {
-              "node": "Vorrats-Assistent",
-              "type": "ai_tool",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "grocy_einbuchen": {
-        "ai_tool": [
-          [
-            {
-              "node": "Vorrats-Assistent",
-              "type": "ai_tool",
-              "index": 0
-            }
-          ]
-        ]
-      },
       "grocy_produkt_suchen": {
         "ai_tool": [
           [
@@ -1755,11 +2541,198 @@
             }
           ]
         ]
+      },
+      "grocy_bestand_hinzufuegen": {
+        "ai_tool": [
+          [
+            {
+              "node": "Vorrats-Assistent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "grocy_bestand_verbrauchen": {
+        "ai_tool": [
+          [
+            {
+              "node": "Vorrats-Assistent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "grocy_produkt_anlegen": {
+        "ai_tool": [
+          [
+            {
+              "node": "Vorrats-Assistent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "grocy_barcode_zuordnen": {
+        "ai_tool": [
+          [
+            {
+              "node": "Vorrats-Assistent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "naehrwerte_merken": {
+        "ai_tool": [
+          [
+            {
+              "node": "Vorrats-Assistent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "rewe_produkt_suchen": {
+        "ai_tool": [
+          [
+            {
+              "node": "Vorrats-Assistent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Button bestätigen (Bon)": {
+        "main": [
+          [
+            {
+              "node": "Bon-Antwort speichern",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Bon-Antwort speichern": {
+        "main": [
+          [
+            {
+              "node": "Bon-Korrektur vorbereiten",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Bon-Korrektur vorbereiten": {
+        "main": [
+          [
+            {
+              "node": "Produkt gewählt?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Produkt gewählt?": {
+        "main": [
+          [
+            {
+              "node": "Grocy-Produkt korrigieren",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Bon-Antwort melden",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Grocy-Produkt korrigieren": {
+        "main": [
+          [
+            {
+              "node": "REWE-Nährwerte vorhanden?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "REWE-Nährwerte vorhanden?": {
+        "main": [
+          [
+            {
+              "node": "Nährwerte korrigieren",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Barcode bekannt? (Bon)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Nährwerte korrigieren": {
+        "main": [
+          [
+            {
+              "node": "Barcode bekannt? (Bon)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Barcode bekannt? (Bon)": {
+        "main": [
+          [
+            {
+              "node": "Barcode zuordnen (Bon)",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Bon-Antwort melden",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Barcode zuordnen (Bon)": {
+        "main": [
+          [
+            {
+              "node": "Bon-Antwort melden",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
       }
     },
     "settings": {
       "executionOrder": "v1",
-      "availableInMCP": true
+      "availableInMCP": true,
+      "errorWorkflow": "VorratFehler0001"
     },
     "staticData": null,
     "meta": {
@@ -1840,10 +2813,10 @@
       }
     ],
     "pinData": null,
-    "versionId": "e4f347cb-abc4-40d8-bb40-204cd8ea5a25",
-    "activeVersionId": null,
-    "versionCounter": 1,
-    "triggerCount": 0,
+    "versionId": "5083144c-d90e-4f87-a305-907663844520",
+    "activeVersionId": "5083144c-d90e-4f87-a305-907663844520",
+    "versionCounter": 8,
+    "triggerCount": 1,
     "sourceWorkflowId": null,
     "tags": [],
     "shared": [

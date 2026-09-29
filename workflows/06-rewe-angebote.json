@@ -1,0 +1,221 @@
+[
+  {
+    "updatedAt": "2026-09-28T17:49:21.000Z",
+    "createdAt": "2026-09-27T21:16:45.460Z",
+    "id": "VorratReweAngeb1",
+    "name": "Vorrat · REWE-Angebote (wöchentlich)",
+    "description": null,
+    "active": true,
+    "isArchived": false,
+    "nodes": [
+      {
+        "id": "a0000000-0001-4000-8000-reweangebot01",
+        "name": "Montag 6 Uhr",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1.2,
+        "position": [
+          0,
+          0
+        ],
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "weeks",
+                "weeksInterval": 1,
+                "triggerAtDay": [
+                  1
+                ],
+                "triggerAtHour": 6,
+                "triggerAtMinute": 0
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "a0000000-0006-4000-8000-reweangebot06",
+        "name": "Manuell starten",
+        "type": "n8n-nodes-base.manualTrigger",
+        "typeVersion": 1,
+        "position": [
+          0,
+          180
+        ],
+        "parameters": {}
+      },
+      {
+        "id": "a0000000-0002-4000-8000-reweangebot02",
+        "name": "Angebote holen",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          220,
+          0
+        ],
+        "parameters": {
+          "url": "http://rewe-service:8000/discounts",
+          "options": {
+            "timeout": 120000
+          }
+        }
+      },
+      {
+        "id": "a0000000-0003-4000-8000-reweangebot03",
+        "name": "Alte Angebote entfernen",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.6,
+        "position": [
+          440,
+          0
+        ],
+        "executeOnce": true,
+        "credentials": {
+          "postgres": {
+            "id": "RewePostgres0001",
+            "name": "REWE Postgres"
+          }
+        },
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "UPDATE rewe_products SET angebotspreis = NULL, angebot_bis = NULL WHERE angebotspreis IS NOT NULL OR angebot_bis IS NOT NULL;",
+          "options": {}
+        }
+      },
+      {
+        "id": "a0000000-0004-4000-8000-reweangebot04",
+        "name": "Angebote speichern",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.6,
+        "position": [
+          660,
+          0
+        ],
+        "executeOnce": true,
+        "credentials": {
+          "postgres": {
+            "id": "RewePostgres0001",
+            "name": "REWE Postgres"
+          }
+        },
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "WITH neu AS (\n  UPDATE rewe_products p SET angebotspreis = o.angebotspreis, angebot_bis = o.angebot_bis\n  FROM jsonb_to_recordset($1::jsonb) AS o(rewe_product_id text, angebotspreis numeric, angebot_bis date)\n  WHERE p.rewe_product_id = o.rewe_product_id\n  RETURNING p.rewe_product_id\n)\nSELECT count(*) AS zugeordnet, jsonb_array_length($1::jsonb) AS angebote FROM neu;",
+          "options": {
+            "queryReplacement": "={{ [ JSON.stringify($('Angebote holen').first().json.angebote || []) ] }}"
+          }
+        }
+      },
+      {
+        "id": "a0000000-0005-4000-8000-reweangebot05",
+        "name": "Notiz",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          0,
+          -260
+        ],
+        "parameters": {
+          "width": 640,
+          "height": 220,
+          "color": 4,
+          "content": "## REWE-Angebote\nHolt montags die Angebote des Marktes vom rewe-service (`GET /discounts`) und schreibt sie als `angebotspreis` / `angebot_bis` an die Produkte in der REWE-Datenbank (Zuordnung: Angebots-`nan` = `rewe_product_id`). Angebote ohne Produkt in der Tabelle werden ignoriert."
+        }
+      }
+    ],
+    "connections": {
+      "Montag 6 Uhr": {
+        "main": [
+          [
+            {
+              "node": "Angebote holen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Angebote holen": {
+        "main": [
+          [
+            {
+              "node": "Alte Angebote entfernen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Alte Angebote entfernen": {
+        "main": [
+          [
+            {
+              "node": "Angebote speichern",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Manuell starten": {
+        "main": [
+          [
+            {
+              "node": "Angebote holen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1",
+      "timezone": "Europe/Berlin",
+      "errorWorkflow": "VorratFehler0001"
+    },
+    "staticData": {
+      "node:Montag 6 Uhr": {
+        "recurrenceRules": [
+          null
+        ],
+        "recurrenceRuleSignatures": [
+          null
+        ]
+      }
+    },
+    "meta": null,
+    "nodeGroups": [],
+    "pinData": null,
+    "versionId": "48058a58-b748-4423-aa4f-745ca95abf51",
+    "activeVersionId": "48058a58-b748-4423-aa4f-745ca95abf51",
+    "versionCounter": 2,
+    "triggerCount": 1,
+    "sourceWorkflowId": null,
+    "tags": [],
+    "shared": [
+      {
+        "updatedAt": "2026-09-27T21:16:45.466Z",
+        "createdAt": "2026-09-27T21:16:45.466Z",
+        "role": "workflow:owner",
+        "workflowId": "VorratReweAngeb1",
+        "projectId": "nzlXKBBRrLp3C73r",
+        "project": {
+          "updatedAt": "2026-09-27T10:46:36.945Z",
+          "createdAt": "2026-09-27T10:43:38.721Z",
+          "id": "nzlXKBBRrLp3C73r",
+          "name": "Julian Krause <cjuliankrause@icloud.com>",
+          "type": "personal",
+          "icon": null,
+          "description": null,
+          "customTelemetryTags": [],
+          "creatorId": "d119e51b-5188-40f3-82ab-3c4e7b4f489e"
+        }
+      }
+    ],
+    "versionMetadata": {
+      "name": null,
+      "description": null
+    }
+  }
+]

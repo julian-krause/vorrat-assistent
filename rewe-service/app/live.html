@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>REWE-Crawl live</title>
+<style>
+  :root {
+    --bg: #f6f5f2; --panel: #ffffff; --text: #1d1d1b; --muted: #6b6a66; --line: #e4e2dc;
+    --accent: #cc071e; --ok: #1f7a3f; --warn: #b26a00; --bar: #efece6;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #141413; --panel: #1f1e1c; --text: #f2f0eb; --muted: #a09e97; --line: #33322f;
+            --accent: #ff4d5e; --ok: #5cc486; --warn: #f0a93b; --bar: #2a2926; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 1100px; margin: 0 auto; padding: 24px 16px 48px; }
+  header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 20px; }
+  h1 { font-size: 22px; margin: 0; }
+  h2 { font-size: 14px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 12px; font-weight: 600; }
+  .status { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; }
+  .punkt { width: 10px; height: 10px; border-radius: 50%; background: var(--muted); }
+  .laeuft .punkt { background: var(--ok); animation: puls 1.4s infinite; }
+  @keyframes puls { 50% { opacity: .35; } }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 18px; margin-bottom: 16px; }
+  .fortschritt { height: 14px; background: var(--bar); border-radius: 7px; overflow: hidden; margin: 10px 0 8px; }
+  .fortschritt > div { height: 100%; width: 0; background: var(--accent); transition: width .6s ease; }
+  .zeile { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; color: var(--muted); }
+  .kacheln { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+  .kachel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px; }
+  .kachel b { display: block; font-size: 26px; font-variant-numeric: tabular-nums; }
+  .kachel span { color: var(--muted); font-size: 13px; }
+  .zwei { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 760px) { .zwei { grid-template-columns: 1fr; } }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 6px 4px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; }
+  td.z, th.z { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .klein { color: var(--muted); font-size: 12px; }
+  .log { font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; max-height: 220px; overflow: auto; }
+  .warn { color: var(--warn); } .error { color: var(--accent); }
+  .leer { color: var(--muted); }
+  .tabelle { overflow-x: auto; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>REWE-Crawl · Münster Nord</h1>
+    <div id="status" class="status"><i class="punkt"></i><span>lädt …</span></div>
+  </header>
+
+  <section class="panel">
+    <h2 id="phase-titel">Fortschritt</h2>
+    <div class="fortschritt"><div id="balken"></div></div>
+    <div class="zeile"><span id="fortschritt-text">–</span><span id="eta">–</span></div>
+  </section>
+
+  <section class="kacheln" style="margin-bottom:16px">
+    <div class="kachel"><b id="k-produkte">–</b><span>Produkte</span></div>
+    <div class="kachel"><b id="k-details">–</b><span>mit Details</span></div>
+    <div class="kachel"><b id="k-naehr">–</b><span>mit Nährwerten</span></div>
+    <div class="kachel"><b id="k-ean">–</b><span>mit Barcode</span></div>
+    <div class="kachel"><b id="k-angebot">–</b><span>mit Angebot</span></div>
+    <div class="kachel"><b id="k-fehler">–</b><span>Fehler</span></div>
+  </section>
+
+  <div class="zwei">
+    <section class="panel">
+      <h2>Zuletzt verarbeitet</h2>
+      <div class="tabelle"><table>
+        <thead><tr><th>Produkt</th><th class="z">Preis</th><th class="z">kcal</th><th class="z">Protein</th></tr></thead>
+        <tbody id="zuletzt"></tbody>
+      </table></div>
+    </section>
+    <section class="panel">
+      <h2>Kategorien</h2>
+      <div class="tabelle"><table>
+        <thead><tr><th>Kategorie</th><th class="z">Produkte</th><th class="z">Details</th><th class="z">Nährwerte</th></tr></thead>
+        <tbody id="kategorien"></tbody>
+      </table></div>
+    </section>
+  </div>
+
+  <section class="panel">
+    <h2>Protokoll</h2>
+    <div id="log" class="log"></div>
+  </section>
+  <p class="klein">Aktualisiert sich alle 3 Sekunden · <span id="stand">–</span></p>
+</main>
+<script>
+const zahl = n => (n ?? 0).toLocaleString('de-DE');
+const euro = n => n == null ? '–' : Number(n).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const zeit = iso => iso ? new Date(iso).toLocaleTimeString('de-DE') : '–';
+const groesse = (w, e) => w == null ? '' : `${Number(w).toLocaleString('de-DE')} ${e === 'Stück' ? 'Stk' : e}`;
+
+async function laden() {
+  try {
+    const [st, sx] = await Promise.all([fetch('crawl/status').then(r => r.json()), fetch('stats').then(r => r.json())]);
+    const lauf = st.letzter_lauf || {};
+    const stats = lauf.stats || {};
+    const el = document.getElementById('status');
+    el.className = 'status' + (st.laeuft ? ' laeuft' : '');
+    el.querySelector('span').textContent = st.laeuft ? `läuft · Lauf ${lauf.id}` : `${lauf.status || 'kein Lauf'}${lauf.ende ? ' · ' + new Date(lauf.ende).toLocaleString('de-DE') : ''}`;
+
+    let anteil = 0, text = '–', eta = '';
+    if (lauf.phase === 'liste') {
+      anteil = lauf.kategorien ? (lauf.kategorie / lauf.kategorien) : 0;
+      document.getElementById('phase-titel').textContent = 'Schritt 1 von 2 · Produktlisten';
+      text = `Kategorie ${Math.min(lauf.kategorie + 1, lauf.kategorien)} von ${lauf.kategorien}, Seite ${lauf.seite}`;
+    } else {
+      const fertig = sx.mit_details, gesamt = sx.mit_details + sx.details_offen;
+      anteil = gesamt ? fertig / gesamt : 1;
+      document.getElementById('phase-titel').textContent = 'Schritt 2 von 2 · Details (Marke, Nährwerte)';
+      text = `${zahl(fertig)} von ${zahl(gesamt)} Produkten`;
+      if (st.laeuft && sx.details_pro_minute > 0) {
+        const min = sx.details_offen / sx.details_pro_minute;
+        const ende = new Date(Date.now() + min * 60000);
+        eta = `${sx.details_pro_minute.toLocaleString('de-DE')} / Minute · fertig ca. ${ende.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} Uhr`;
+      }
+    }
+    if (lauf.status === 'fertig') { anteil = 1; eta = 'fertig'; }
+    document.getElementById('balken').style.width = (anteil * 100).toFixed(1) + '%';
+    document.getElementById('fortschritt-text').textContent = `${text} · ${(anteil * 100).toFixed(1).replace('.', ',')} %`;
+    document.getElementById('eta').textContent = eta;
+
+    document.getElementById('k-produkte').textContent = zahl(sx.produkte);
+    document.getElementById('k-details').textContent = zahl(sx.mit_details);
+    document.getElementById('k-naehr').textContent = zahl(sx.mit_naehrwerten);
+    document.getElementById('k-ean').textContent = zahl(sx.mit_ean);
+    document.getElementById('k-angebot').textContent = zahl(sx.mit_angebot);
+    document.getElementById('k-fehler').textContent = zahl(stats.fehler);
+
+    document.getElementById('zuletzt').innerHTML = sx.zuletzt_details.map(p => `<tr>
+        <td>${esc(p.name)}<div class="klein">${esc(p.marke || '')}${p.ean ? ' · EAN ' + esc(p.ean) : ''} · ${zeit(p.zeit)}</div></td>
+        <td class="z">${euro(p.preis)}<div class="klein">${groesse(p.groesse, p.einheit)}</div></td>
+        <td class="z">${p.kcal == null ? '<span class="leer">–</span>' : Math.round(p.kcal)}</td>
+        <td class="z">${p.protein == null ? '<span class="leer">–</span>' : Number(p.protein).toLocaleString('de-DE') + ' g'}</td></tr>`).join('')
+      || '<tr><td colspan="4" class="leer">noch nichts</td></tr>';
+
+    document.getElementById('kategorien').innerHTML = sx.kategorien.map(k => `<tr>
+        <td>${esc(k.name || 'ohne')}</td><td class="z">${zahl(k.produkte)}</td>
+        <td class="z">${zahl(k.details)}</td><td class="z">${zahl(k.naehrwerte)}</td></tr>`).join('');
+
+    document.getElementById('log').innerHTML = (st.log || []).map(e =>
+      `<div class="${esc(e.level)}">${zeit(e.zeit)} ${esc(e.level)} · ${esc(e.text)}${e.daten ? ' · ' + esc(JSON.stringify(e.daten)) : ''}</div>`).join('')
+      || '<span class="leer">keine Einträge</span>';
+    document.getElementById('stand').textContent = 'Stand ' + new Date().toLocaleTimeString('de-DE');
+  } catch (e) {
+    document.getElementById('stand').textContent = 'Verbindung unterbrochen, versuche erneut …';
+  }
+}
+laden();
+setInterval(laden, 3000);
+</script>
+</body>
+</html>

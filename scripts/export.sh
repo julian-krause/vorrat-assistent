@@ -9,6 +9,9 @@ WORKFLOWS=(
   "2dBOwb9KJDnwi1Id:02-planer"
   "JStsSgy75x6xLQzD:03-telegram-bot"
   "Zo6OQr9lp55H9cjS:04-mhd-waechter"
+  "VorratFehler0001:05-fehlermeldung"
+  "VorratReweAngeb1:06-rewe-angebote"
+  "VorratReweCrawl1:07-rewe-crawl"
 )
 mkdir -p workflows
 for pair in "${WORKFLOWS[@]}"; do

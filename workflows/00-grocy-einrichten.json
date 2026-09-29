@@ -103,10 +103,16 @@
           "method": "GET",
           "url": "={{ $('Einstellungen').first().json.grocy_url }}/api/system/info",
           "authentication": "genericCredentialType",
-          "genericAuthType": "httpTemplatedCustomAuth",
+          "genericAuthType": "httpCustomAuth",
           "options": {}
         },
-        "executeOnce": true
+        "executeOnce": true,
+        "credentials": {
+          "httpCustomAuth": {
+            "id": "sWOsDlhSjQx2Y5EN",
+            "name": "Custom Auth account"
+          }
+        }
       },
       {
         "id": "3cc9f893-98ae-4487-943c-952e6b4e525d",
@@ -121,11 +127,17 @@
           "method": "GET",
           "url": "={{ $('Einstellungen').first().json.grocy_url }}/api/objects/quantity_units",
           "authentication": "genericCredentialType",
-          "genericAuthType": "httpTemplatedCustomAuth",
+          "genericAuthType": "httpCustomAuth",
           "options": {}
         },
         "executeOnce": true,
-        "alwaysOutputData": true
+        "alwaysOutputData": true,
+        "credentials": {
+          "httpCustomAuth": {
+            "id": "sWOsDlhSjQx2Y5EN",
+            "name": "Custom Auth account"
+          }
+        }
       },
       {
         "id": "c7a62612-f455-4012-b529-c1696925781a",
@@ -140,11 +152,17 @@
           "method": "GET",
           "url": "={{ $('Einstellungen').first().json.grocy_url }}/api/objects/locations",
           "authentication": "genericCredentialType",
-          "genericAuthType": "httpTemplatedCustomAuth",
+          "genericAuthType": "httpCustomAuth",
           "options": {}
         },
         "executeOnce": true,
-        "alwaysOutputData": true
+        "alwaysOutputData": true,
+        "credentials": {
+          "httpCustomAuth": {
+            "id": "sWOsDlhSjQx2Y5EN",
+            "name": "Custom Auth account"
+          }
+        }
       },
       {
         "id": "708f96e9-c8a7-476d-96fc-c339ee1625ce",
@@ -174,12 +192,18 @@
           "method": "POST",
           "url": "={{ $('Einstellungen').first().json.grocy_url }}/api/objects/{{ $json.endpoint }}",
           "authentication": "genericCredentialType",
-          "genericAuthType": "httpTemplatedCustomAuth",
+          "genericAuthType": "httpCustomAuth",
           "sendBody": true,
           "contentType": "json",
           "specifyBody": "json",
           "jsonBody": "={{ JSON.stringify($json.body) }}",
           "options": {}
+        },
+        "credentials": {
+          "httpCustomAuth": {
+            "id": "sWOsDlhSjQx2Y5EN",
+            "name": "Custom Auth account"
+          }
         }
       },
       {
@@ -302,9 +326,9 @@
       }
     ],
     "pinData": null,
-    "versionId": "1fab5fb1-f78d-46af-90f0-e4f18763e246",
+    "versionId": "94a13583-da88-4e61-953d-7a5c5b0da36b",
     "activeVersionId": null,
-    "versionCounter": 1,
+    "versionCounter": 2,
     "triggerCount": 0,
     "sourceWorkflowId": null,
     "tags": [],

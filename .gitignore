@@ -2,3 +2,11 @@
 .env
 docker/grocy-data/
 *.local.json
+# REWE-Dienst: Zertifikate aus der APK und Zugangsdaten niemals committen
+docker/rewe-certs/
+docker/rewe.env
+*.pfx
+*.pem
+*.key
+__pycache__/
+.pytest_cache/

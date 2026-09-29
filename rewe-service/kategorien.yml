@@ -1,0 +1,26 @@
+# Lebensmittelkategorien für den monatlichen REWE-Crawl (Markt 1940430, Catharina-Müller-Str., Münster).
+# Ohne Süßes, Eis, Pizza, Kuchen, Softdrinks, Alkohol und Tabak.
+#
+# name:    eigener Name, landet in rewe_products.category
+# slugs:   REWE-Kategorien (Unterkategorien sind im Slug der Oberkategorie enthalten)
+# treffer: alternativ Teile des Kategorienamens im Shop (ganze Wörter, Groß-/Kleinschreibung egal)
+#
+# Die echten Kategorien und Slugs des Marktes zeigt: GET http://rewe-service:8000/categories
+# Die Datei ist als Volume eingebunden und wird bei jedem Crawl neu gelesen (kein Neubau nötig).
+kategorien:
+  - name: Obst & Gemüse
+    slugs: [obst-gemuese]
+  - name: Fleisch & Fisch
+    slugs: [fleisch, fisch-meeresfruechte, pflanzliche-fleischalternativen]
+  - name: Wurst & Aufschnitt
+    slugs: [wurst-aufschnitt]
+  - name: Milchprodukte & Eier
+    slugs: [kaese-eier-molkerei]
+  - name: Brot & Backwaren
+    slugs: [brot-backwaren, toast-sandwichbrot, knaeckebrot-zwieback-reiswaffeln, burgerbroetchen-wraps-pita, cerealien-muesli]
+  - name: Grundnahrungsmittel
+    slugs: [nudeln, reis, getreide, kartoffelprodukte, getrocknete-huelsenfruechte, gemuesekonserven, fischkonserven]
+  - name: Tiefkühl
+    slugs: [tiefkuehl-gemuese, tiefkuehl-fisch, tiefkuehl-fleisch, tiefkuehl-obst, tiefkuehl-kartoffelprodukte, tiefkuehl-kraeuter]
+  - name: Getränke
+    slugs: [wasser, saefte-nektare-smoothies, getraenke-auf-milchbasis]

@@ -1,0 +1,168 @@
+[
+  {
+    "updatedAt": "2026-09-27T17:22:54.854Z",
+    "createdAt": "2026-09-27T17:22:54.854Z",
+    "id": "VorratFehler0001",
+    "name": "Vorrat · Fehlermeldung (Telegram)",
+    "description": null,
+    "active": false,
+    "isArchived": false,
+    "nodes": [
+      {
+        "id": "f0e1d2c3-0001-4a5b-9c6d-fehler000001",
+        "name": "Fehler aufgetreten",
+        "type": "n8n-nodes-base.errorTrigger",
+        "typeVersion": 1,
+        "position": [
+          0,
+          0
+        ],
+        "parameters": {}
+      },
+      {
+        "id": "f0e1d2c3-0002-4a5b-9c6d-fehler000002",
+        "name": "Profil laden",
+        "type": "n8n-nodes-base.dataTable",
+        "typeVersion": 1.1,
+        "position": [
+          220,
+          0
+        ],
+        "parameters": {
+          "resource": "row",
+          "operation": "get",
+          "dataTableId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "cT54sdECXIGtpqDT",
+            "cachedResultName": "vorrat_profil"
+          },
+          "filters": {
+            "conditions": [
+              {
+                "keyName": "schluessel",
+                "condition": "eq",
+                "keyValue": "main"
+              }
+            ]
+          },
+          "limit": 1
+        }
+      },
+      {
+        "id": "f0e1d2c3-0003-4a5b-9c6d-fehler000003",
+        "name": "Meldung bauen",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          440,
+          0
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "language": "javaScript",
+          "jsCode": "const e = $('Fehler aufgetreten').first().json;\nconst chat_id = String(($('Profil laden').first().json || {}).chat_id || '');\nif (!chat_id) return [];\nconst esc = t => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nconst ex = e.execution || {};\nconst text = '⚠️ <b>' + esc((e.workflow || {}).name || 'Workflow') + '</b> ist fehlgeschlagen'\n  + (ex.lastNodeExecuted ? '\\nSchritt: ' + esc(ex.lastNodeExecuted) : '')\n  + '\\nFehler: ' + esc(String((ex.error || {}).message || 'unbekannt').slice(0, 600))\n  + '\\n\\nEinfach nochmal versuchen, sonst Ausführung ' + esc(ex.id || '?') + ' in n8n ansehen.';\nreturn [{ json: { chat_id, text } }];"
+        }
+      },
+      {
+        "id": "f0e1d2c3-0004-4a5b-9c6d-fehler000004",
+        "name": "Fehler melden",
+        "type": "n8n-nodes-base.telegram",
+        "typeVersion": 1.2,
+        "position": [
+          660,
+          0
+        ],
+        "credentials": {
+          "telegramApi": {
+            "id": "R0Ye0fbcmRICFU8r",
+            "name": "Telegram account"
+          }
+        },
+        "parameters": {
+          "resource": "message",
+          "operation": "sendMessage",
+          "chatId": "={{ $json.chat_id }}",
+          "text": "={{ $json.text }}",
+          "additionalFields": {
+            "appendAttribution": false,
+            "parse_mode": "HTML"
+          }
+        }
+      }
+    ],
+    "connections": {
+      "Fehler aufgetreten": {
+        "main": [
+          [
+            {
+              "node": "Profil laden",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Profil laden": {
+        "main": [
+          [
+            {
+              "node": "Meldung bauen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Meldung bauen": {
+        "main": [
+          [
+            {
+              "node": "Fehler melden",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1",
+      "timezone": "Europe/Berlin"
+    },
+    "staticData": null,
+    "meta": null,
+    "nodeGroups": [],
+    "pinData": null,
+    "versionId": "48bb5010-e2da-456f-81cb-90af28127f3c",
+    "activeVersionId": null,
+    "versionCounter": 1,
+    "triggerCount": 0,
+    "sourceWorkflowId": null,
+    "tags": [],
+    "shared": [
+      {
+        "updatedAt": "2026-09-27T17:22:54.857Z",
+        "createdAt": "2026-09-27T17:22:54.857Z",
+        "role": "workflow:owner",
+        "workflowId": "VorratFehler0001",
+        "projectId": "nzlXKBBRrLp3C73r",
+        "project": {
+          "updatedAt": "2026-09-27T10:46:36.945Z",
+          "createdAt": "2026-09-27T10:43:38.721Z",
+          "id": "nzlXKBBRrLp3C73r",
+          "name": "Julian Krause <cjuliankrause@icloud.com>",
+          "type": "personal",
+          "icon": null,
+          "description": null,
+          "customTelemetryTags": [],
+          "creatorId": "d119e51b-5188-40f3-82ab-3c4e7b4f489e"
+        }
+      }
+    ],
+    "versionMetadata": {
+      "name": null,
+      "description": null
+    }
+  }
+]

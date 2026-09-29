@@ -1,0 +1,56 @@
+# REWE-Dienst (rewerse) + eigene Postgres-Datenbank, im selben Docker-Netz wie n8n und Grocy.
+# Start (auf der VM, im Ordner docker/):
+#   docker compose --env-file rewe.env -f rewe.compose.yml up -d --build
+# n8n erreicht den Dienst unter http://rewe-service:8000 und die Datenbank unter rewe-db:5432.
+# Nach außen wird nichts veröffentlicht; Port 8010 ist nur auf der VM selbst (127.0.0.1) erreichbar.
+services:
+  rewe-db:
+    image: postgres:17-alpine
+    container_name: rewe-db
+    environment:
+      POSTGRES_DB: rewe
+      POSTGRES_USER: rewe
+      POSTGRES_PASSWORD: ${REWE_DB_PASSWORD:?REWE_DB_PASSWORD fehlt in rewe.env}
+    volumes:
+      - rewe-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rewe -d rewe"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - n8n_default
+
+  rewe-service:
+    build: ../rewe-service
+    image: vorrat/rewe-service:latest
+    container_name: rewe-service
+    environment:
+      DATABASE_URL: postgresql://rewe:${REWE_DB_PASSWORD}@rewe-db:5432/rewe
+      REWE_DB_N8N_PASSWORD: ${REWE_DB_N8N_PASSWORD:?REWE_DB_N8N_PASSWORD fehlt in rewe.env}
+      REWE_MARKET_ID: ${REWE_MARKET_ID:-}
+      REWE_ANGEBOTE_MARKET_ID: ${REWE_ANGEBOTE_MARKET_ID:-}
+      REWE_CERT_PATH: /certs/rewe.pem
+      REWE_KEY_PATH: /certs/rewe.key
+      REWE_KATEGORIEN_DATEI: /config/kategorien.yml
+      TZ: Europe/Berlin
+    # nur lokal auf der VM; die Live-Seite kommt per „tailscale serve“ ins Tailnet (https://vorrat.<tailnet>:8444/)
+    ports:
+      - "127.0.0.1:8010:8000"
+    volumes:
+      - ./rewe-certs:/certs:ro
+      - ../rewe-service/kategorien.yml:/config/kategorien.yml:ro
+    depends_on:
+      rewe-db:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - n8n_default
+
+volumes:
+  rewe-db-data:
+
+networks:
+  n8n_default:
+    external: true

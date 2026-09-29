@@ -1,11 +1,11 @@
 [
   {
-    "updatedAt": "2026-09-27T15:25:31.745Z",
+    "updatedAt": "2026-09-27T17:24:12.000Z",
     "createdAt": "2026-09-27T15:07:50.119Z",
     "id": "Zo6OQr9lp55H9cjS",
     "name": "Vorrat · MHD-Wächter",
     "description": "Täglich 8 Uhr: Grocy-Produkte, die bald ablaufen („Iss das zuerst“), Abgelaufenes mit Buttons und heutige Wochenplan-Mahlzeiten per Telegram.",
-    "active": false,
+    "active": true,
     "isArchived": false,
     "nodes": [
       {
@@ -74,10 +74,16 @@
           "method": "GET",
           "url": "={{ $('Profil laden').first().json.grocy_url }}/api/stock/volatile?due_soon_days=2",
           "authentication": "genericCredentialType",
-          "genericAuthType": "httpTemplatedCustomAuth",
+          "genericAuthType": "httpCustomAuth",
           "options": {}
         },
-        "executeOnce": true
+        "executeOnce": true,
+        "credentials": {
+          "httpCustomAuth": {
+            "id": "sWOsDlhSjQx2Y5EN",
+            "name": "Custom Auth account"
+          }
+        }
       },
       {
         "id": "e5df6211-fbc3-44d0-8204-bc0e1b2cf5b1",
@@ -92,10 +98,16 @@
           "method": "GET",
           "url": "={{ $('Profil laden').first().json.grocy_url }}/api/objects/quantity_units",
           "authentication": "genericCredentialType",
-          "genericAuthType": "httpTemplatedCustomAuth",
+          "genericAuthType": "httpCustomAuth",
           "options": {}
         },
-        "executeOnce": true
+        "executeOnce": true,
+        "credentials": {
+          "httpCustomAuth": {
+            "id": "sWOsDlhSjQx2Y5EN",
+            "name": "Custom Auth account"
+          }
+        }
       },
       {
         "id": "3edceac8-c354-4d46-9054-7bf6273abd63",
@@ -269,7 +281,13 @@
             "parse_mode": "HTML"
           }
         },
-        "webhookId": "16794bd6-4815-4643-8e4e-2c3ac44da990"
+        "webhookId": "16794bd6-4815-4643-8e4e-2c3ac44da990",
+        "credentials": {
+          "telegramApi": {
+            "id": "R0Ye0fbcmRICFU8r",
+            "name": "Telegram account"
+          }
+        }
       },
       {
         "id": "1fe3c656-61ac-4f40-9dd6-2b0a7f9d96fc",
@@ -326,7 +344,13 @@
             "disable_notification": true
           }
         },
-        "webhookId": "7d3905bd-1e4d-46c6-9376-29a10cbefb7b"
+        "webhookId": "7d3905bd-1e4d-46c6-9376-29a10cbefb7b",
+        "credentials": {
+          "telegramApi": {
+            "id": "R0Ye0fbcmRICFU8r",
+            "name": "Telegram account"
+          }
+        }
       },
       {
         "id": "43ed8fa2-1b55-43cb-90bf-0fd3ba3e1e46",
@@ -365,7 +389,13 @@
             "disable_notification": true
           }
         },
-        "webhookId": "2e60102f-1b72-49b4-bec2-801d6cb4d761"
+        "webhookId": "2e60102f-1b72-49b4-bec2-801d6cb4d761",
+        "credentials": {
+          "telegramApi": {
+            "id": "R0Ye0fbcmRICFU8r",
+            "name": "Telegram account"
+          }
+        }
       },
       {
         "id": "c90e4b3d-25cd-45c7-a4f6-defcdd2e9c98",
@@ -478,9 +508,19 @@
     "settings": {
       "executionOrder": "v1",
       "availableInMCP": true,
-      "timezone": "Europe/Berlin"
+      "timezone": "Europe/Berlin",
+      "errorWorkflow": "VorratFehler0001"
     },
-    "staticData": null,
+    "staticData": {
+      "node:Jeden Morgen 8 Uhr": {
+        "recurrenceRules": [
+          null
+        ],
+        "recurrenceRuleSignatures": [
+          null
+        ]
+      }
+    },
     "meta": {
       "aiBuilderAssisted": true,
       "builderVariant": "mcp"
@@ -511,10 +551,10 @@
       }
     ],
     "pinData": null,
-    "versionId": "75e8de8d-f357-49eb-b341-068c9df2779e",
-    "activeVersionId": null,
-    "versionCounter": 2,
-    "triggerCount": 0,
+    "versionId": "6b4cdc8f-c1cb-407d-8883-a55a92c54894",
+    "activeVersionId": "6b4cdc8f-c1cb-407d-8883-a55a92c54894",
+    "versionCounter": 4,
+    "triggerCount": 1,
     "sourceWorkflowId": null,
     "tags": [],
     "shared": [

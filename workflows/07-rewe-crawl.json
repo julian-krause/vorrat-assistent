@@ -1,0 +1,156 @@
+[
+  {
+    "updatedAt": "2026-09-28T17:49:25.000Z",
+    "createdAt": "2026-09-27T21:16:49.689Z",
+    "id": "VorratReweCrawl1",
+    "name": "Vorrat · REWE-Crawl (monatlich)",
+    "description": null,
+    "active": true,
+    "isArchived": false,
+    "nodes": [
+      {
+        "id": "b0000000-0001-4000-8000-rewecrawl0001",
+        "name": "Monatlich am 1. um 2 Uhr",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1.2,
+        "position": [
+          0,
+          0
+        ],
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "months",
+                "monthsInterval": 1,
+                "triggerAtDayOfMonth": 1,
+                "triggerAtHour": 2,
+                "triggerAtMinute": 0
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "b0000000-0004-4000-8000-rewecrawl0004",
+        "name": "Manuell starten",
+        "type": "n8n-nodes-base.manualTrigger",
+        "typeVersion": 1,
+        "position": [
+          0,
+          180
+        ],
+        "parameters": {}
+      },
+      {
+        "id": "b0000000-0002-4000-8000-rewecrawl0002",
+        "name": "Crawl starten",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          220,
+          0
+        ],
+        "parameters": {
+          "method": "POST",
+          "url": "http://rewe-service:8000/crawl",
+          "sendBody": true,
+          "contentType": "json",
+          "specifyBody": "json",
+          "jsonBody": "{}",
+          "options": {
+            "timeout": 60000
+          }
+        }
+      },
+      {
+        "id": "b0000000-0003-4000-8000-rewecrawl0003",
+        "name": "Notiz",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          0,
+          -260
+        ],
+        "parameters": {
+          "width": 640,
+          "height": 220,
+          "color": 4,
+          "content": "## REWE-Crawl\nStartet monatlich den Crawl der Lebensmittelkategorien (`rewe-service/kategorien.yml`) im Hintergrund. Ein abgebrochener Lauf wird automatisch fortgesetzt. Fortschritt: `GET http://rewe-service:8000/crawl/status`.\nMini-Crawl zum Testen: Body `{\"kategorien\": [\"Obst & Gemüse\"], \"max_seiten\": 1, \"max_details\": 5, \"neu\": true}`."
+        }
+      }
+    ],
+    "connections": {
+      "Monatlich am 1. um 2 Uhr": {
+        "main": [
+          [
+            {
+              "node": "Crawl starten",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Manuell starten": {
+        "main": [
+          [
+            {
+              "node": "Crawl starten",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1",
+      "timezone": "Europe/Berlin",
+      "errorWorkflow": "VorratFehler0001"
+    },
+    "staticData": {
+      "node:Monatlich am 1. um 2 Uhr": {
+        "recurrenceRules": [
+          null
+        ],
+        "recurrenceRuleSignatures": [
+          null
+        ]
+      }
+    },
+    "meta": null,
+    "nodeGroups": [],
+    "pinData": null,
+    "versionId": "78627386-cf50-4718-8ab7-6246cf7b6a7c",
+    "activeVersionId": "78627386-cf50-4718-8ab7-6246cf7b6a7c",
+    "versionCounter": 2,
+    "triggerCount": 1,
+    "sourceWorkflowId": null,
+    "tags": [],
+    "shared": [
+      {
+        "updatedAt": "2026-09-27T21:16:49.692Z",
+        "createdAt": "2026-09-27T21:16:49.692Z",
+        "role": "workflow:owner",
+        "workflowId": "VorratReweCrawl1",
+        "projectId": "nzlXKBBRrLp3C73r",
+        "project": {
+          "updatedAt": "2026-09-27T10:46:36.945Z",
+          "createdAt": "2026-09-27T10:43:38.721Z",
+          "id": "nzlXKBBRrLp3C73r",
+          "name": "Julian Krause <cjuliankrause@icloud.com>",
+          "type": "personal",
+          "icon": null,
+          "description": null,
+          "customTelemetryTags": [],
+          "creatorId": "d119e51b-5188-40f3-82ab-3c4e7b4f489e"
+        }
+      }
+    ],
+    "versionMetadata": {
+      "name": null,
+      "description": null
+    }
+  }
+]
