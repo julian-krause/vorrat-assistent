@@ -80,3 +80,33 @@ def test_migration(db):
     assert (b[14]["quelle"], b[14]["kcal_100"], b[14]["rewe_product_id"]) == ("rewe", 589, "2662082")
     assert (b[12]["quelle"], b[12]["rang"], b[12]["gramm_quelle"]) == ("off_barcode", 3, "ki")   # REWE-Tabelle: Open Food Facts
     assert b[13]["rewe_product_id"] is None and b[13]["hinweise"] and b[13]["gramm_pro_stk"] is None
+
+
+def test_etikett_vorschlag(db):
+    with db.verbinden() as con:
+        vorrat.speichern(con, 1, {"name": "Skyr Natur", "naehrwerte": {"kcal": 65, "protein": 11, "fett": 0.2, "kh": 4}, "naehrwert_quelle": "ki"})
+        vorrat.speichern(con, 16, {"name": "Harry 1688 Steinofenbrot 500g"})
+        v = vorrat.vorschlag_anlegen(con, "skyr", {"kcal": 63, "protein": 11, "fett": 0.2, "kh": 3.9, "salz": 0.1})
+        assert v["plausibel"] and v["produkt"]["grocy_product_id"] == 1
+        erg = vorrat.vorschlag_beantworten(con, v["id"], True)
+        assert erg["ok"] and erg["produkt"]["naehrwert_quelle"] == "manuell" and erg["produkt"]["salz_100"] == 0.1
+        assert vorrat.vorschlag_beantworten(con, v["id"], True)["ok"] is False          # nur einmal
+        # unplausibel (kcal pro Portion gelesen): kann nicht übernommen werden
+        v = vorrat.vorschlag_anlegen(con, "Steinofenbrot", {"kcal": 22, "protein": 7.1, "fett": 1.5, "kh": 42})
+        assert not v["plausibel"] and v["produkt"]["grocy_product_id"] == 16
+        assert vorrat.vorschlag_beantworten(con, v["id"], True)["status"] == "verworfen"
+        # gleiche Quelle, Salz fehlt: vorhandenes Salz bleibt
+        vorrat.speichern(con, 1, {"naehrwerte": {"kcal": 64, "protein": 11, "fett": 0.2, "kh": 4.1}, "naehrwert_quelle": "manuell"})
+        assert vorrat.lesen(con, 1)["salz_100"] == 0.1
+
+
+def test_gewogenes_stueck(db):
+    from app import ermitteln
+    with db.verbinden() as con:
+        erg = ermitteln.ermitteln(con, {"grocy_product_id": 17, "name": "Avocado Hass vorgereift 1 Stück", "einheit": "stk",
+                                        "gramm_pro_stk": 142, "gramm_quelle": "manuell", "mit_schale": "ja", "speichern": True})
+        p = erg["produkt"]
+        assert (p["gramm_pro_stk"], p["gramm_quelle"], p["gramm_rang"]) == (95.1, "manuell", 1)
+        erg = ermitteln.ermitteln(con, {"grocy_product_id": 30, "name": "Drachenfrucht", "einheit": "stk",
+                                        "gramm_pro_stk": 300, "gramm_quelle": "manuell", "mit_schale": "ja", "speichern": True})
+        assert "ohne Schale" in erg["gramm_fehler"]

@@ -171,7 +171,12 @@ def ermitteln(con, a: dict) -> dict:
 
     # Stückgewicht (Rangfolge ab Paket 5)
     from . import stueckgewicht
-    gramm = stueckgewicht.bestimmen(con, a)
+    try:
+        gramm = stueckgewicht.bestimmen(con, a)
+    except ValueError as e:
+        gramm = None
+        schritte.append(f"Stückgewicht: {e}")
+        erg["gramm_fehler"] = str(e)
     erg["gramm"] = gramm
 
     if a.get("speichern") and a.get("grocy_product_id"):

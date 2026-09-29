@@ -9,6 +9,7 @@ from __future__ import annotations
 import re
 
 from psycopg.rows import dict_row
+from psycopg.types.json import Jsonb
 
 from . import naehrwerte as nw
 
@@ -97,7 +98,11 @@ def speichern(con, grocy_product_id: int, daten: dict) -> dict:
             status_nw = "schlechter"
         else:
             status_nw = "gespeichert"
+            gleiche_quelle = alt["naehrwert_quelle"] == quelle
             for k, s in _NW_SPALTEN.items():
+                # Zucker/Ballaststoffe/Salz: fehlende Angaben überschreiben bei gleicher Quelle nie vorhandene
+                if werte.get(k) is None and gleiche_quelle and k not in nw.MAKROS:
+                    continue
                 felder[s] = werte.get(k)
             felder.update(naehrwert_quelle=quelle, naehrwert_rang=rang, naehrwert_detail=daten.get("naehrwert_detail"))
 
@@ -156,3 +161,51 @@ def migrieren(con, zeilen: list[dict]) -> list[dict]:
                         "quelle": p["naehrwert_quelle"], "rang": p["naehrwert_rang"], "kcal_100": p["kcal_100"],
                         "gramm_pro_stk": p["gramm_pro_stk"], "gramm_quelle": p["gramm_quelle"], "hinweise": erg["hinweise"]})
     return bericht
+
+
+# --- Etikett-Foto --------------------------------------------------------------------------------------
+
+def produkt_finden(con, text: str) -> list[dict]:
+    """Vorratsprodukte, deren Name zum Text (Bildunterschrift) passt, bester zuerst."""
+    t = " ".join(str(text or "").split())
+    if not t:
+        return []
+    with con.cursor(row_factory=dict_row) as cur:
+        return cur.execute("""
+            SELECT grocy_product_id, name, einheit, naehrwert_quelle, naehrwert_rang, kcal_100,
+                   greatest(word_similarity(lower(%(t)s), lower(name)), word_similarity(lower(name), lower(%(t)s))) AS aehnlich
+            FROM vorrat_naehrwerte
+            WHERE lower(name) LIKE '%%' || lower(%(t)s) || '%%'
+               OR greatest(word_similarity(lower(%(t)s), lower(name)), word_similarity(lower(name), lower(%(t)s))) > 0.45
+            ORDER BY aehnlich DESC LIMIT 5""", {"t": t}).fetchall()
+
+
+def vorschlag_anlegen(con, produkt_text: str, werte: dict, grocy_product_id: int | None = None) -> dict:
+    w = nw.bereinigen(werte)
+    ok, grund = nw.plausibel(w)
+    kandidaten = produkt_finden(con, produkt_text) if grocy_product_id is None else []
+    if grocy_product_id is None and kandidaten and (len(kandidaten) == 1 or kandidaten[0]["aehnlich"] - kandidaten[1]["aehnlich"] > 0.15):
+        grocy_product_id = kandidaten[0]["grocy_product_id"]
+    vid = con.execute("""INSERT INTO naehrwert_vorschlaege (grocy_product_id, produkt_text, werte, plausibel, grund)
+                         VALUES (%s, %s, %s, %s, %s) RETURNING id""",
+                      (grocy_product_id, produkt_text, Jsonb(w), ok, grund)).fetchone()[0]
+    return {"id": vid, "plausibel": ok, "grund": grund, "werte": w,
+            "produkt": lesen(con, grocy_product_id) if grocy_product_id else None, "kandidaten": kandidaten}
+
+
+def vorschlag_beantworten(con, vid: int, annehmen: bool) -> dict:
+    """Bestätigung per Button: speichert die Etikettwerte mit Rang 1 (manuell)."""
+    z = con.execute("SELECT grocy_product_id, werte, plausibel, status FROM naehrwert_vorschlaege WHERE id = %s", (vid,)).fetchone()
+    if not z:
+        return {"ok": False, "fehler": "Vorschlag unbekannt"}
+    gid, werte, ok, status = z
+    if status != "offen":
+        return {"ok": False, "fehler": f"schon {status}"}
+    if not annehmen or not ok or not gid:
+        con.execute("UPDATE naehrwert_vorschlaege SET status = 'verworfen', beantwortet_at = now() WHERE id = %s", (vid,))
+        return {"ok": True, "status": "verworfen"}
+    erg = speichern(con, gid, {"naehrwerte": werte, "naehrwert_quelle": "manuell", "naehrwert_detail": f"Etikett-Foto (Vorschlag {vid})"})
+    con.execute("UPDATE naehrwert_vorschlaege SET status = 'bestaetigt', beantwortet_at = now() WHERE id = %s", (vid,))
+    p = erg["produkt"]
+    return {"ok": erg["naehrwerte"] == "gespeichert", "status": "bestaetigt", "naehrwerte": erg["naehrwerte"], "produkt": p,
+            "hinweise": erg["hinweise"]}

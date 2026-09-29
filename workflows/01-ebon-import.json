@@ -1,6 +1,6 @@
 [
   {
-    "updatedAt": "2026-09-29T13:07:44.000Z",
+    "updatedAt": "2026-09-29T13:48:17.000Z",
     "createdAt": "2026-09-27T15:00:32.007Z",
     "id": "WI7rA3dd4TMM2WVb",
     "name": "Vorrat · eBon-Import (REWE → Grocy)",
@@ -1315,6 +1315,15 @@
                 "display": true,
                 "canBeUsedToMatch": true,
                 "type": "string"
+              },
+              {
+                "id": "mit_schale",
+                "displayName": "mit_schale",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
               }
             ],
             "attemptToConvertTypes": false,
@@ -1784,9 +1793,9 @@
       }
     ],
     "pinData": null,
-    "versionId": "86ed8e17-8442-43df-8688-c2509a0249e7",
-    "activeVersionId": "86ed8e17-8442-43df-8688-c2509a0249e7",
-    "versionCounter": 10,
+    "versionId": "01a9647d-32f5-4499-98b1-bb8ba860fb00",
+    "activeVersionId": "01a9647d-32f5-4499-98b1-bb8ba860fb00",
+    "versionCounter": 11,
     "triggerCount": 1,
     "sourceWorkflowId": null,
     "tags": [],

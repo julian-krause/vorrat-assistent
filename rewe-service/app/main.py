@@ -233,6 +233,33 @@ def stueckgewichte():
     return [dict(zip(("schluessel", "bezeichnung", "gramm_essbar", "anteil_essbar", "quelle"), r)) for r in z]
 
 
+@app.post("/etikett/vorschlag")
+def etikett_vorschlag(produkt_text: str = Body(""), werte: dict = Body(...), grocy_product_id: int | None = Body(None)):
+    """Vom Etikett-Foto gelesene Werte: Plausibilität prüfen, Produkt zuordnen, auf Bestätigung warten."""
+    with db.verbinden() as con:
+        return vorrat.vorschlag_anlegen(con, produkt_text, werte, grocy_product_id)
+
+
+@app.post("/etikett/vorschlag/{vid}")
+def etikett_antwort(vid: int, annehmen: bool = Body(..., embed=True)):
+    """Button-Antwort: annehmen = Rang 1 (manuell) speichern, sonst verwerfen."""
+    with db.verbinden() as con:
+        return vorrat.vorschlag_beantworten(con, vid, annehmen)
+
+
+@app.get("/unsicher")
+def unsicher():
+    """Produkte mit Nährwert-Rang ≥ 5 (BLS/KI) oder Stückgewicht-Rang ≥ 3 (Referenz/KI)."""
+    with db.verbinden() as con:
+        z = con.execute("""
+            SELECT grocy_product_id, name, einheit, naehrwert_quelle, naehrwert_rang, kcal_100, gramm_pro_stk, gramm_quelle, gramm_rang
+            FROM vorrat_naehrwerte
+            WHERE naehrwert_rang IS NULL OR naehrwert_rang >= 5 OR (einheit = 'stk' AND coalesce(gramm_rang, 4) >= 3)
+            ORDER BY name""").fetchall()
+    keys = ("grocy_product_id", "name", "einheit", "naehrwert_quelle", "naehrwert_rang", "kcal_100", "gramm_pro_stk", "gramm_quelle", "gramm_rang")
+    return [dict(zip(keys, r)) for r in z]
+
+
 @app.post("/vorrat/migrieren")
 def vorrat_migrieren(zeilen: list[dict] = Body(..., embed=True)):
     """Einmalige Übernahme aus der n8n-Datentabelle (mit Grocy-Beschreibung für die REWE-ID)."""

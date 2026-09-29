@@ -1,6 +1,6 @@
 [
   {
-    "updatedAt": "2026-09-29T13:24:59.000Z",
+    "updatedAt": "2026-09-29T13:48:13.000Z",
     "createdAt": "2026-09-29T13:07:39.762Z",
     "id": "VorratNaehrwert1",
     "name": "Vorrat · Nährwerte ermitteln",
@@ -80,6 +80,10 @@
               {
                 "name": "bls_suche",
                 "type": "string"
+              },
+              {
+                "name": "mit_schale",
+                "type": "string"
               }
             ]
           }
@@ -97,7 +101,7 @@
         "parameters": {
           "mode": "runOnceForAllItems",
           "language": "javaScript",
-          "jsCode": "// Eingaben -> Anfrage an POST /naehrwerte/ermitteln (mit Speichern in vorrat_produkte)\nconst z = v => (v === null || v === undefined || v === '' || isNaN(Number(v))) ? null : Number(v);\nreturn $input.all().map(i => {\n  const e = i.json;\n  const ki = z(e.kcal_100) !== null ? { kcal: z(e.kcal_100), protein: z(e.protein_100), fett: z(e.fett_100), kh: z(e.kh_100) } : null;\n  return { json: {\n    grocy_product_id: z(e.grocy_product_id), name: e.name || '', marke: e.marke || null, rewe_product_id: e.rewe_product_id ? String(e.rewe_product_id) : null,\n    ean: e.ean ? String(e.ean) : null, einheit: e.einheit || null, kategorie: e.kategorie || null,\n    ki_naehrwerte: ki, werte_quelle: e.werte_quelle === 'manuell' ? 'manuell' : 'ki',\n    gramm_pro_stk: z(e.gramm_pro_stk), gramm_quelle: e.gramm_quelle || 'ki', bls_suche: e.bls_suche || null, speichern: true,\n  } };\n});"
+          "jsCode": "// Eingaben -> Anfrage an POST /naehrwerte/ermitteln (mit Speichern in vorrat_produkte)\nconst z = v => (v === null || v === undefined || v === '' || isNaN(Number(v))) ? null : Number(v);\nreturn $input.all().map(i => {\n  const e = i.json;\n  const ki = z(e.kcal_100) > 0 ? { kcal: z(e.kcal_100), protein: z(e.protein_100), fett: z(e.fett_100), kh: z(e.kh_100) } : null;\n  return { json: {\n    grocy_product_id: z(e.grocy_product_id), name: e.name || '', marke: e.marke || null, rewe_product_id: e.rewe_product_id ? String(e.rewe_product_id) : null,\n    ean: e.ean ? String(e.ean) : null, einheit: e.einheit || null, kategorie: e.kategorie || null,\n    ki_naehrwerte: ki, werte_quelle: e.werte_quelle === 'manuell' ? 'manuell' : 'ki',\n    gramm_pro_stk: z(e.gramm_pro_stk), gramm_quelle: e.gramm_quelle || 'ki', mit_schale: e.mit_schale || null, bls_suche: e.bls_suche || null, speichern: true,\n  } };\n});"
         }
       },
       {
@@ -224,7 +228,7 @@
         "parameters": {
           "mode": "runOnceForAllItems",
           "language": "javaScript",
-          "jsCode": "// Ergebnis je Produkt (für eBon-Import und Bot): beste Quelle, Rang, Werte, Grocy-kcal\nreturn $('Endergebnis').all().map(i => {\n  const r = i.json || {};\n  const p = r.produkt || {};\n  return { json: {\n    grocy_product_id: p.grocy_product_id ?? null, name: p.name ?? null, quelle: p.naehrwert_quelle ?? r.quelle ?? null,\n    rang: p.naehrwert_rang ?? r.rang ?? null, kcal_100: p.kcal_100 ?? null, protein_100: p.protein_100 ?? null,\n    fett_100: p.fett_100 ?? null, kh_100: p.kh_100 ?? null, gramm_pro_stk: p.gramm_pro_stk ?? null, gramm_quelle: p.gramm_quelle ?? null,\n    geschaetzt: p.geschaetzt ?? true, kcal_pro_einheit: p.kcal_pro_einheit ?? null, rewe_product_id: p.rewe_product_id ?? null,\n    naehrwerte_status: r.naehrwerte_status ?? null, hinweise: r.hinweise || [], schritte: r.schritte || [],\n    fehler: r.error ? (r.error.message || String(r.error)) : (r.detail && !r.quelle && !r.produkt ? r.detail : null),\n  } };\n});"
+          "jsCode": "// Ergebnis je Produkt (für eBon-Import und Bot): beste Quelle, Rang, Werte, Grocy-kcal\nreturn $('Endergebnis').all().map(i => {\n  const r = i.json || {};\n  const p = r.produkt || {};\n  return { json: {\n    grocy_product_id: p.grocy_product_id ?? null, name: p.name ?? null, quelle: p.naehrwert_quelle ?? r.quelle ?? null,\n    rang: p.naehrwert_rang ?? r.rang ?? null, kcal_100: p.kcal_100 ?? null, protein_100: p.protein_100 ?? null,\n    fett_100: p.fett_100 ?? null, kh_100: p.kh_100 ?? null, gramm_pro_stk: p.gramm_pro_stk ?? null, gramm_quelle: p.gramm_quelle ?? null,\n    geschaetzt: p.geschaetzt ?? true, kcal_pro_einheit: p.kcal_pro_einheit ?? null, rewe_product_id: p.rewe_product_id ?? null,\n    naehrwerte_status: r.naehrwerte_status ?? null, gramm_status: r.gramm_status ?? null, gramm_fehler: r.gramm_fehler ?? null, hinweise: r.hinweise || [], schritte: r.schritte || [],\n    fehler: r.error ? (r.error.message || String(r.error)) : (r.detail && !r.quelle && !r.produkt ? r.detail : null),\n  } };\n});"
         }
       },
       {
@@ -561,9 +565,9 @@
     "meta": null,
     "nodeGroups": [],
     "pinData": null,
-    "versionId": "2b9a0d58-cde4-4b87-95d3-cebc3ec69aa1",
-    "activeVersionId": "2b9a0d58-cde4-4b87-95d3-cebc3ec69aa1",
-    "versionCounter": 2,
+    "versionId": "41c525a3-e19e-463a-bdd1-8274bf52584b",
+    "activeVersionId": "41c525a3-e19e-463a-bdd1-8274bf52584b",
+    "versionCounter": 3,
     "triggerCount": 0,
     "sourceWorkflowId": null,
     "tags": [],

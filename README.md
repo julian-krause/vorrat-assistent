@@ -174,6 +174,14 @@ In n8n kapselt der Unter-Workflow **„Vorrat · Nährwerte ermitteln“** (10) 
 
 **Nachtjob** (09, 03:30): OFF-Warteschlange, Stückgewichte aus der Referenz, Produkte mit geschätzten Werten (Rang ≥ 5 oder KI-Stückgewicht) neu ermitteln, Grocy-kcal aus der View angleichen (auch nach dem Crawl), Namen/Einheit an Grocy angleichen, gesammelte `meldungen` per Telegram.
 
+### Sichtbarkeit im Bot
+
+- **≈** markiert geschätzte Werte (Nährwert-Rang ≥ 5 oder KI-Stückgewicht): im Bestand (`/inventar`), in Rezepten und im Wochenplan (Rezept/Tag enthält geschätzte Zutaten), in Auswertungen (der Agent nennt immer den Anteil geschätzter kcal).
+- **`/unsicher`** listet Produkte mit Nährwert-Rang ≥ 5 oder Stückgewicht-Rang ≥ 3 (`GET /unsicher` liefert dasselbe).
+- **Etikett-Foto:** Foto der Nährwerttabelle mit dem Produktnamen als Bildunterschrift schicken. MiniMax-M3 liest die Werte pro 100 g, der Dienst prüft die Plausibilität und ordnet das Produkt zu (`POST /etikett/vorschlag`), übernommen wird erst per Button „✅ Übernehmen“ (`POST /etikett/vorschlag/{id}`), dann mit Rang 1; Grocy-kcal wird neu gesetzt.
+- **Stückgewicht per Nachricht** („Avocado wiegt 142 g“): Der Bot fragt, ob mit oder ohne Schale/Kern gewogen wurde, und speichert den essbaren Anteil mit Rang 1 (mit Schale: × Anteil essbar aus der Referenztabelle).
+- Tool `vorrat_naehrwerte`: der Agent liest Nährwerte des Vorrats mit Quelle und Rang.
+
 ## Ist-Verbrauch (Verzehr-Protokoll)
 
 Unabhängig vom Plan wird festgehalten, was tatsächlich gegessen wurde – Tabelle `verzehr` in der REWE-Postgres, mit Zeitstempel und zum Zeitpunkt des Essens festgeschriebenen Nährwerten:

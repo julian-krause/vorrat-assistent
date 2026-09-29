@@ -98,6 +98,12 @@ def bestimmen(con, a: dict) -> dict | None:
     # übergebener Wert zuletzt: bei gleichem Rang gewinnt die belegte Tabelle; „packung“/„referenz“ kommen nur aus dem Code
     g = nw._zahl(a.get("gramm_pro_stk"))
     q = a.get("gramm_quelle") if a.get("gramm_quelle") in ("manuell", "ki") else "ki"
+    if g and g > 0 and q == "manuell" and str(a.get("mit_schale") or "").lower() in ("ja", "true", "1", "mit"):
+        # gewogenes Gesamtgewicht -> essbarer Anteil (ValueError, wenn kein Anteil hinterlegt ist)
+        umg = aus_gewogen(con, name, g, True)
+        g, a = umg["gramm"], {**a, "gramm_detail": umg["detail"]}
+    elif g and g > 0 and q == "manuell" and str(a.get("mit_schale") or "").lower() in ("nein", "false", "0", "ohne"):
+        a = {**a, "gramm_detail": f"gewogen {g:g} g ohne Schale/Kern"}
     if g and g > 0:
         kandidaten.append({"gramm": g, "quelle": q, "rang": nw.GRAMM_RANG[q],
                            "detail": a.get("gramm_detail") or ("vom Nutzer gewogen" if q == "manuell" else "KI-Schätzung")})

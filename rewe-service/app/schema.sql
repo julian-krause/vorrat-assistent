@@ -353,3 +353,16 @@ CREATE TABLE IF NOT EXISTS verzehr_korrektur (
     neu         jsonb NOT NULL,
     erstellt_at timestamptz NOT NULL DEFAULT now()
 );
+
+-- Etikett-Foto: von der KI ausgelesene Werte warten auf die Bestätigung per Button (Ja-Sperre), danach Rang 1
+CREATE TABLE IF NOT EXISTS naehrwert_vorschlaege (
+    id               bigserial PRIMARY KEY,
+    grocy_product_id integer,
+    produkt_text     text,
+    werte            jsonb NOT NULL,
+    plausibel        boolean NOT NULL,
+    grund            text,
+    status           text NOT NULL DEFAULT 'offen' CHECK (status IN ('offen', 'bestaetigt', 'verworfen')),
+    erstellt_at      timestamptz NOT NULL DEFAULT now(),
+    beantwortet_at   timestamptz
+);

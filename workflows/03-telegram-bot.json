@@ -1,6 +1,6 @@
 [
   {
-    "updatedAt": "2026-09-29T13:41:05.000Z",
+    "updatedAt": "2026-09-29T13:48:26.000Z",
     "createdAt": "2026-09-27T15:07:02.162Z",
     "id": "JStsSgy75x6xLQzD",
     "name": "Vorrat · Telegram-Bot",
@@ -76,7 +76,7 @@
         "parameters": {
           "mode": "runOnceForAllItems",
           "language": "javaScript",
-          "jsCode": "const u = $('Telegram Trigger').first().json;\nconst profil = $input.first().json || {};\nconst cb = u.callback_query;\nconst msg = u.message || (cb && cb.message) || {};\nconst chatId = String((msg.chat && msg.chat.id) || '');\nconst text = String((u.message && u.message.text) || '').trim();\nif (!chatId) return [];\nif (profil.chat_id && String(profil.chat_id) !== chatId) return [];\n\nlet aktion = 'chat';\nlet param = '';\nconst lower = text.toLowerCase();\nconst rest = text.includes(' ') ? text.slice(text.indexOf(' ') + 1).trim() : '';\nif (cb) {\n  const teile = String(cb.data || '').split(':');\n  const art = teile.shift();\n  param = teile.join(':');\n  if (art === 'cook') aktion = 'kochen';\n  else if (art === 'inv') aktion = 'inventar_aktion';\n  else if (art === 'bon') aktion = 'bon_antwort';\n  else if (art === 'cmd' && param === 'rezepte') aktion = 'rezepte';\n  else aktion = 'hilfe';\n} else if (lower.startsWith('/start')) aktion = 'start';\nelse if (lower.startsWith('/rezepte')) { aktion = 'rezepte'; param = rest; }\nelse if (lower.startsWith('/wochenplan')) { aktion = 'wochenplan'; param = rest; }\nelse if (lower.startsWith('/inventar') || lower.startsWith('/vorrat')) aktion = 'inventar';\nelse if (lower.startsWith('/hilfe') || lower.startsWith('/help')) aktion = 'hilfe';\nelse if (!text) aktion = 'hilfe';\n\nreturn [{ json: { aktion, param, chat_id: chatId, text, callback_id: cb ? String(cb.id) : '' } }];"
+          "jsCode": "const u = $('Telegram Trigger').first().json;\nconst profil = $input.first().json || {};\nconst cb = u.callback_query;\nconst msg = u.message || (cb && cb.message) || {};\nconst chatId = String((msg.chat && msg.chat.id) || '');\nconst text = String((u.message && (u.message.text || u.message.caption)) || '').trim();\nconst foto = u.message && Array.isArray(u.message.photo) && u.message.photo.length ? u.message.photo[u.message.photo.length - 1].file_id : '';\nif (!chatId) return [];\nif (profil.chat_id && String(profil.chat_id) !== chatId) return [];\n\nlet aktion = 'chat';\nlet param = '';\nconst lower = text.toLowerCase();\nconst rest = text.includes(' ') ? text.slice(text.indexOf(' ') + 1).trim() : '';\nif (cb) {\n  const teile = String(cb.data || '').split(':');\n  const art = teile.shift();\n  param = teile.join(':');\n  if (art === 'cook') aktion = 'kochen';\n  else if (art === 'inv') aktion = 'inventar_aktion';\n  else if (art === 'bon') aktion = 'bon_antwort';\n  else if (art === 'etikett') aktion = 'etikett_antwort';\n  else if (art === 'cmd' && param === 'rezepte') aktion = 'rezepte';\n  else aktion = 'hilfe';\n} else if (foto) { aktion = 'etikett'; param = foto; }\nelse if (lower.startsWith('/start')) aktion = 'start';\nelse if (lower.startsWith('/rezepte')) { aktion = 'rezepte'; param = rest; }\nelse if (lower.startsWith('/wochenplan')) { aktion = 'wochenplan'; param = rest; }\nelse if (lower.startsWith('/inventar') || lower.startsWith('/vorrat')) aktion = 'inventar';\nelse if (lower.startsWith('/hilfe') || lower.startsWith('/help')) aktion = 'hilfe';\nelse if (lower.startsWith('/unsicher')) aktion = 'unsicher';\nelse if (!text) aktion = 'hilfe';\n\nreturn [{ json: { aktion, param, chat_id: chatId, text, callback_id: cb ? String(cb.id) : '' } }];"
         }
       },
       {
@@ -263,6 +263,75 @@
                       },
                       "rightValue": "bon_antwort",
                       "id": "bon-antwort"
+                    }
+                  ],
+                  "combinator": "and"
+                }
+              },
+              {
+                "renameOutput": true,
+                "outputKey": "/unsicher",
+                "conditions": {
+                  "options": {
+                    "caseSensitive": true,
+                    "leftValue": "",
+                    "typeValidation": "strict"
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{ $json.aktion }}",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      },
+                      "rightValue": "unsicher",
+                      "id": "unsicher"
+                    }
+                  ],
+                  "combinator": "and"
+                }
+              },
+              {
+                "renameOutput": true,
+                "outputKey": "Etikett-Foto",
+                "conditions": {
+                  "options": {
+                    "caseSensitive": true,
+                    "leftValue": "",
+                    "typeValidation": "strict"
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{ $json.aktion }}",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      },
+                      "rightValue": "etikett",
+                      "id": "etikett"
+                    }
+                  ],
+                  "combinator": "and"
+                }
+              },
+              {
+                "renameOutput": true,
+                "outputKey": "Etikett-Antwort",
+                "conditions": {
+                  "options": {
+                    "caseSensitive": true,
+                    "leftValue": "",
+                    "typeValidation": "strict"
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{ $json.aktion }}",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      },
+                      "rightValue": "etikett_antwort",
+                      "id": "etikett_antwort"
                     }
                   ],
                   "combinator": "and"
@@ -919,7 +988,7 @@
         "parameters": {
           "mode": "runOnceForAllItems",
           "language": "javaScript",
-          "jsCode": "const ctx = $('Update auswerten').first().json;\nconst zone = 'Europe/Berlin';\nconst heute = DateTime.now().setZone(zone).startOf('day');\nconst esc = t => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nconst orteMap = {};\nfor (const i of $('Grocy-Lagerorte laden').all()) if (i.json && i.json.id) orteMap[i.json.id] = i.json.name;\nconst qu = {};\nfor (const i of $('Grocy-Einheiten laden (Liste)').all()) if (i.json && i.json.id) qu[i.json.id] = i.json.name;\nconst rows = $('Grocy-Bestand laden (Liste)').all().map(i => i.json).filter(r => r && r.product_id && Number(r.amount) > 0);\nif (!rows.length) return [{ json: { chat_id: ctx.chat_id, text: '📦 Dein Grocy-Bestand ist leer. Sobald ein REWE-eBon kommt, fülle ich ihn auf.' } }];\nconst orte = {};\nfor (const r of rows) {\n  const p = r.product || {};\n  const bbd = String(r.best_before_date || '');\n  r.tage = bbd && !bbd.startsWith('2999') ? Math.round(DateTime.fromISO(bbd.slice(0, 10), { zone }).diff(heute, 'days').days) : 9999;\n  const ort = orteMap[p.location_id] || 'Sonstiges';\n  (orte[ort] = orte[ort] || []).push(r);\n}\nconst badge = t => t < 0 ? '🔴 abgelaufen' : t === 0 ? '🔴 heute' : t <= 2 ? '🟠 ' + t + ' T.' : t <= 6 ? '🟡 ' + t + ' T.' : t >= 9999 ? '' : '🟢 ' + t + ' T.';\nlet text = '📦 <b>Dein Vorrat in Grocy</b> (' + rows.length + ' Produkte)\\n';\nfor (const ort of Object.keys(orte).sort()) {\n  text += '\\n<b>' + esc(ort) + '</b>\\n' + orte[ort].sort((a, b) => a.tage - b.tage).map(r => '• ' + esc((r.product || {}).name) + ' – ' + (Math.round(Number(r.amount) * 10) / 10) + ' ' + esc(qu[(r.product || {}).qu_id_stock] || '') + ' ' + badge(r.tage)).join('\\n') + '\\n';\n}\nreturn [{ json: { chat_id: ctx.chat_id, text: text.slice(0, 4000) } }];"
+          "jsCode": "const ctx = $('Update auswerten').first().json;\nconst zone = 'Europe/Berlin';\nconst heute = DateTime.now().setZone(zone).startOf('day');\nconst esc = t => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nconst orteMap = {};\nfor (const i of $('Grocy-Lagerorte laden').all()) if (i.json && i.json.id) orteMap[i.json.id] = i.json.name;\nconst qu = {};\nfor (const i of $('Grocy-Einheiten laden (Liste)').all()) if (i.json && i.json.id) qu[i.json.id] = i.json.name;\nconst geschaetzt = {};\nfor (const i of $('Nährwert-Status laden').all()) if (i.json && i.json.grocy_product_id) geschaetzt[i.json.grocy_product_id] = i.json.geschaetzt === true;\nconst rows = $('Grocy-Bestand laden (Liste)').all().map(i => i.json).filter(r => r && r.product_id && Number(r.amount) > 0);\nif (!rows.length) return [{ json: { chat_id: ctx.chat_id, text: '📦 Dein Grocy-Bestand ist leer. Sobald ein REWE-eBon kommt, fülle ich ihn auf.' } }];\nconst orte = {};\nfor (const r of rows) {\n  const p = r.product || {};\n  const bbd = String(r.best_before_date || '');\n  r.tage = bbd && !bbd.startsWith('2999') ? Math.round(DateTime.fromISO(bbd.slice(0, 10), { zone }).diff(heute, 'days').days) : 9999;\n  const ort = orteMap[p.location_id] || 'Sonstiges';\n  (orte[ort] = orte[ort] || []).push(r);\n}\nconst badge = t => t < 0 ? '🔴 abgelaufen' : t === 0 ? '🔴 heute' : t <= 2 ? '🟠 ' + t + ' T.' : t <= 6 ? '🟡 ' + t + ' T.' : t >= 9999 ? '' : '🟢 ' + t + ' T.';\nlet text = '📦 <b>Dein Vorrat in Grocy</b> (' + rows.length + ' Produkte)\\n';\nfor (const ort of Object.keys(orte).sort()) {\n  text += '\\n<b>' + esc(ort) + '</b>\\n' + orte[ort].sort((a, b) => a.tage - b.tage).map(r => '• ' + esc((r.product || {}).name) + (geschaetzt[r.product_id] ? ' ≈' : '') + ' – ' + (Math.round(Number(r.amount) * 10) / 10) + ' ' + esc(qu[(r.product || {}).qu_id_stock] || '') + ' ' + badge(r.tage)).join('\\n') + '\\n';\n}\nif (Object.values(geschaetzt).some(Boolean)) text += '\\n≈ = Nährwerte geschätzt (BLS/KI), Details: /unsicher';\nreturn [{ json: { chat_id: ctx.chat_id, text: text.slice(0, 4000) } }];"
         }
       },
       {
@@ -962,7 +1031,7 @@
           "resource": "message",
           "operation": "sendMessage",
           "chatId": "={{ $json.chat_id }}",
-          "text": "<b>So nutzt du mich</b>\n/rezepte – 3 Rezeptideen aus dem Vorrat (z.B. /rezepte schnell, vegetarisch)\n/wochenplan – Wochenplan passend zu deinen Makros + Einkaufsliste\n/inventar – was ist noch da und wie lange hält es?\n\nEinfach schreiben geht auch:\n• „Meine Ziele: 2000 kcal, 150 g Protein, 65 g Fett, 200 g KH“\n• „Hab 2 Eier und 100 g Käse gegessen“\n• „Die Milch hab ich weggeworfen“\n• „Der Joghurt hält noch bis 15.10.“\n• „Hab noch 1 kg Reis gekauft“ (wenn das Produkt in Grocy existiert)",
+          "text": "<b>So nutzt du mich</b>\n/rezepte – 3 Rezeptideen aus dem Vorrat (z.B. /rezepte schnell, vegetarisch)\n/wochenplan – Wochenplan passend zu deinen Makros + Einkaufsliste\n/inventar – was ist noch da und wie lange hält es? (≈ = Nährwerte geschätzt)\n/unsicher – Produkte mit geschätzten Nährwerten oder Stückgewichten\n📷 Foto der Nährwerttabelle + Produktname als Bildunterschrift – Werte vom Etikett übernehmen\n\nEinfach schreiben geht auch:\n• „Meine Ziele: 2000 kcal, 150 g Protein, 65 g Fett, 200 g KH“\n• „Hab 2 Eier und 100 g Käse gegessen“\n• „Die Milch hab ich weggeworfen“\n• „Der Joghurt hält noch bis 15.10.“\n• „Hab noch 1 kg Reis gekauft“ (wenn das Produkt in Grocy existiert)",
           "additionalFields": {
             "appendAttribution": false,
             "parse_mode": "HTML"
@@ -989,7 +1058,7 @@
           "promptType": "define",
           "text": "={{ $('Update auswerten').first().json.text }}",
           "options": {
-            "systemMessage": "=Du bist ein freundlicher deutscher Vorrats- und Ernährungsassistent in Telegram. Du verwaltest den Vorrat in Grocy selbst: Du darfst Produkte anlegen sowie Bestand einbuchen und ausbuchen. Heute ist {{ $now.setZone(\"Europe/Berlin\").toFormat(\"cccc, dd.LL.yyyy\") }}.\n\nWICHTIG: Aussagen über Bestand, Inventar, Produkte in Grocy oder Verzehr immer frisch mit dem passenden Werkzeug prüfen (grocy_bestand, grocy_produkt_suchen, verzehr_auswerten), nie aus dem bisherigen Gesprächsverlauf ableiten – der Bestand ändert sich auch ohne dich (eBon-Import, Grocy-App). Behaupte nichts, was kein Werkzeug gerade bestätigt hat.\n\nWerkzeuge:\n- grocy_bestand: aktueller Bestand (product_id, Menge in der Lagereinheit, MHD). Vor jedem Ein- oder Ausbuchen zuerst aufrufen.\n- grocy_produkt_suchen: prüft per Name oder Barcode, ob ein Produkt in Grocy schon existiert.\n- rewe_produkt_suchen: lokale REWE-Produkttabelle mit Marke, Packungsgröße, Preis, Preis pro kg/l, Angeboten und Makros pro 100 g.\n- grocy_produkt_anlegen, naehrwerte_merken, grocy_barcode_zuordnen: neues Produkt anlegen (Ablauf unten).\n- grocy_bestand_hinzufuegen / grocy_bestand_verbrauchen: einbuchen bzw. ausbuchen (gegessen oder weggeworfen).\n- grocy_eintraege + grocy_mhd_aendern: MHD korrigieren, z.B. „Joghurt hält bis 15.10.“.\n- verzehr_eintragen, verzehr_auswerten, verzehr_eintraege, verzehr_korrigieren: Verzehr-Protokoll (siehe unten).\n- profil_lesen und ziele_speichern: Ernährungsziele verwalten. Nennt der Nutzer nur kcal, schlage gesunde Makros vor (Protein ca. 1,6-2 g pro kg Körpergewicht bzw. ca. 30 Prozent, Fett 25-30 Prozent, Rest Kohlenhydrate) und speichere sie.\n\nProdukt aufnehmen („Nimm X auf“):\n1. grocy_produkt_suchen: Gibt es das Produkt schon, sag das und lege nichts an (biete an, Bestand einzubuchen).\n2. rewe_produkt_suchen mit Name und Marke. Passt ein Treffer, übernimm Name, Marke, Größe, Preis und Makros daraus. Bei mehreren plausiblen Treffern zeig bis zu 3 zur Auswahl. Ohne Treffer sag das offen und frag nach Packungsgröße und – falls der Nutzer sie hat – den Nährwerten pro 100 g vom Etikett. Erfinde niemals Preise oder Barcodes. Nährwerte ermittelt naehrwerte_merken selbst (REWE, Open Food Facts, BLS); deine Schätzung ist nur der letzte Ausweg.\n3. Zeig eine kurze Zusammenfassung: Name, Marke, Packungsgröße, Preis, Lagerort, Haltbarkeit, kcal/Protein/Fett/KH pro 100 g. Frag „Soll ich es so anlegen?“ und warte auf die Antwort.\n4. Erst wenn der Nutzer in seiner nächsten Nachricht mit ja zustimmt: grocy_produkt_anlegen, danach IMMER naehrwerte_merken (mit rewe_product_id, Marke und Barcode, soweit bekannt; Werte des Nutzers mit werte_quelle=manuell) und grocy_barcode_zuordnen (nur wenn ein Barcode bekannt ist). Bestätige mit der neuen product_id. Bestand nur einbuchen, wenn der Nutzer es sagt.\n   Änderungswünsche oder Rückfragen („Haltbarkeit eher 21 Tage“) sind KEINE Zustimmung: Zusammenfassung anpassen, erneut zeigen und wieder auf ja warten.\n\nEin- und Ausbuchen: Bei klaren Angaben („Hab 2 Eier gegessen“, „3 Joghurt gekauft“, „Milch weggeworfen“) ohne Rückfrage buchen und danach kurz bestätigen, was gebucht wurde. Nachfragen nur, wenn Produkt oder Menge unklar ist. Menge in die Lagereinheit umrechnen und nie mehr ausbuchen als vorhanden.\n\nVerzehr-Protokoll (tatsächlich Gegessenes, unabhängig vom Plan):\n- Was aus dem Vorrat als verbraucht ausgebucht wird, landet automatisch im Protokoll (weggeworfen nicht). Nicht zusätzlich eintragen.\n- Isst der Nutzer etwas, das nicht im Vorrat ist (auswärts, Mensa, Bäcker, eingeladen, nicht in Grocy), trag es mit verzehr_eintragen ein: realistische Portion in g und Nährwerte der ganzen Portion.\n  Für Supermarktprodukte nimm die Werte aus rewe_produkt_suchen (geschaetzt=false), sonst schätze realistisch (geschaetzt=true). Nenne danach kurz, was du eingetragen hast.\n- „Hab 2 Eier gegessen“: sind sie im Vorrat, ausbuchen; sonst mit verzehr_eintragen erfassen.\n- Wasser (Mineral-, Tafel-, Sprudel-, Leitungswasser) wird nie eingebucht, angelegt oder im Verzehr eingetragen.\n- Fragen zum Ist-Konsum („wie viel habe ich im September/diese Woche/gestern gegessen“, Durchschnitt): verzehr_auswerten mit dem Zeitraum (Monat = erster bis letzter Tag).\n  Antworte mit Durchschnitt pro Kalendertag (kcal, Protein, Fett, KH) und Summe, nenne die Tage mit Einträgen und den geschätzten Anteil; auf Wunsch Vergleich mit den Zielen (profil_lesen).\n- Korrekturen („hab ich doch nicht gegessen“): mit verzehr_eintraege suchen, mit verzehr_korrigieren herausnehmen.\n- Nenne Summen oder „noch übrig“-Werte für einen Tag oder Zeitraum nur, wenn du sie gerade mit verzehr_auswerten abgefragt hast. Erfinde nie bisherige Mengen.\n\nEinkauf und Planung: Für Einkaufsfragen schlag mit rewe_produkt_suchen konkrete Produkte vor (Marke, Packungsgröße, Preis). Bevorzuge günstigen Preis pro kg/l, weise auf aktuelle Angebote hin und nenne bei Eiweißquellen den Preis pro 100 g Protein. Für Rezeptideen verweise auf /rezepte, für komplette Wochenpläne auf /wochenplan.\n\nAntworte kurz auf Deutsch, nutze passende Emojis, keine Markdown-Tabellen.",
+            "systemMessage": "=Du bist ein freundlicher deutscher Vorrats- und Ernährungsassistent in Telegram. Du verwaltest den Vorrat in Grocy selbst: Du darfst Produkte anlegen sowie Bestand einbuchen und ausbuchen. Heute ist {{ $now.setZone(\"Europe/Berlin\").toFormat(\"cccc, dd.LL.yyyy\") }}.\n\nWICHTIG: Aussagen über Bestand, Inventar, Produkte in Grocy oder Verzehr immer frisch mit dem passenden Werkzeug prüfen (grocy_bestand, grocy_produkt_suchen, verzehr_auswerten), nie aus dem bisherigen Gesprächsverlauf ableiten – der Bestand ändert sich auch ohne dich (eBon-Import, Grocy-App). Behaupte nichts, was kein Werkzeug gerade bestätigt hat.\n\nWerkzeuge:\n- grocy_bestand: aktueller Bestand (product_id, Menge in der Lagereinheit, MHD). Vor jedem Ein- oder Ausbuchen zuerst aufrufen.\n- grocy_produkt_suchen: prüft per Name oder Barcode, ob ein Produkt in Grocy schon existiert.\n- rewe_produkt_suchen: lokale REWE-Produkttabelle mit Marke, Packungsgröße, Preis, Preis pro kg/l, Angeboten und Makros pro 100 g.\n- grocy_produkt_anlegen, naehrwerte_merken, grocy_barcode_zuordnen: neues Produkt anlegen (Ablauf unten).\n- grocy_bestand_hinzufuegen / grocy_bestand_verbrauchen: einbuchen bzw. ausbuchen (gegessen oder weggeworfen).\n- grocy_eintraege + grocy_mhd_aendern: MHD korrigieren, z.B. „Joghurt hält bis 15.10.“.\n- verzehr_eintragen, verzehr_auswerten, verzehr_eintraege, verzehr_korrigieren: Verzehr-Protokoll (siehe unten).\n- profil_lesen und ziele_speichern: Ernährungsziele verwalten. Nennt der Nutzer nur kcal, schlage gesunde Makros vor (Protein ca. 1,6-2 g pro kg Körpergewicht bzw. ca. 30 Prozent, Fett 25-30 Prozent, Rest Kohlenhydrate) und speichere sie.\n\nProdukt aufnehmen („Nimm X auf“):\n1. grocy_produkt_suchen: Gibt es das Produkt schon, sag das und lege nichts an (biete an, Bestand einzubuchen).\n2. rewe_produkt_suchen mit Name und Marke. Passt ein Treffer, übernimm Name, Marke, Größe, Preis und Makros daraus. Bei mehreren plausiblen Treffern zeig bis zu 3 zur Auswahl. Ohne Treffer sag das offen und frag nach Packungsgröße und – falls der Nutzer sie hat – den Nährwerten pro 100 g vom Etikett. Erfinde niemals Preise oder Barcodes. Nährwerte ermittelt naehrwerte_merken selbst (REWE, Open Food Facts, BLS); deine Schätzung ist nur der letzte Ausweg.\n3. Zeig eine kurze Zusammenfassung: Name, Marke, Packungsgröße, Preis, Lagerort, Haltbarkeit, kcal/Protein/Fett/KH pro 100 g. Frag „Soll ich es so anlegen?“ und warte auf die Antwort.\n4. Erst wenn der Nutzer in seiner nächsten Nachricht mit ja zustimmt: grocy_produkt_anlegen, danach IMMER naehrwerte_merken (mit rewe_product_id, Marke und Barcode, soweit bekannt; Werte des Nutzers mit werte_quelle=manuell) und grocy_barcode_zuordnen (nur wenn ein Barcode bekannt ist). Bestätige mit der neuen product_id. Bestand nur einbuchen, wenn der Nutzer es sagt.\n   Änderungswünsche oder Rückfragen („Haltbarkeit eher 21 Tage“) sind KEINE Zustimmung: Zusammenfassung anpassen, erneut zeigen und wieder auf ja warten.\n\nEin- und Ausbuchen: Bei klaren Angaben („Hab 2 Eier gegessen“, „3 Joghurt gekauft“, „Milch weggeworfen“) ohne Rückfrage buchen und danach kurz bestätigen, was gebucht wurde. Nachfragen nur, wenn Produkt oder Menge unklar ist. Menge in die Lagereinheit umrechnen und nie mehr ausbuchen als vorhanden.\n\nVerzehr-Protokoll (tatsächlich Gegessenes, unabhängig vom Plan):\n- Was aus dem Vorrat als verbraucht ausgebucht wird, landet automatisch im Protokoll (weggeworfen nicht). Nicht zusätzlich eintragen.\n- Isst der Nutzer etwas, das nicht im Vorrat ist (auswärts, Mensa, Bäcker, eingeladen, nicht in Grocy), trag es mit verzehr_eintragen ein: realistische Portion in g und Nährwerte der ganzen Portion.\n  Für Supermarktprodukte nimm die Werte aus rewe_produkt_suchen (geschaetzt=false), sonst schätze realistisch (geschaetzt=true). Nenne danach kurz, was du eingetragen hast.\n- „Hab 2 Eier gegessen“: sind sie im Vorrat, ausbuchen; sonst mit verzehr_eintragen erfassen.\n- Wasser (Mineral-, Tafel-, Sprudel-, Leitungswasser) wird nie eingebucht, angelegt oder im Verzehr eingetragen.\n- Fragen zum Ist-Konsum („wie viel habe ich im September/diese Woche/gestern gegessen“, Durchschnitt): verzehr_auswerten mit dem Zeitraum (Monat = erster bis letzter Tag).\n  Antworte mit Durchschnitt pro Kalendertag (kcal, Protein, Fett, KH) und Summe, nenne die Tage mit Einträgen und den geschätzten Anteil; auf Wunsch Vergleich mit den Zielen (profil_lesen).\n- Korrekturen („hab ich doch nicht gegessen“): mit verzehr_eintraege suchen, mit verzehr_korrigieren herausnehmen.\n- Nenne Summen oder „noch übrig“-Werte für einen Tag oder Zeitraum nur, wenn du sie gerade mit verzehr_auswerten abgefragt hast. Erfinde nie bisherige Mengen.\n\nEinkauf und Planung: Für Einkaufsfragen schlag mit rewe_produkt_suchen konkrete Produkte vor (Marke, Packungsgröße, Preis). Bevorzuge günstigen Preis pro kg/l, weise auf aktuelle Angebote hin und nenne bei Eiweißquellen den Preis pro 100 g Protein. Für Rezeptideen verweise auf /rezepte, für komplette Wochenpläne auf /wochenplan.\n\nAntworte kurz auf Deutsch, nutze passende Emojis, keine Markdown-Tabellen.\n\nGeschätzte Werte und Quellen:\n- Nährwerte kommen aus fester Rangfolge (von dir/Etikett > REWE > Open Food Facts > BLS > KI). Kennzeichne geschätzte Zahlen (geschaetzt = true, BLS oder KI) immer mit ≈.\n- Bei Auswertungen (verzehr_auswerten) nenne immer, wie viel Prozent der kcal auf Schätzungen beruhen (anteil_geschaetzt_prozent); ist der Anteil > 0, setze ≈ vor die Summen.\n- Nennt der Nutzer ein gewogenes Stückgewicht („Avocado wiegt 142 g“): frag zuerst, ob mit oder ohne Schale/Kern gewogen wurde. Dann naehrwerte_merken mit gramm_pro_stk = gewogenes Gewicht, gramm_quelle = manuell, mit_schale = ja/nein und kcal_100 = 0 (die Nährwerte ermittelt der Dienst). Nenne danach den gespeicherten essbaren Anteil. Meldet die Antwort gramm_fehler, gib ihn weiter.\n- Nährwerte vom Etikett: der Nutzer kann ein Foto der Nährwerttabelle mit dem Produktnamen als Bildunterschrift schicken. /unsicher zeigt alle Produkte mit geschätzten Werten.",
             "maxIterations": 12,
             "enableStreaming": false
           }
@@ -1580,7 +1649,7 @@
         "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
         "typeVersion": 2.2,
         "parameters": {
-          "description": "Ermittelt und speichert die Nährwerte eines Grocy-Produkts nach fester Rangfolge (REWE-Packungsangabe → Open Food Facts per Barcode → per Name mit gleicher Marke → BLS → deine Schätzung) und setzt die kcal in Grocy. Direkt nach grocy_produkt_anlegen aufrufen, auch wenn du keine Werte kennst. Deine Werte sind nur der letzte Ausweg; Antwort: quelle, rang, kcal_100 …, geschaetzt. Bei geschaetzt=true dem Nutzer „≈ geschätzt“ sagen.",
+          "description": "Ermittelt und speichert die Nährwerte eines Grocy-Produkts nach fester Rangfolge (REWE-Packungsangabe → Open Food Facts per Barcode → per Name mit gleicher Marke → BLS → deine Schätzung) und setzt die kcal in Grocy. Direkt nach grocy_produkt_anlegen aufrufen, auch wenn du keine Werte kennst. Deine Werte sind nur der letzte Ausweg; Antwort: quelle, rang, kcal_100 …, geschaetzt. Bei geschaetzt=true dem Nutzer „≈ geschätzt“ sagen. Stückgewicht vom Nutzer gewogen: gramm_pro_stk = gewogenes Gewicht, gramm_quelle = manuell, mit_schale = ja/nein (vorher fragen!); der Dienst rechnet den essbaren Anteil aus.",
           "source": "database",
           "workflowId": {
             "__rl": true,
@@ -1728,6 +1797,15 @@
                 "display": true,
                 "canBeUsedToMatch": true,
                 "type": "string"
+              },
+              {
+                "id": "mit_schale",
+                "displayName": "mit_schale",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
               }
             ],
             "value": {
@@ -1743,9 +1821,10 @@
               "fett_100": "={{ $fromAI('fett_100', 'Fett g pro 100 g/ml', 'number') }}",
               "kh_100": "={{ $fromAI('kh_100', 'Kohlenhydrate g pro 100 g/ml', 'number') }}",
               "werte_quelle": "={{ $fromAI('werte_quelle', 'manuell = der Nutzer hat die Werte genannt; sonst ki', 'string') }}",
-              "gramm_pro_stk": "={{ $fromAI('gramm_pro_stk', 'nur Stückware: essbares Gewicht eines Stücks in g, sonst 0', 'number') }}",
-              "gramm_quelle": "={{ $fromAI('gramm_quelle', 'manuell = vom Nutzer gewogen (essbarer Anteil), sonst ki', 'string') }}",
-              "bls_suche": "={{ $fromAI('bls_suche', 'bei loser Ware ein allgemeiner Lebensmittelname für den Bundeslebensmittelschlüssel, z.B. Banane roh, sonst leer', 'string') }}"
+              "gramm_pro_stk": "={{ $fromAI('gramm_pro_stk', 'nur Stückware: Gewicht eines Stücks in g (bei gewogen: das gewogene Gewicht), sonst 0', 'number') }}",
+              "gramm_quelle": "={{ $fromAI('gramm_quelle', 'manuell = vom Nutzer gewogen, sonst ki', 'string') }}",
+              "bls_suche": "={{ $fromAI('bls_suche', 'bei loser Ware ein allgemeiner Lebensmittelname für den Bundeslebensmittelschlüssel, z.B. Banane roh, sonst leer', 'string') }}",
+              "mit_schale": "={{ $fromAI('mit_schale', 'nur wenn gewogen: ja = mit Schale/Kern gewogen, nein = nur der essbare Teil; sonst leer', 'string') }}"
             }
           }
         },
@@ -2066,6 +2145,15 @@
               {
                 "id": "bls_suche",
                 "displayName": "bls_suche",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
+              },
+              {
+                "id": "mit_schale",
+                "displayName": "mit_schale",
                 "required": false,
                 "defaultMatch": false,
                 "display": true,
@@ -2398,6 +2486,686 @@
             }
           }
         }
+      },
+      {
+        "name": "Unsichere laden",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.6,
+        "credentials": {
+          "postgres": {
+            "id": "RewePostgres0001",
+            "name": "REWE Postgres"
+          }
+        },
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "SELECT grocy_product_id, name, einheit, naehrwert_quelle, naehrwert_rang, round(kcal_100::numeric) AS kcal_100,\n       gramm_pro_stk, gramm_quelle, gramm_rang\nFROM vorrat_naehrwerte\nWHERE naehrwert_rang IS NULL OR naehrwert_rang >= 5 OR (einheit = 'stk' AND coalesce(gramm_rang, 4) >= 3)\nORDER BY name;",
+          "options": {}
+        },
+        "alwaysOutputData": true,
+        "executeOnce": true,
+        "id": "f7000000-0001-4000-8000-botunsicher1",
+        "position": [
+          1472,
+          1700
+        ]
+      },
+      {
+        "id": "f7000000-3726-4000-8000-botcode63726",
+        "name": "Unsichere formatieren",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1692,
+          1700
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "language": "javaScript",
+          "jsCode": "// /unsicher: Produkte mit geschätzten Nährwerten (Rang ≥ 5) oder unsicherem Stückgewicht (Rang ≥ 3)\nconst esc = t => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nconst name = { manuell: 'von dir', rewe: 'REWE', off_barcode: 'Open Food Facts (Barcode)', off_name: 'Open Food Facts (Name)', bls: 'BLS', ki: 'KI-Schätzung',\n  packung: 'Packung', referenz: 'Referenztabelle' };\nconst l = $input.all().map(i => i.json).filter(p => p && p.grocy_product_id);\nif (!l.length) return [{ json: { text: '✅ Alle Produkte im Vorrat haben belegte Nährwerte (REWE, Open Food Facts oder von dir) und belegte Stückgewichte.' } }];\nconst zeilen = l.map(p => {\n  const t = [];\n  if (p.naehrwert_rang === null || p.naehrwert_rang >= 5) t.push('≈ Nährwerte: ' + (name[p.naehrwert_quelle] || 'keine') + (p.naehrwert_rang ? ' (Rang ' + p.naehrwert_rang + ')' : '') + (p.kcal_100 != null ? ', ' + p.kcal_100 + ' kcal/100 g' : ''));\n  if (p.einheit === 'stk' && (p.gramm_rang === null || p.gramm_rang >= 3)) t.push('Stückgewicht: ' + (p.gramm_pro_stk ? Math.round(p.gramm_pro_stk) + ' g ' : 'unbekannt ') + '(' + (name[p.gramm_quelle] || '–') + (p.gramm_rang ? ', Rang ' + p.gramm_rang : '') + ')');\n  return '• <b>' + esc(p.name) + '</b>\\n   ' + t.join('\\n   ');\n});\nreturn [{ json: { text: ('🔍 <b>Unsichere Nährwerte</b> (' + l.length + ')\\n\\n' + zeilen.join('\\n')\n  + '\\n\\nVerbessern: 📷 Foto der Nährwerttabelle mit dem Produktnamen als Bildunterschrift schicken, oder ein Stück wiegen und schreiben, z.B. „Avocado wiegt 142 g“.').slice(0, 4000) } }];"
+        }
+      },
+      {
+        "id": "f7000000-4557-4000-8000-botetikett57",
+        "name": "Unsichere senden",
+        "type": "n8n-nodes-base.telegram",
+        "typeVersion": 1.2,
+        "position": [
+          1912,
+          1700
+        ],
+        "credentials": {
+          "telegramApi": {
+            "id": "R0Ye0fbcmRICFU8r",
+            "name": "Telegram account"
+          }
+        },
+        "webhookId": "f7000000-aaaa-4000-8000-241028914557",
+        "parameters": {
+          "resource": "message",
+          "operation": "sendMessage",
+          "chatId": "={{ $('Update auswerten').first().json.chat_id }}",
+          "text": "={{ $json.text }}",
+          "additionalFields": {
+            "appendAttribution": false,
+            "parse_mode": "HTML"
+          }
+        }
+      },
+      {
+        "id": "f7000000-0097-4000-8000-botetikett97",
+        "name": "Etikett: kurz warten",
+        "type": "n8n-nodes-base.telegram",
+        "typeVersion": 1.2,
+        "position": [
+          1472,
+          1920
+        ],
+        "credentials": {
+          "telegramApi": {
+            "id": "R0Ye0fbcmRICFU8r",
+            "name": "Telegram account"
+          }
+        },
+        "webhookId": "f7000000-aaaa-4000-8000-634890650097",
+        "parameters": {
+          "resource": "message",
+          "operation": "sendMessage",
+          "chatId": "={{ $('Update auswerten').first().json.chat_id }}",
+          "text": "📷 Ich lese das Etikett …",
+          "additionalFields": {
+            "appendAttribution": false,
+            "parse_mode": "HTML"
+          }
+        }
+      },
+      {
+        "id": "f7000000-0002-4000-8000-botfotoladen",
+        "name": "Foto laden",
+        "type": "n8n-nodes-base.telegram",
+        "typeVersion": 1.2,
+        "position": [
+          1692,
+          1920
+        ],
+        "credentials": {
+          "telegramApi": {
+            "id": "R0Ye0fbcmRICFU8r",
+            "name": "Telegram account"
+          }
+        },
+        "webhookId": "f7000000-bbbb-4000-8000-botfotoladen",
+        "parameters": {
+          "resource": "file",
+          "operation": "get",
+          "fileId": "={{ $('Update auswerten').first().json.param }}",
+          "download": true,
+          "additionalFields": {}
+        }
+      },
+      {
+        "id": "f7000000-0003-4000-8000-botfototext1",
+        "name": "Foto als Text",
+        "type": "n8n-nodes-base.extractFromFile",
+        "typeVersion": 1,
+        "position": [
+          1912,
+          1920
+        ],
+        "parameters": {
+          "operation": "binaryToPropery",
+          "binaryPropertyName": "data",
+          "destinationKey": "bild",
+          "options": {}
+        }
+      },
+      {
+        "id": "f7000000-7766-4000-8000-bothttp47766",
+        "name": "MiniMax liest Etikett",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          2132,
+          1920
+        ],
+        "credentials": {
+          "openAiApi": {
+            "id": "MiniMaxOpenAi01",
+            "name": "MiniMax (OpenAI-kompatibel)"
+          }
+        },
+        "parameters": {
+          "method": "POST",
+          "url": "https://api.minimax.io/v1/chat/completions",
+          "sendBody": true,
+          "contentType": "json",
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ model: 'MiniMax-M3', thinking: { type: 'disabled' }, temperature: 0, max_tokens: 800, messages: [ { role: 'user', content: [ { type: 'text', text: 'Das Foto zeigt die Nährwerttabelle eines Lebensmittels. Lies die Werte PRO 100 g bzw. 100 ml ab (nicht pro Portion). ' + 'Erfinde nichts: nicht lesbare Werte = null. Wenn der Produktname sichtbar ist, gib ihn an. ' + 'Antworte nur mit JSON: {\"produkt\": string|null, \"bezug\": \"100g\"|\"100ml\"|\"portion\"|null, \"kcal\": number|null, \"fett\": number|null, \"kh\": number|null, \"zucker\": number|null, \"ballaststoffe\": number|null, \"protein\": number|null, \"salz\": number|null}' }, { type: 'image_url', image_url: { url: 'data:image/jpeg;base64,' + $json.bild } } ] } ] }) }}",
+          "options": {
+            "timeout": 120000,
+            "response": {
+              "response": {
+                "neverError": true
+              }
+            }
+          },
+          "authentication": "predefinedCredentialType",
+          "nodeCredentialType": "openAiApi"
+        },
+        "retryOnFail": true,
+        "maxTries": 2,
+        "waitBetweenTries": 3000
+      },
+      {
+        "id": "f7000000-3603-4000-8000-botcode63603",
+        "name": "Etikett auswerten",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          2352,
+          1920
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "language": "javaScript",
+          "jsCode": "// KI-Antwort -> Werte pro 100 g; der Code prüft danach die Plausibilität (rewe-service)\nconst c = ((($json.choices || [])[0] || {}).message || {}).content || '';\nconst t = String(c).split('</think>').pop();\nlet d = {};\ntry { d = JSON.parse(t.slice(t.indexOf('{'), t.lastIndexOf('}') + 1)); } catch (e) { d = {}; }\nconst ctx = $('Update auswerten').first().json;\nconst werte = {};\nfor (const k of ['kcal', 'protein', 'fett', 'kh', 'zucker', 'ballaststoffe', 'salz']) if (typeof d[k] === 'number') werte[k] = d[k];\nreturn [{ json: { produkt_text: ctx.text || d.produkt || '', erkannt: d.produkt || '', bezug: d.bezug || null, werte } }];"
+        }
+      },
+      {
+        "id": "f7000000-1100-4000-8000-bothttp61100",
+        "name": "Etikett-Vorschlag speichern",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          2572,
+          1920
+        ],
+        "parameters": {
+          "method": "POST",
+          "url": "http://rewe-service:8000/etikett/vorschlag",
+          "sendBody": true,
+          "contentType": "json",
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ produkt_text: $json.produkt_text, werte: $json.werte }) }}",
+          "options": {
+            "timeout": 120000,
+            "response": {
+              "response": {
+                "neverError": true
+              }
+            }
+          }
+        }
+      },
+      {
+        "id": "f7000000-8390-4000-8000-botcode68390",
+        "name": "Etikett-Nachricht bauen",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          2792,
+          1920
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "language": "javaScript",
+          "jsCode": "// Werte zeigen; übernehmen nur per Button (Ja-Sperre) und nur, wenn plausibel und das Produkt feststeht\nconst esc = t => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nconst v = $json;\nconst a = $('Etikett auswerten').first().json;\nconst w = v.werte || {};\nconst f = x => x === undefined || x === null ? '–' : String(x).replace('.', ',');\nlet text = '📷 <b>Etikett gelesen</b>' + (a.erkannt ? ' (' + esc(a.erkannt) + ')' : '') + (a.bezug && a.bezug !== '100g' && a.bezug !== '100ml' ? '\\n⚠️ Bezug laut Foto: ' + esc(a.bezug) : '') + '\\n'\n  + 'pro 100 g: ' + f(w.kcal) + ' kcal · P ' + f(w.protein) + ' g · F ' + f(w.fett) + ' g · KH ' + f(w.kh) + ' g'\n  + (w.zucker != null ? ' · Zucker ' + f(w.zucker) + ' g' : '') + (w.ballaststoffe != null ? ' · Ballaststoffe ' + f(w.ballaststoffe) + ' g' : '') + (w.salz != null ? ' · Salz ' + f(w.salz) + ' g' : '');\nlet buttons = false;\nif (v.error || v.id === undefined) text += '\\n\\n❌ Konnte die Werte nicht prüfen: ' + esc((v.error && v.error.message) || v.detail || 'unbekannter Fehler');\nelse if (!v.plausibel) text += '\\n\\n❌ Die Werte passen nicht zusammen (' + esc(v.grund) + '). Bitte ein schärferes Foto der Tabelle „pro 100 g“ schicken.';\nelse if (!v.produkt) text += '\\n\\n❓ Zu welchem Produkt gehört das? Schick das Foto bitte nochmal mit dem Produktnamen als Bildunterschrift'\n  + ((v.kandidaten || []).length ? ' (z.B. ' + v.kandidaten.slice(0, 3).map(k => '„' + esc(k.name) + '“').join(', ') + ')' : '') + '.';\nelse {\n  const p = v.produkt;\n  text += '\\n\\nFür <b>' + esc(p.name) + '</b> übernehmen? Bisher: ' + (p.kcal_100 != null ? Math.round(p.kcal_100) + ' kcal (' + esc(p.naehrwert_quelle) + ', Rang ' + p.naehrwert_rang + ')' : 'keine Werte')\n    + '.\\nMit „Übernehmen“ gelten die Etikettwerte als belegt (Rang 1).';\n  buttons = true;\n}\nreturn [{ json: { text, buttons, ja: 'etikett:' + v.id + ':ja', nein: 'etikett:' + v.id + ':nein' } }];"
+        }
+      },
+      {
+        "id": "f7000000-2892-4000-8000-botetikett92",
+        "name": "Etikett senden",
+        "type": "n8n-nodes-base.telegram",
+        "typeVersion": 1.2,
+        "position": [
+          3012,
+          1920
+        ],
+        "credentials": {
+          "telegramApi": {
+            "id": "R0Ye0fbcmRICFU8r",
+            "name": "Telegram account"
+          }
+        },
+        "webhookId": "f7000000-aaaa-4000-8000-440026912892",
+        "parameters": {
+          "resource": "message",
+          "operation": "sendMessage",
+          "chatId": "={{ $('Update auswerten').first().json.chat_id }}",
+          "text": "={{ $json.text }}",
+          "additionalFields": {
+            "appendAttribution": false,
+            "parse_mode": "HTML"
+          },
+          "replyMarkup": "inlineKeyboard",
+          "inlineKeyboard": {
+            "rows": [
+              {
+                "row": {
+                  "buttons": [
+                    {
+                      "text": "✅ Übernehmen",
+                      "additionalFields": {
+                        "callback_data": "={{ $json.ja }}"
+                      }
+                    },
+                    {
+                      "text": "❌ Verwerfen",
+                      "additionalFields": {
+                        "callback_data": "={{ $json.nein }}"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "f7000000-0004-4000-8000-botetikettcb",
+        "name": "Button bestätigen (Etikett)",
+        "type": "n8n-nodes-base.telegram",
+        "typeVersion": 1.2,
+        "position": [
+          1472,
+          2140
+        ],
+        "credentials": {
+          "telegramApi": {
+            "id": "R0Ye0fbcmRICFU8r",
+            "name": "Telegram account"
+          }
+        },
+        "webhookId": "f7000000-cccc-4000-8000-botetikettcb",
+        "parameters": {
+          "resource": "callback",
+          "operation": "answerQuery",
+          "queryId": "={{ $json.callback_id }}",
+          "additionalFields": {
+            "text": "👍"
+          }
+        }
+      },
+      {
+        "id": "f7000000-0009-4000-8000-bothttp70009",
+        "name": "Etikett-Antwort speichern",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          1692,
+          2140
+        ],
+        "parameters": {
+          "method": "POST",
+          "url": "={{ 'http://rewe-service:8000/etikett/vorschlag/' + $('Update auswerten').first().json.param.split(':')[0] }}",
+          "sendBody": true,
+          "contentType": "json",
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ annehmen: $('Update auswerten').first().json.param.split(':')[1] === 'ja' }) }}",
+          "options": {
+            "timeout": 120000,
+            "response": {
+              "response": {
+                "neverError": true
+              }
+            }
+          }
+        }
+      },
+      {
+        "id": "f7000000-0005-4000-8000-botetikettif",
+        "name": "Etikett übernommen?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          1912,
+          2140
+        ],
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose"
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "ok",
+                "leftValue": "={{ $json.status === 'bestaetigt' && !!$json.produkt }}",
+                "rightValue": "",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                }
+              }
+            ]
+          },
+          "options": {}
+        }
+      },
+      {
+        "name": "Etikett: Grocy-kcal",
+        "type": "n8n-nodes-base.executeWorkflow",
+        "typeVersion": 1.3,
+        "parameters": {
+          "mode": "once",
+          "source": "database",
+          "workflowId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "VorratNaehrwert1",
+            "cachedResultName": "Vorrat · Nährwerte ermitteln"
+          },
+          "workflowInputs": {
+            "mappingMode": "defineBelow",
+            "value": {
+              "grocy_product_id": "={{ $('Etikett-Antwort speichern').first().json.produkt.grocy_product_id }}",
+              "name": "={{ $('Etikett-Antwort speichern').first().json.produkt.name }}",
+              "einheit": "={{ $('Etikett-Antwort speichern').first().json.produkt.einheit }}",
+              "rewe_product_id": "={{ $('Etikett-Antwort speichern').first().json.produkt.rewe_product_id || '' }}",
+              "kcal_100": "={{ $('Etikett-Antwort speichern').first().json.produkt.kcal_100 }}",
+              "protein_100": "={{ $('Etikett-Antwort speichern').first().json.produkt.protein_100 }}",
+              "fett_100": "={{ $('Etikett-Antwort speichern').first().json.produkt.fett_100 }}",
+              "kh_100": "={{ $('Etikett-Antwort speichern').first().json.produkt.kh_100 }}",
+              "werte_quelle": "manuell"
+            },
+            "matchingColumns": [],
+            "schema": [
+              {
+                "id": "grocy_product_id",
+                "displayName": "grocy_product_id",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "number"
+              },
+              {
+                "id": "name",
+                "displayName": "name",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
+              },
+              {
+                "id": "marke",
+                "displayName": "marke",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
+              },
+              {
+                "id": "rewe_product_id",
+                "displayName": "rewe_product_id",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
+              },
+              {
+                "id": "ean",
+                "displayName": "ean",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
+              },
+              {
+                "id": "einheit",
+                "displayName": "einheit",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
+              },
+              {
+                "id": "kategorie",
+                "displayName": "kategorie",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
+              },
+              {
+                "id": "kcal_100",
+                "displayName": "kcal_100",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "number"
+              },
+              {
+                "id": "protein_100",
+                "displayName": "protein_100",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "number"
+              },
+              {
+                "id": "fett_100",
+                "displayName": "fett_100",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "number"
+              },
+              {
+                "id": "kh_100",
+                "displayName": "kh_100",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "number"
+              },
+              {
+                "id": "werte_quelle",
+                "displayName": "werte_quelle",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
+              },
+              {
+                "id": "gramm_pro_stk",
+                "displayName": "gramm_pro_stk",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "number"
+              },
+              {
+                "id": "gramm_quelle",
+                "displayName": "gramm_quelle",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
+              },
+              {
+                "id": "bls_suche",
+                "displayName": "bls_suche",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
+              },
+              {
+                "id": "mit_schale",
+                "displayName": "mit_schale",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
+              }
+            ],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          },
+          "options": {
+            "waitForSubWorkflow": true
+          }
+        },
+        "id": "f7000000-0006-4000-8000-botetikettnw",
+        "position": [
+          2132,
+          2060
+        ]
+      },
+      {
+        "id": "f7000000-8579-4000-8000-botetikett79",
+        "name": "Etikett-Antwort melden",
+        "type": "n8n-nodes-base.telegram",
+        "typeVersion": 1.2,
+        "position": [
+          2352,
+          2140
+        ],
+        "credentials": {
+          "telegramApi": {
+            "id": "R0Ye0fbcmRICFU8r",
+            "name": "Telegram account"
+          }
+        },
+        "webhookId": "f7000000-aaaa-4000-8000-031849398579",
+        "parameters": {
+          "resource": "message",
+          "operation": "sendMessage",
+          "chatId": "={{ $('Update auswerten').first().json.chat_id }}",
+          "text": "={{ (() => { const r = $('Etikett-Antwort speichern').first().json; if (r.status === 'bestaetigt' && r.produkt) return '✅ Etikettwerte für <b>' + r.produkt.name + '</b> gespeichert (Rang 1): ' + Math.round(r.produkt.kcal_100) + ' kcal pro 100 g. Grocy ist aktualisiert.'; if (r.status === 'verworfen') return '🗑️ Verworfen, es bleibt bei den bisherigen Werten.'; return '⚠️ ' + (r.fehler || 'Nicht gespeichert.'); })() }}",
+          "additionalFields": {
+            "appendAttribution": false,
+            "parse_mode": "HTML"
+          }
+        }
+      },
+      {
+        "name": "Nährwert-Status laden",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.6,
+        "credentials": {
+          "postgres": {
+            "id": "RewePostgres0001",
+            "name": "REWE Postgres"
+          }
+        },
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "SELECT grocy_product_id, geschaetzt FROM vorrat_naehrwerte;",
+          "options": {}
+        },
+        "alwaysOutputData": true,
+        "executeOnce": true,
+        "id": "f7000000-0007-4000-8000-botnwstatus1",
+        "position": [
+          2560,
+          1400
+        ]
+      },
+      {
+        "id": "f7000000-0008-4000-8000-botnwtool001",
+        "name": "vorrat_naehrwerte",
+        "type": "n8n-nodes-base.postgresTool",
+        "typeVersion": 2.6,
+        "position": [
+          3328,
+          1968
+        ],
+        "credentials": {
+          "postgres": {
+            "id": "RewePostgres0001",
+            "name": "REWE Postgres"
+          }
+        },
+        "parameters": {
+          "descriptionType": "manual",
+          "toolDescription": "Nährwerte der Vorratsprodukte pro 100 g mit Quelle und Rang (1 = vom Nutzer, 2 = REWE, 3/4 = Open Food Facts, 5 = BLS, 6 = KI), Stückgewicht und geschaetzt. Für Fragen wie „Wie viel Protein hat mein Skyr?“. Bei geschaetzt = true die Zahl mit ≈ kennzeichnen.",
+          "operation": "executeQuery",
+          "query": "SELECT grocy_product_id, name, einheit, kcal_100, protein_100, fett_100, kh_100, naehrwert_quelle, naehrwert_rang, gramm_pro_stk, gramm_quelle, geschaetzt FROM vorrat_naehrwerte WHERE $1 = '' OR lower(name) LIKE '%' || lower($1) || '%' ORDER BY name LIMIT 30;",
+          "options": {
+            "queryReplacement": "={{ [ $fromAI('suchbegriff', 'Teil des Produktnamens, leer = alle', 'string', '') ] }}"
+          }
+        }
+      },
+      {
+        "id": "f7000000-0009-4000-8000-bothinweis01",
+        "name": "Etikett-Hinweis senden",
+        "type": "n8n-nodes-base.telegram",
+        "typeVersion": 1.2,
+        "position": [
+          3012,
+          2080
+        ],
+        "credentials": {
+          "telegramApi": {
+            "id": "R0Ye0fbcmRICFU8r",
+            "name": "Telegram account"
+          }
+        },
+        "webhookId": "f7000000-dddd-4000-8000-bothinweis01",
+        "parameters": {
+          "resource": "message",
+          "operation": "sendMessage",
+          "chatId": "={{ $('Update auswerten').first().json.chat_id }}",
+          "text": "={{ $json.text }}",
+          "additionalFields": {
+            "appendAttribution": false,
+            "parse_mode": "HTML"
+          }
+        }
+      },
+      {
+        "id": "f7000000-0010-4000-8000-botbuttons01",
+        "name": "Buttons?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          2902,
+          2000
+        ],
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose"
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "b",
+                "leftValue": "={{ $json.buttons === true }}",
+                "rightValue": "",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                }
+              }
+            ]
+          },
+          "options": {}
+        }
       }
     ],
     "connections": {
@@ -2488,6 +3256,27 @@
           [
             {
               "node": "Button bestätigen (Bon)",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Unsichere laden",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Etikett: kurz warten",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Button bestätigen (Etikett)",
               "type": "main",
               "index": 0
             }
@@ -2691,7 +3480,7 @@
         "main": [
           [
             {
-              "node": "Vorrat formatieren",
+              "node": "Nährwert-Status laden",
               "type": "main",
               "index": 0
             }
@@ -3092,6 +3881,196 @@
             }
           ]
         ]
+      },
+      "Nährwert-Status laden": {
+        "main": [
+          [
+            {
+              "node": "Vorrat formatieren",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "vorrat_naehrwerte": {
+        "ai_tool": [
+          [
+            {
+              "node": "Vorrats-Assistent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Unsichere laden": {
+        "main": [
+          [
+            {
+              "node": "Unsichere formatieren",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Unsichere formatieren": {
+        "main": [
+          [
+            {
+              "node": "Unsichere senden",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Etikett: kurz warten": {
+        "main": [
+          [
+            {
+              "node": "Foto laden",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Foto laden": {
+        "main": [
+          [
+            {
+              "node": "Foto als Text",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Foto als Text": {
+        "main": [
+          [
+            {
+              "node": "MiniMax liest Etikett",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "MiniMax liest Etikett": {
+        "main": [
+          [
+            {
+              "node": "Etikett auswerten",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Etikett auswerten": {
+        "main": [
+          [
+            {
+              "node": "Etikett-Vorschlag speichern",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Etikett-Vorschlag speichern": {
+        "main": [
+          [
+            {
+              "node": "Etikett-Nachricht bauen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Etikett-Nachricht bauen": {
+        "main": [
+          [
+            {
+              "node": "Buttons?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Button bestätigen (Etikett)": {
+        "main": [
+          [
+            {
+              "node": "Etikett-Antwort speichern",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Etikett-Antwort speichern": {
+        "main": [
+          [
+            {
+              "node": "Etikett übernommen?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Etikett: Grocy-kcal": {
+        "main": [
+          [
+            {
+              "node": "Etikett-Antwort melden",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Etikett übernommen?": {
+        "main": [
+          [
+            {
+              "node": "Etikett: Grocy-kcal",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Etikett-Antwort melden",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Buttons?": {
+        "main": [
+          [
+            {
+              "node": "Etikett senden",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Etikett-Hinweis senden",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
       }
     },
     "settings": {
@@ -3178,9 +4157,9 @@
       }
     ],
     "pinData": null,
-    "versionId": "64708bbd-3cf6-4c2f-bb75-57b18bbfeb01",
-    "activeVersionId": "64708bbd-3cf6-4c2f-bb75-57b18bbfeb01",
-    "versionCounter": 16,
+    "versionId": "5bf4b2f1-985b-4228-8bbd-4117b5a423b5",
+    "activeVersionId": "5bf4b2f1-985b-4228-8bbd-4117b5a423b5",
+    "versionCounter": 17,
     "triggerCount": 1,
     "sourceWorkflowId": null,
     "tags": [],
