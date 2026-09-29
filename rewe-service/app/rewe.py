@@ -180,18 +180,50 @@ _FUNKTIONEN = {
 }
 
 
+class OffLimit(RuntimeError):
+    """Open Food Facts lehnt wegen Anfrage-Limit ab (HTTP 429/503) – später erneut versuchen."""
+
+
+OFF_HEADERS = {"User-Agent": "VorratsAssistent-rewe-service/1.0 (privat)"}
+_OFF_FELDER = {"kcal": "energy-kcal_100g", "protein": "proteins_100g", "kh": "carbohydrates_100g", "fett": "fat_100g",
+               "zucker": "sugars_100g", "ballaststoffe": "fiber_100g", "salz": "salt_100g"}
+
+
+def off_werte(nutriments: dict | None) -> dict | None:
+    n = nutriments or {}
+    werte = {k: n.get(f) for k, f in _OFF_FELDER.items()}
+    werte = {k: round(float(v), 2 if k == "salz" else 1) for k, v in werte.items() if isinstance(v, (int, float))}
+    return werte or None
+
+
+def _off_get(url: str, params: dict) -> httpx.Response:
+    try:
+        r = httpx.get(url, params=params, headers=OFF_HEADERS, timeout=20)
+    except httpx.TimeoutException as e:
+        raise OffLimit(f"Zeitüberschreitung: {e}") from e
+    if r.status_code in (429, 503):
+        raise OffLimit(f"HTTP {r.status_code}")
+    return r
+
+
 def openfoodfacts(ean: str) -> dict | None:
-    """Nährwerte per Barcode (nur Fallback, wenn REWE keine nutritionFacts liefert)."""
-    r = httpx.get(f"https://world.openfoodfacts.org/api/v2/product/{ean}.json",
-                  params={"fields": "product_name,brands,quantity,nutriments"},
-                  headers={"User-Agent": "VorratsAssistent-rewe-service/1.0"}, timeout=20)
+    """Nährwerte pro 100 g per Barcode. OffLimit bei Anfrage-Limit."""
+    r = _off_get(f"https://world.openfoodfacts.org/api/v2/product/{ean}.json",
+                 {"fields": "product_name,brands,quantity,nutriments"})
     if r.status_code != 200:
         return None
     daten = r.json()
     if daten.get("status") != 1:
         return None
-    n = (daten.get("product") or {}).get("nutriments") or {}
-    werte = {"kcal": n.get("energy-kcal_100g"), "protein": n.get("proteins_100g"),
-             "kh": n.get("carbohydrates_100g"), "fett": n.get("fat_100g")}
-    werte = {k: round(float(v), 1) for k, v in werte.items() if isinstance(v, (int, float))}
-    return werte or None
+    return off_werte((daten.get("product") or {}).get("nutriments"))
+
+
+def openfoodfacts_suche(begriff: str, seiten_groesse: int = 10) -> list[dict]:
+    """Namenssuche (nur deutsche Produkte). OffLimit bei Anfrage-Limit (Suche: ca. 10 Anfragen/Minute)."""
+    r = _off_get("https://world.openfoodfacts.org/cgi/search.pl", {
+        "search_terms": begriff, "search_simple": 1, "action": "process", "json": 1, "page_size": seiten_groesse,
+        "tagtype_0": "countries", "tag_contains_0": "contains", "tag_0": "germany",
+        "fields": "code,product_name,brands,nutriments"})
+    if r.status_code != 200:
+        return []
+    return r.json().get("products") or []

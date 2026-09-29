@@ -23,7 +23,9 @@ SEITEN = {
 DETAILS = {
     "1000001": {"brand": "REWE", "nutritionFacts": [{"preparationState": "Unzubereitet", "nutrientInformation": [
         {"nutrientType": "Energie", "quantityContained": {"value": 93, "uomShortText": "kcal"}},
-        {"nutrientType": "Eiweiß", "quantityContained": {"value": 1.2, "uomShortText": "g"}}]}]},
+        {"nutrientType": "Eiweiß", "quantityContained": {"value": 1.2, "uomShortText": "g"}},
+        {"nutrientType": "Fett", "quantityContained": {"value": 0.2, "uomShortText": "g"}},
+        {"nutrientType": "Kohlenhydrate", "quantityContained": {"value": 20.4, "uomShortText": "g"}}]}]},
     "1000002": {"brand": None, "packaging": {"weightPerPiece": 750.0}},
     "1000003": {"brand": None},
     "2000001": {"brand": "Barilla", "description": "Hartweizengrieß"},
@@ -88,8 +90,8 @@ def test_kompletter_lauf(umgebung, monkeypatch):
         eans = dict(con.execute("SELECT rewe_product_id, ean FROM rewe_products"))
         assert eans["2000001"] == "8076800195057" and eans["1000001"] is None
         assert zeilen["1000001"][5:] == (93, pytest.approx(1.2))
-        # Größe aus packaging.weightPerPiece nachgetragen
-        assert zeilen["1000002"][:2] == (750, "g")
+        # packaging.weightPerPiece ist keine Grammangabe -> Größe bleibt unbekannt
+        assert zeilen["1000002"][:2] == (None, None)
         assert con.execute("SELECT count(*) FROM rewe_price_history").fetchone()[0] == 4
         assert con.execute("SELECT count(*) FROM crawl_log WHERE message = 'Größe nicht erkannt'").fetchone()[0] == 1
 

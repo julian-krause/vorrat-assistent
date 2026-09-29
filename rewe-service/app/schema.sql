@@ -33,6 +33,66 @@ CREATE INDEX IF NOT EXISTS rewe_products_suche_idx
 CREATE INDEX IF NOT EXISTS rewe_products_ohne_details_idx
     ON rewe_products (first_seen) WHERE details_fetched_at IS NULL;
 
+ALTER TABLE rewe_products
+    ADD COLUMN IF NOT EXISTS zucker_100 numeric(6, 1),
+    ADD COLUMN IF NOT EXISTS ballaststoffe_100 numeric(6, 1),
+    ADD COLUMN IF NOT EXISTS salz_100 numeric(6, 2),
+    ADD COLUMN IF NOT EXISTS naehrwert_verlauf_id bigint;
+
+-- Jede tatsächliche Änderung der Nährwerte eines REWE-Produkts; rewe_products hält den aktuellen Stand
+-- (naehrwert_verlauf_id zeigt auf die gültige Zeile). name/grammage_raw: Stand bei der Änderung, für die 20-%-Prüfung.
+CREATE TABLE IF NOT EXISTS rewe_naehrwert_verlauf (
+    id                bigserial PRIMARY KEY,
+    rewe_product_id   text NOT NULL REFERENCES rewe_products (rewe_product_id),
+    kcal_100          numeric(7, 1),
+    protein_100       numeric(6, 1),
+    kh_100            numeric(6, 1),
+    fett_100          numeric(6, 1),
+    zucker_100        numeric(6, 1),
+    ballaststoffe_100 numeric(6, 1),
+    salz_100          numeric(6, 2),
+    quelle            text,                -- rewe | openfoodfacts
+    ean               text,
+    marke             text,
+    name              text,
+    grammage_raw      text,
+    gueltig_ab        timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS rewe_naehrwert_verlauf_produkt_idx ON rewe_naehrwert_verlauf (rewe_product_id, gueltig_ab);
+
+-- Bestand vor Einführung des Verlaufs: je Produkt mit Nährwerten eine Startzeile
+WITH neu AS (
+    INSERT INTO rewe_naehrwert_verlauf (rewe_product_id, kcal_100, protein_100, kh_100, fett_100, quelle, ean, marke, name,
+                                        grammage_raw, gueltig_ab)
+    SELECT rewe_product_id, kcal_100, protein_100, kh_100, fett_100, naehrwerte_quelle, ean, brand, name, grammage_raw,
+           coalesce(details_fetched_at, first_seen)
+    FROM rewe_products WHERE kcal_100 IS NOT NULL AND naehrwert_verlauf_id IS NULL
+    RETURNING id, rewe_product_id
+)
+UPDATE rewe_products p SET naehrwert_verlauf_id = neu.id FROM neu WHERE p.rewe_product_id = neu.rewe_product_id;
+
+-- Hinweise für den nächtlichen Telegram-Versand (Abweichungen > 20 %, unplausible Werte, Fehler der Nachtjobs)
+CREATE TABLE IF NOT EXISTS meldungen (
+    id          bigserial PRIMARY KEY,
+    art         text NOT NULL,
+    text        text NOT NULL,
+    daten       jsonb,
+    erstellt_at timestamptz NOT NULL DEFAULT now(),
+    gesendet_at timestamptz
+);
+CREATE INDEX IF NOT EXISTS meldungen_offen_idx ON meldungen (erstellt_at) WHERE gesendet_at IS NULL;
+
+-- Plausibilität wie app/naehrwerte.py: kcal ≈ 4·P + 4·KH + 9·F (+ 2·Ballaststoffe) ±15 % (mind. 5 kcal), P + F + KH ≤ 100 g
+CREATE OR REPLACE FUNCTION naehrwerte_plausibel(kcal numeric, protein numeric, fett numeric, kh numeric,
+                                                ballaststoffe numeric DEFAULT NULL)
+RETURNS boolean LANGUAGE sql IMMUTABLE AS $$
+    SELECT kcal IS NOT NULL AND protein IS NOT NULL AND fett IS NOT NULL AND kh IS NOT NULL
+       AND least(kcal, protein, fett, kh) >= 0
+       AND protein + fett + kh <= 100.5
+       AND abs(kcal - (4 * protein + 4 * kh + 9 * fett + 2 * coalesce(ballaststoffe, 0)))
+           <= greatest(0.15 * (4 * protein + 4 * kh + 9 * fett + 2 * coalesce(ballaststoffe, 0)), 5);
+$$;
+
 CREATE TABLE IF NOT EXISTS rewe_price_history (
     id              bigserial PRIMARY KEY,
     rewe_product_id text NOT NULL REFERENCES rewe_products (rewe_product_id),

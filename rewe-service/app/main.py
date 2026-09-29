@@ -11,7 +11,7 @@ from fastapi import Body, FastAPI, HTTPException, Query
 from fastapi.responses import HTMLResponse, JSONResponse
 
 from . import bon, db, planer, rewe
-from .crawler import Crawler, kategorien_config, listen_produkt
+from .crawler import Crawler, details_uebernehmen, kategorien_config, listen_produkt
 from .parse import ean_aus_article_id, finde_ean, parse_naehrwerte
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -83,6 +83,21 @@ def product_detail(product_id: str):
     return {"rewe_product_id": product_id, "name": d.get("title"), "brand": d.get("brand"),
             "grammage": (d.get("listing") or {}).get("grammage"), "naehrwerte_100": parse_naehrwerte(d.get("nutritionFacts")),
             "ean": finde_ean(d) or ean_aus_article_id(d.get("articleId"))}
+
+
+def produkt_aktualisieren(con, product_id: str) -> dict:
+    """Details eines Produkts live holen und speichern (fehlt es in der Tabelle, wird es angelegt)."""
+    d = _live("produkt_detail", product_id)
+    if not con.execute("SELECT 1 FROM rewe_products WHERE rewe_product_id = %s", (product_id,)).fetchone():
+        db.produkt_aus_liste(con, listen_produkt({**d, "productId": product_id}, None))
+    return details_uebernehmen(con, product_id, d)
+
+
+@app.post("/products/{product_id}/aktualisieren")
+def product_aktualisieren(product_id: str):
+    """Details live holen und in rewe_products schreiben (Verlauf, leer überschreibt nie, Plausibilität, 20-%-Meldung)."""
+    with db.verbinden() as con:
+        return produkt_aktualisieren(con, product_id)
 
 
 @app.get("/debug/raw/product/{product_id}")

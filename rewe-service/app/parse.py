@@ -20,10 +20,11 @@ def _zahl(s: str) -> float:
     return float(s.replace(",", "."))
 
 
-def parse_groesse(grammage: str | None, gewicht_pro_stueck: float | None = None) -> tuple[float | None, str | None]:
+def parse_groesse(grammage: str | None) -> tuple[float | None, str | None]:
     """„500g (1 kg = 3,98 €)“ -> (500, "g"); „6 x 1,5 l“ -> (9000, "ml"); „10 Stück“ -> (10, "Stück").
 
-    Liefert (None, None), wenn nichts erkannt wird. Als Rückfall dient packaging.weightPerPiece.
+    Liefert (None, None), wenn nichts erkannt wird. packaging.weightPerPiece taugt nicht als Rückfall:
+    es ist die Menge in der Verkaufseinheit (150 bei „150g“, aber 6 bei „6 Stück“), nicht immer Gramm.
     """
     text = (grammage or "").split("(")[0].strip().lower()
     m = _MULTI.match(text)
@@ -34,8 +35,6 @@ def parse_groesse(grammage: str | None, gewicht_pro_stueck: float | None = None)
     if m:
         einheit, faktor = _EINHEIT[m.group(2)]
         return round(_zahl(m.group(1)) * faktor, 3), einheit
-    if gewicht_pro_stueck and gewicht_pro_stueck > 0:
-        return float(gewicht_pro_stueck), "g"
     return None, None
 
 
@@ -57,11 +56,20 @@ def _bezug_100(fact: dict) -> float:
     return 1.0
 
 
+def _ist_pro_100(fact: dict) -> bool:
+    ss = fact.get("servingSize") or {}
+    return ss.get("value") == 100 and str(ss.get("uomShortText", "")).lower() in ("g", "ml")
+
+
 def parse_naehrwerte(facts: list | None) -> dict | None:
-    """nutritionFacts -> {kcal, protein, kh, fett} pro 100 g/ml (unzubereitet bevorzugt)."""
+    """nutritionFacts -> {kcal, protein, kh, fett, zucker, ballaststoffe, salz} pro 100 g/ml.
+
+    Bevorzugt: unzubereitet, dann die Tabelle pro 100 g/ml (REWE liefert oft zusätzlich „pro Portion“), dann die erste.
+    """
     if not facts:
         return None
-    fact = next((f for f in facts if str(f.get("preparationState", "")).lower().startswith("unzubereitet")), facts[0])
+    fact = (next((f for f in facts if str(f.get("preparationState") or "").lower().startswith("unzubereitet")), None)
+            or next((f for f in facts if _ist_pro_100(f)), None) or facts[0])
     faktor = _bezug_100(fact)
     werte: dict[str, float] = {}
     kj = None
@@ -83,11 +91,17 @@ def parse_naehrwerte(facts: list | None) -> dict | None:
             werte["kh"] = wert * faktor
         elif typ == "fett":
             werte["fett"] = wert * faktor
+        elif "zucker" in typ and "alkohol" not in typ:
+            werte["zucker"] = wert * faktor
+        elif typ.startswith("ballaststoff"):
+            werte["ballaststoffe"] = wert * faktor
+        elif typ == "salz":
+            werte["salz"] = wert * faktor
     if "kcal" not in werte and kj is not None:
         werte["kcal"] = kj / 4.184
     if not werte:
         return None
-    return {k: round(v, 1) for k, v in werte.items()}
+    return {k: round(v, 2 if k == "salz" else 1) for k, v in werte.items()}
 
 
 def gtin_gueltig(code: str) -> bool:

@@ -128,7 +128,8 @@ Die Live-Seite ist im Tailnet unter https://vorrat.tail892968.ts.net:8444/ errei
 | `GET /markets/search?q=PLZ` | Märkte suchen (Markt-ID) |
 | `GET /categories` | Shop-Kategorien des Marktes + konfigurierte Kategorien |
 | `GET /products/search?q=…` | Live-Suche im Shop (Test/Debug) |
-| `GET /products/{id}` | Live-Produktdetails inkl. Nährwerte |
+| `GET /products/{id}` | Live-Produktdetails inkl. Nährwerte (nur anzeigen) |
+| `POST /products/{id}/aktualisieren` | Details live holen und speichern: Verlauf in `rewe_naehrwert_verlauf`, leere Werte überschreiben nie, unplausible Werte werden nicht übernommen, > 20 % Abweichung bei gleichem Namen/Größe wird gemeldet (`meldungen`) |
 | `GET /debug/raw/product/{id}` | ungefilterte API-Antwort, prüft auf EAN/GTIN-Felder |
 | `GET /discounts` | Angebote des Marktes (für Workflow 06) |
 | `POST /crawl` | Crawl im Hintergrund starten bzw. abgebrochenen Lauf fortsetzen |

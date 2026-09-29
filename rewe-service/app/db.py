@@ -69,11 +69,10 @@ def produkt_aus_liste(con: psycopg.Connection, p: dict) -> bool:
 
 
 def produkt_details(con: psycopg.Connection, d: dict) -> None:
+    """Stammdaten aus der Detailansicht; Nährwerte schreibt nur naehrwerte.rewe_speichern. Leeres überschreibt nie."""
     con.execute("""
         UPDATE rewe_products SET
-            brand = %(brand)s, description = %(description)s, ean = coalesce(%(ean)s, ean),
+            brand = coalesce(%(brand)s, brand), description = coalesce(%(description)s, description), ean = coalesce(%(ean)s, ean),
             size_value = coalesce(size_value, %(size_value)s), size_unit = coalesce(size_unit, %(size_unit)s),
-            price_per_kg_or_l = coalesce(price_per_kg_or_l, %(price_per)s),
-            kcal_100 = %(kcal)s, protein_100 = %(protein)s, kh_100 = %(kh)s, fett_100 = %(fett)s,
-            naehrwerte_quelle = %(quelle)s, details_fetched_at = now()
+            price_per_kg_or_l = coalesce(price_per_kg_or_l, %(price_per)s), details_fetched_at = now()
         WHERE rewe_product_id = %(id)s""", d)

@@ -20,9 +20,23 @@ def test_groesse(text, erwartet):
     assert parse_groesse(text) == erwartet
 
 
-def test_groesse_unbekannt_und_rueckfall():
+def test_groesse_unbekannt():
     assert parse_groesse("ca. Bund") == (None, None)
-    assert parse_groesse("", 250.0) == (250.0, "g")
+    assert parse_groesse("") == (None, None)
+
+
+def test_naehrwerte_pro_100_statt_portion():
+    # REWE liefert oft zwei Tabellen ohne preparationState: pro 100 g und pro Portion
+    portion = {"servingSize": {"value": 10.0, "uomShortText": "g"}, "nutrientInformation": [
+        {"nutrientType": "Energie", "quantityContained": {"value": 59.0, "uomShortText": "kcal"}}]}
+    je100 = {"servingSize": {"value": 100.0, "uomShortText": "g"}, "nutrientInformation": [
+        {"nutrientType": "Energie", "quantityContained": {"value": 589.0, "uomShortText": "kcal"}},
+        {"nutrientType": "Fett", "quantityContained": {"value": 65.0, "uomShortText": "g"}},
+        {"nutrientType": "Fett, davon gesättigte Fettsäuren", "quantityContained": {"value": 35.6, "uomShortText": "g"}},
+        {"nutrientType": "Kohlenhydrate, davon Zucker", "quantityContained": {"value": 0.5, "uomShortText": "g"}},
+        {"nutrientType": "Ballaststoffe", "quantityContained": {"value": 0.1, "uomShortText": "g"}},
+        {"nutrientType": "Salz", "quantityContained": {"value": 0.02, "uomShortText": "g"}}]}
+    assert parse_naehrwerte([portion, je100]) == {"kcal": 589, "fett": 65, "zucker": 0.5, "ballaststoffe": 0.1, "salz": 0.02}
 
 
 def test_grundpreis():
@@ -48,7 +62,7 @@ FAKTEN = [{
 
 
 def test_naehrwerte_aus_rewe_mitschnitt():
-    assert parse_naehrwerte(FAKTEN) == {"kcal": 589.0, "fett": 46.0, "kh": 15.0, "protein": 25.0}
+    assert parse_naehrwerte(FAKTEN) == {"kcal": 589.0, "fett": 46.0, "kh": 15.0, "zucker": 5.0, "protein": 25.0}
 
 
 def test_naehrwerte_nur_kj_und_andere_bezugsgroesse():

@@ -18,7 +18,7 @@ from pathlib import Path
 import yaml
 from psycopg.types.json import Jsonb
 
-from . import db, rewe
+from . import db, naehrwerte, rewe
 from .parse import ean_aus_article_id, finde_ean, grundpreis, parse_groesse, parse_naehrwerte
 
 log = logging.getLogger("crawler")
@@ -81,6 +81,36 @@ def listen_produkt(p: dict, kategorie: str) -> dict:
         "price": preis, "price_per": grundpreis(preis, groesse, einheit),
         "bio": attr.get("isOrganic"), "vegan": attr.get("isVegan"), "vegetarisch": attr.get("isVegetarian"),
     }
+
+
+def details_uebernehmen(con, pid: str, d: dict, run_id: int | None = None) -> dict:
+    """Detailansicht eines Produkts übernehmen: Stammdaten + Nährwerte (REWE, sonst Open Food Facts per EAN).
+
+    Open Food Facts nur, wenn das Produkt noch keine REWE-Werte hat (schlechter überschreibt nie besser).
+    """
+    ean = finde_ean(d) or ean_aus_article_id(d.get("articleId"))
+    listing = d.get("listing") or {}
+    groesse, einheit = parse_groesse(listing.get("grammage"))
+    preis = listing.get("currentRetailPrice")
+    preis = round(preis / 100, 2) if isinstance(preis, (int, float)) else None
+    db.produkt_details(con, {
+        "id": pid, "brand": d.get("brand") or None, "description": d.get("description") or d.get("regulatedProductName") or None,
+        "ean": ean, "size_value": groesse, "size_unit": einheit, "price_per": grundpreis(preis, groesse, einheit),
+    })
+    meta = {"ean": ean, "marke": d.get("brand") or None}
+    status = naehrwerte.rewe_speichern(con, pid, parse_naehrwerte(d.get("nutritionFacts")), "rewe", meta, run_id)
+    stand = naehrwerte.rewe_werte(con, pid)
+    if stand["quelle"] != "rewe" and ean and status in ("leer", "unplausibel"):
+        try:
+            off = rewe.openfoodfacts(ean)
+        except rewe.OffLimit:
+            off = None
+            db.log(con, run_id, "warn", "Open Food Facts: Anfrage-Limit erreicht", {"rewe_product_id": pid, "ean": ean})
+        if off:
+            status = "off_" + naehrwerte.rewe_speichern(con, pid, off, "openfoodfacts", meta, run_id)
+            stand = naehrwerte.rewe_werte(con, pid)
+    return {"rewe_product_id": pid, "naehrwerte": status, "hat_naehrwerte": bool(stand["werte"]),
+            "quelle": stand["quelle"], "werte": stand["werte"], "ean": ean}
 
 
 class Crawler:
@@ -215,25 +245,9 @@ class Crawler:
                 # nach einem Einzelfehler nicht endlos am selben Produkt hängen bleiben
                 con.execute("UPDATE rewe_products SET details_fetched_at = now() WHERE rewe_product_id = %s", (pid,))
                 continue
-            naehr = parse_naehrwerte(d.get("nutritionFacts"))
-            ean = finde_ean(d) or ean_aus_article_id(d.get("articleId"))
-            quelle = "rewe" if naehr else None
-            if not naehr and ean:
-                naehr = rewe.openfoodfacts(ean)
-                quelle = "openfoodfacts" if naehr else None
-            if not naehr:
+            erg = details_uebernehmen(con, pid, d, run_id)
+            if erg["naehrwerte"] in ("leer", "unplausibel") and not erg["hat_naehrwerte"]:
                 stats["ohne_naehrwerte"] += 1
-            gewicht = (d.get("packaging") or {}).get("weightPerPiece")
-            groesse, einheit = parse_groesse(None, gewicht)
-            preis = (d.get("listing") or {}).get("currentRetailPrice")
-            preis = round(preis / 100, 2) if isinstance(preis, (int, float)) else None
-            naehr = naehr or {}
-            db.produkt_details(con, {
-                "id": pid, "brand": d.get("brand"), "description": d.get("description") or d.get("regulatedProductName"),
-                "ean": ean, "size_value": groesse, "size_unit": einheit, "price_per": grundpreis(preis, groesse, einheit),
-                "kcal": naehr.get("kcal"), "protein": naehr.get("protein"), "kh": naehr.get("kh"), "fett": naehr.get("fett"),
-                "quelle": quelle,
-            })
             stats["details"] += 1
             cursor["details_erledigt"] += 1
             self._speichern(con, run_id, cursor, stats)
