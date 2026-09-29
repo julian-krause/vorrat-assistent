@@ -10,7 +10,7 @@ from pathlib import Path
 from fastapi import Body, FastAPI, HTTPException, Query
 from fastapi.responses import HTMLResponse, JSONResponse
 
-from . import bls, bon, db, ermitteln, planer, rewe, stueckgewicht, vorrat
+from . import bls, bon, db, ermitteln, planer, rewe, stueckgewicht, verzehr, vorrat
 from .crawler import Crawler, kategorien_config, listen_produkt, produkt_aktualisieren
 from .parse import ean_aus_article_id, finde_ean, parse_naehrwerte
 
@@ -210,10 +210,11 @@ def naehrwerte_ermitteln(artikel: dict = Body(...)):
 
 @app.post("/naehrwerte/nachtlauf")
 def naehrwerte_nachtlauf():
-    """Nächtliche Pflege: Open-Food-Facts-Warteschlange erneut versuchen, Stückgewichte aus der Referenz."""
+    """Nächtliche Pflege: OFF-Warteschlange, Stückgewichte aus der Referenz, Verzehr-Korrektur bei besserer Quelle."""
     with db.verbinden() as con:
         return {"warteschlange": ermitteln.warteschlange_abarbeiten(con),
-                "stueckgewichte": stueckgewicht.alle_aktualisieren(con)}
+                "stueckgewichte": stueckgewicht.alle_aktualisieren(con),
+                "korrektur": verzehr.korrigieren(con)}
 
 
 @app.get("/bls/suche")

@@ -17,6 +17,7 @@ from __future__ import annotations
 import re
 from datetime import date
 
+from . import naehrwerte as nw
 from .bon import _SPALTEN, _produkt, normalisieren
 
 # Wörter, die eine Variante statt des Grundprodukts kennzeichnen
@@ -75,6 +76,16 @@ def _preis(p: dict) -> tuple[float | None, bool]:
 
 
 def _anreichern(p: dict) -> dict:
+    # Quelle und Rang der Nährwerte (für ≈ im Plan und das Verzehr-Protokoll); unplausible Werte nicht verwenden
+    werte = {"kcal": p.get("kcal_100"), "protein": p.get("protein_100"), "fett": p.get("fett_100"), "kh": p.get("kh_100"),
+             "ballaststoffe": p.get("ballaststoffe_100")}
+    q = nw.REWE_QUELLE.get(p.get("naehrwerte_quelle") or "")
+    if q and nw.plausibel(werte)[0]:
+        p["nw_quelle"], p["nw_rang"] = q, nw.RANG[q]
+    else:
+        p["nw_quelle"] = p["nw_rang"] = None
+        for k in ("kcal_100", "protein_100", "fett_100", "kh_100"):
+            p[k] = None
     preis, angebot = _preis(p)
     p["preis_aktuell"] = preis
     p["im_angebot"] = angebot

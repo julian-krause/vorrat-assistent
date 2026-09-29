@@ -184,6 +184,10 @@ Unabhängig vom Plan wird festgehalten, was tatsächlich gegessen wurde – Tabe
 | `rezept` | „✅ Gekocht“: Zutaten, die nicht (ganz) aus dem Vorrat abgebucht werden konnten, mit den Nährwerten pro 100 g aus dem Rezept (ältere Rezepte: anteilig, als geschätzt markiert). |
 | `manuell` | Der Agent trägt auswärts Gegessenes ein („Mittags Currywurst in der Mensa“), mit geschätzten oder REWE-Nährwerten. |
 
+Jeder Eintrag speichert, woher die Werte stammen: `grocy_product_id`/`rewe_product_id`, `naehrwert_quelle`/`naehrwert_rang`, `naehrwert_verlauf_id` (welcher REWE-Stand galt) und `gramm_quelle`/`gramm_rang` (Stückgewicht). „Gekocht“-Zutaten ohne Vorrat übernehmen Grocy- und REWE-ID sowie die Quelle aus dem Rezept (der Planer schreibt sie in `zutaten_json`).
+
+**Korrektur (Nachtjob):** Hat sich die Quelle verbessert (kleinerer Rang, z. B. KI → REWE) oder das Stückgewicht (z. B. KI → Referenz), wird der Eintrag neu berechnet (Gramm × aktuelle Werte), mit `korrigiert_at` markiert und die alten Werte landen in `verzehr_korrektur`. Hat sich nur der REWE-Stand geändert (neue Rezeptur, gleicher Rang), bleibt der alte Wert – er galt damals. Einträge ohne Produktbezug (auswärts gegessen) bleiben unverändert und gelten als geschätzt.
+
 Auswertung: `verzehr_auswertung(von, bis)` summiert kcal/Protein/Fett/KH und teilt durch die Kalendertage (bei einem laufenden Monat bis heute); dazu Tage mit Einträgen, Anteil geschätzter Werte und die häufigsten Lebensmittel. Im Chat z. B. „Wie viel habe ich im September durchschnittlich gegessen?“. Korrekturen setzen `ignoriert` (statt zu löschen), damit der Abgleich Grocy-Buchungen nicht neu anlegt.
 
 ## Wochenplan mit REWE-Produkten

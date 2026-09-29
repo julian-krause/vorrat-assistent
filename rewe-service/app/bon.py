@@ -137,9 +137,11 @@ def textwert(bon_text: str, produktname: str, marke: str | None = None) -> float
 
 def _produkt(row) -> dict:
     keys = ("rewe_product_id", "name", "brand", "category", "size_value", "size_unit", "price", "price_per_kg_or_l",
-            "angebotspreis", "angebot_bis", "ean", "kcal_100", "protein_100", "kh_100", "fett_100")
+            "angebotspreis", "angebot_bis", "ean", "kcal_100", "protein_100", "kh_100", "fett_100", "naehrwerte_quelle",
+            "ballaststoffe_100")
     d = dict(zip(keys, row))
-    for k in ("size_value", "price", "price_per_kg_or_l", "angebotspreis", "kcal_100", "protein_100", "kh_100", "fett_100"):
+    for k in ("size_value", "price", "price_per_kg_or_l", "angebotspreis", "kcal_100", "protein_100", "kh_100", "fett_100",
+              "ballaststoffe_100"):
         if d.get(k) is not None:
             d[k] = float(d[k])
     if d.get("angebot_bis"):
@@ -148,7 +150,8 @@ def _produkt(row) -> dict:
 
 
 _SPALTEN = """p.rewe_product_id, p.name, p.brand, p.category, p.size_value, p.size_unit, p.price, p.price_per_kg_or_l,
-              p.angebotspreis, p.angebot_bis, p.ean, p.kcal_100, p.protein_100, p.kh_100, p.fett_100"""
+              p.angebotspreis, p.angebot_bis, p.ean, p.kcal_100, p.protein_100, p.kh_100, p.fett_100, p.naehrwerte_quelle,
+              p.ballaststoffe_100"""
 
 
 def _preis_kandidaten(con, preis: Decimal, kaufdatum: date, pro_kg: bool) -> list[dict]:

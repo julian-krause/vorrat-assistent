@@ -334,3 +334,22 @@ CREATE TABLE IF NOT EXISTS stueckgewichte (
     anteil_essbar numeric(4, 2),
     quelle        text NOT NULL
 );
+
+-- Verzehr-Protokoll: Herkunft der festgeschriebenen Werte, damit der Nachtjob bei besserer Quelle korrigieren kann
+ALTER TABLE verzehr
+    ADD COLUMN IF NOT EXISTS rewe_product_id text,
+    ADD COLUMN IF NOT EXISTS naehrwert_quelle text,
+    ADD COLUMN IF NOT EXISTS naehrwert_rang smallint,
+    ADD COLUMN IF NOT EXISTS naehrwert_verlauf_id bigint,   -- welcher REWE-Stand galt
+    ADD COLUMN IF NOT EXISTS gramm_quelle text,
+    ADD COLUMN IF NOT EXISTS gramm_rang smallint,
+    ADD COLUMN IF NOT EXISTS korrigiert_at timestamptz;
+
+CREATE TABLE IF NOT EXISTS verzehr_korrektur (
+    id          bigserial PRIMARY KEY,
+    verzehr_id  bigint NOT NULL REFERENCES verzehr (id),
+    grund       text NOT NULL,
+    alt         jsonb NOT NULL,
+    neu         jsonb NOT NULL,
+    erstellt_at timestamptz NOT NULL DEFAULT now()
+);
