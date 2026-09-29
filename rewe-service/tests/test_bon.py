@@ -40,7 +40,7 @@ def test_bon_lesen():
     assert list(zeilen)[:3] == ["HAHN.LYONER", "EDELSALAMI", "GOUDA SCHEIBEN"]
     assert zeilen["AVOCADO VORGER."]["anzahl"] == 2 and zeilen["AVOCADO VORGER."]["einzelpreis"] == Decimal("1.19")
     assert zeilen["BANANE"]["gewicht_kg"] == Decimal("0.524") and zeilen["BANANE"]["kilopreis"] == Decimal("1.39")
-    assert zeilen["PFAND 0,25 EURO"]["ignorieren"] and not zeilen["MINERALWASSER"]["ignorieren"]
+    assert zeilen["PFAND 0,25 EURO"]["ignorieren"] and zeilen["MINERALWASSER"]["ignorieren"]  # Wasser wird nie erfasst
     assert len(b["zeilen"]) == 11  # nichts nach SUMME
 
 
@@ -88,13 +88,13 @@ def test_zuordnen(produkte):
         assert z["GOUDA SCHEIBEN"]["status"] == "sicher" and z["GOUDA SCHEIBEN"]["produkt"]["rewe_product_id"] == "1006"
         assert z["AVOCADO VORGER."]["produkt"]["rewe_product_id"] == "1007"
         assert z["BANANE"]["produkt"]["rewe_product_id"] == "1008"  # über den Kilopreis
-        assert z["MINERALWASSER"]["status"] == "keine"
+        assert "MINERALWASSER" not in z
         # Reihenfolge der KI-Artikel, Groß-/Kleinschreibung egal, unbekannte -> None
         assert [a and a["bon_text"] for a in erg["artikel"]] == ["HAHN.LYONER", "EDELSALAMI", "AVOCADO VORGER.", "BANANE", None]
 
         # Rückfrage beantworten -> beim nächsten Bon sofort sicher
         antwort = bon.antwort_speichern(con, z["EDELSALAMI"]["zeile_id"], "1004")
-        assert antwort["ok"] and antwort["produkt"]["brand"] == "Gut & Günstig"
+        assert antwort["ok"] and antwort["produkt"]["brand"] == "Gut & Günstig" and antwort["anzahl"] == 1
         erg2 = bon.zuordnen(con, BON, "bon-2")
         z2 = {e["bon_text"]: e for e in erg2["zeilen"]}
         assert z2["EDELSALAMI"]["status"] == "sicher" and z2["EDELSALAMI"]["grund"] == "gelernt (bestätigt)"
@@ -138,3 +138,11 @@ def test_suchbegriffe():
     assert _suchbegriffe("Eis") == ["Eis"]  # „ei“ nur als ganzes Wort
     assert "vollkorn penne" in _suchbegriffe("Vollkornnudeln")
     assert "naturreis" in _suchbegriffe("Vollkornreis")
+
+
+def test_wasser():
+    from app.bon import ist_wasser
+    for t in ["MINERALWASSER", "GEROLST.SPRUDEL", "Volvic Tafelwasser", "HEILWASSER STILL"]:
+        assert ist_wasser(t), t
+    for t in ["WASSERMELONE", "Kokoswasser", "HAHN.LYONER"]:
+        assert not ist_wasser(t), t

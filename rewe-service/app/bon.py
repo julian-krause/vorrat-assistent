@@ -26,6 +26,14 @@ _GEWICHT = re.compile(r"^\s*(?P<kg>\d+,\d{1,3})\s*kg\s*x\s*(?P<preis>\d+,\d{2})\
 _DATUM = re.compile(r"(\d{2})\.(\d{2})\.(\d{4})")
 _MARKT = re.compile(r"Markt:\s*(\d+)")
 _IGNORIEREN = re.compile(r"^(pfand|leergut|rabatt|coupon|bonus|payback|summe|zwischensumme|geg\.|rückgeld|mwst)", re.I)
+# Wasser wird nie erfasst (Mineral-, Tafel-, Heil-, Quell-, Sprudelwasser), wohl aber Wassermelone oder Kokoswasser
+_WASSER = re.compile(r"wasser|sprudel", re.I)
+_KEIN_WASSER = re.compile(r"melone|kokos|rosen|orangenbl", re.I)
+
+
+def ist_wasser(text: str) -> bool:
+    t = normalisieren(text)
+    return bool(_WASSER.search(t)) and not _KEIN_WASSER.search(t)
 TOLERANZ_TAGE = 45
 
 
@@ -85,7 +93,7 @@ def bon_lesen(text: str) -> dict:
         betrag = _zahl(m.group("betrag"))
         zeilen.append({"bon_text": text_zeile, "betrag": betrag, "mwst": m.group("mwst"), "anzahl": 1,
                        "einzelpreis": betrag, "gewicht_kg": None, "kilopreis": None,
-                       "ignorieren": betrag <= 0 or bool(_IGNORIEREN.match(text_zeile))})
+                       "ignorieren": betrag <= 0 or bool(_IGNORIEREN.match(text_zeile)) or ist_wasser(text_zeile)})
     datum = None
     m = re.search(r"Datum:\s*(\d{2}\.\d{2}\.\d{4})", text or "") or _DATUM.search(text or "")
     if m:
@@ -255,16 +263,18 @@ def lernen(con, bon_text: str, rewe_product_id: str, bestaetigt: bool = True) ->
 
 def antwort_speichern(con, zeile_id: int, rewe_product_id: str | None) -> dict:
     """Antwort auf die Rückfrage: Zuordnung lernen (oder „keins davon“ vermerken) und Produktdaten zurückgeben."""
-    zeile = con.execute("SELECT bon_text FROM bon_zeilen WHERE id = %s", (zeile_id,)).fetchone()
+    zeile = con.execute("SELECT bon_text, anzahl, gewicht_kg FROM bon_zeilen WHERE id = %s", (zeile_id,)).fetchone()
     if not zeile:
         return {"ok": False, "fehler": "Bonzeile unbekannt"}
+    # Stückzahl bzw. Gewicht vom Bon: damit kann n8n die gebuchte Menge auf Packungsgröße × Anzahl korrigieren
+    bon = {"anzahl": zeile[1], "gewicht_kg": float(zeile[2]) if zeile[2] is not None else None}
     if not rewe_product_id:
         con.execute("UPDATE bon_zeilen SET status = 'keins', beantwortet_at = now() WHERE id = %s", (zeile_id,))
-        return {"ok": True, "bon_text": zeile[0], "produkt": None}
+        return {"ok": True, "bon_text": zeile[0], "produkt": None, **bon}
     produkt = con.execute(f"SELECT {_SPALTEN} FROM rewe_products p WHERE p.rewe_product_id = %s", (rewe_product_id,)).fetchone()
     if not produkt:
         return {"ok": False, "fehler": "Produkt unbekannt"}
     lernen(con, zeile[0], rewe_product_id, bestaetigt=True)
     con.execute("UPDATE bon_zeilen SET status = 'bestaetigt', rewe_product_id = %s, beantwortet_at = now() WHERE id = %s",
                 (rewe_product_id, zeile_id))
-    return {"ok": True, "bon_text": zeile[0], "produkt": _produkt(produkt)}
+    return {"ok": True, "bon_text": zeile[0], "produkt": _produkt(produkt), **bon}

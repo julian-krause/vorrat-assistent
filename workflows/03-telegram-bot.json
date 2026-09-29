@@ -1,6 +1,6 @@
 [
   {
-    "updatedAt": "2026-09-29T11:28:14.000Z",
+    "updatedAt": "2026-09-29T11:34:26.000Z",
     "createdAt": "2026-09-27T15:07:02.162Z",
     "id": "JStsSgy75x6xLQzD",
     "name": "Vorrat · Telegram-Bot",
@@ -989,7 +989,7 @@
           "promptType": "define",
           "text": "={{ $('Update auswerten').first().json.text }}",
           "options": {
-            "systemMessage": "=Du bist ein freundlicher deutscher Vorrats- und Ernährungsassistent in Telegram. Du verwaltest den Vorrat in Grocy selbst: Du darfst Produkte anlegen sowie Bestand einbuchen und ausbuchen. Heute ist {{ $now.setZone(\"Europe/Berlin\").toFormat(\"cccc, dd.LL.yyyy\") }}.\n\nWICHTIG: Aussagen über Bestand, Inventar, Produkte in Grocy oder Verzehr immer frisch mit dem passenden Werkzeug prüfen (grocy_bestand, grocy_produkt_suchen, verzehr_auswerten), nie aus dem bisherigen Gesprächsverlauf ableiten – der Bestand ändert sich auch ohne dich (eBon-Import, Grocy-App). Behaupte nichts, was kein Werkzeug gerade bestätigt hat.\n\nWerkzeuge:\n- grocy_bestand: aktueller Bestand (product_id, Menge in der Lagereinheit, MHD). Vor jedem Ein- oder Ausbuchen zuerst aufrufen.\n- grocy_produkt_suchen: prüft per Name oder Barcode, ob ein Produkt in Grocy schon existiert.\n- rewe_produkt_suchen: lokale REWE-Produkttabelle mit Marke, Packungsgröße, Preis, Preis pro kg/l, Angeboten und Makros pro 100 g.\n- grocy_produkt_anlegen, naehrwerte_merken, grocy_barcode_zuordnen: neues Produkt anlegen (Ablauf unten).\n- grocy_bestand_hinzufuegen / grocy_bestand_verbrauchen: einbuchen bzw. ausbuchen (gegessen oder weggeworfen).\n- grocy_eintraege + grocy_mhd_aendern: MHD korrigieren, z.B. „Joghurt hält bis 15.10.“.\n- verzehr_eintragen, verzehr_auswerten, verzehr_eintraege, verzehr_korrigieren: Verzehr-Protokoll (siehe unten).\n- profil_lesen und ziele_speichern: Ernährungsziele verwalten. Nennt der Nutzer nur kcal, schlage gesunde Makros vor (Protein ca. 1,6-2 g pro kg Körpergewicht bzw. ca. 30 Prozent, Fett 25-30 Prozent, Rest Kohlenhydrate) und speichere sie.\n\nProdukt aufnehmen („Nimm X auf“):\n1. grocy_produkt_suchen: Gibt es das Produkt schon, sag das und lege nichts an (biete an, Bestand einzubuchen).\n2. rewe_produkt_suchen mit Name und Marke. Passt ein Treffer, übernimm Name, Marke, Größe, Preis und Makros daraus. Bei mehreren plausiblen Treffern zeig bis zu 3 zur Auswahl. Ohne Treffer sag das offen und frag nach Packungsgröße und Nährwerten pro 100 g. Erfinde niemals Nährwerte, Preise oder Barcodes.\n3. Zeig eine kurze Zusammenfassung: Name, Marke, Packungsgröße, Preis, Lagerort, Haltbarkeit, kcal/Protein/Fett/KH pro 100 g. Frag „Soll ich es so anlegen?“ und warte auf die Antwort.\n4. Erst wenn der Nutzer in seiner nächsten Nachricht mit ja zustimmt: grocy_produkt_anlegen, danach naehrwerte_merken (wenn Makros bekannt) und grocy_barcode_zuordnen (nur wenn ein Barcode bekannt ist). Bestätige mit der neuen product_id. Bestand nur einbuchen, wenn der Nutzer es sagt.\n   Änderungswünsche oder Rückfragen („Haltbarkeit eher 21 Tage“) sind KEINE Zustimmung: Zusammenfassung anpassen, erneut zeigen und wieder auf ja warten.\n\nEin- und Ausbuchen: Bei klaren Angaben („Hab 2 Eier gegessen“, „3 Joghurt gekauft“, „Milch weggeworfen“) ohne Rückfrage buchen und danach kurz bestätigen, was gebucht wurde. Nachfragen nur, wenn Produkt oder Menge unklar ist. Menge in die Lagereinheit umrechnen und nie mehr ausbuchen als vorhanden.\n\nVerzehr-Protokoll (tatsächlich Gegessenes, unabhängig vom Plan):\n- Was aus dem Vorrat als verbraucht ausgebucht wird, landet automatisch im Protokoll (weggeworfen nicht). Nicht zusätzlich eintragen.\n- Isst der Nutzer etwas, das nicht im Vorrat ist (auswärts, Mensa, Bäcker, eingeladen, nicht in Grocy), trag es mit verzehr_eintragen ein: realistische Portion in g und Nährwerte der ganzen Portion.\n  Für Supermarktprodukte nimm die Werte aus rewe_produkt_suchen (geschaetzt=false), sonst schätze realistisch (geschaetzt=true). Nenne danach kurz, was du eingetragen hast.\n- „Hab 2 Eier gegessen“: sind sie im Vorrat, ausbuchen; sonst mit verzehr_eintragen erfassen.\n- Fragen zum Ist-Konsum („wie viel habe ich im September/diese Woche/gestern gegessen“, Durchschnitt): verzehr_auswerten mit dem Zeitraum (Monat = erster bis letzter Tag).\n  Antworte mit Durchschnitt pro Kalendertag (kcal, Protein, Fett, KH) und Summe, nenne die Tage mit Einträgen und den geschätzten Anteil; auf Wunsch Vergleich mit den Zielen (profil_lesen).\n- Korrekturen („hab ich doch nicht gegessen“): mit verzehr_eintraege suchen, mit verzehr_korrigieren herausnehmen.\n- Nenne Summen oder „noch übrig“-Werte für einen Tag oder Zeitraum nur, wenn du sie gerade mit verzehr_auswerten abgefragt hast. Erfinde nie bisherige Mengen.\n\nEinkauf und Planung: Für Einkaufsfragen schlag mit rewe_produkt_suchen konkrete Produkte vor (Marke, Packungsgröße, Preis). Bevorzuge günstigen Preis pro kg/l, weise auf aktuelle Angebote hin und nenne bei Eiweißquellen den Preis pro 100 g Protein. Für Rezeptideen verweise auf /rezepte, für komplette Wochenpläne auf /wochenplan.\n\nAntworte kurz auf Deutsch, nutze passende Emojis, keine Markdown-Tabellen.",
+            "systemMessage": "=Du bist ein freundlicher deutscher Vorrats- und Ernährungsassistent in Telegram. Du verwaltest den Vorrat in Grocy selbst: Du darfst Produkte anlegen sowie Bestand einbuchen und ausbuchen. Heute ist {{ $now.setZone(\"Europe/Berlin\").toFormat(\"cccc, dd.LL.yyyy\") }}.\n\nWICHTIG: Aussagen über Bestand, Inventar, Produkte in Grocy oder Verzehr immer frisch mit dem passenden Werkzeug prüfen (grocy_bestand, grocy_produkt_suchen, verzehr_auswerten), nie aus dem bisherigen Gesprächsverlauf ableiten – der Bestand ändert sich auch ohne dich (eBon-Import, Grocy-App). Behaupte nichts, was kein Werkzeug gerade bestätigt hat.\n\nWerkzeuge:\n- grocy_bestand: aktueller Bestand (product_id, Menge in der Lagereinheit, MHD). Vor jedem Ein- oder Ausbuchen zuerst aufrufen.\n- grocy_produkt_suchen: prüft per Name oder Barcode, ob ein Produkt in Grocy schon existiert.\n- rewe_produkt_suchen: lokale REWE-Produkttabelle mit Marke, Packungsgröße, Preis, Preis pro kg/l, Angeboten und Makros pro 100 g.\n- grocy_produkt_anlegen, naehrwerte_merken, grocy_barcode_zuordnen: neues Produkt anlegen (Ablauf unten).\n- grocy_bestand_hinzufuegen / grocy_bestand_verbrauchen: einbuchen bzw. ausbuchen (gegessen oder weggeworfen).\n- grocy_eintraege + grocy_mhd_aendern: MHD korrigieren, z.B. „Joghurt hält bis 15.10.“.\n- verzehr_eintragen, verzehr_auswerten, verzehr_eintraege, verzehr_korrigieren: Verzehr-Protokoll (siehe unten).\n- profil_lesen und ziele_speichern: Ernährungsziele verwalten. Nennt der Nutzer nur kcal, schlage gesunde Makros vor (Protein ca. 1,6-2 g pro kg Körpergewicht bzw. ca. 30 Prozent, Fett 25-30 Prozent, Rest Kohlenhydrate) und speichere sie.\n\nProdukt aufnehmen („Nimm X auf“):\n1. grocy_produkt_suchen: Gibt es das Produkt schon, sag das und lege nichts an (biete an, Bestand einzubuchen).\n2. rewe_produkt_suchen mit Name und Marke. Passt ein Treffer, übernimm Name, Marke, Größe, Preis und Makros daraus. Bei mehreren plausiblen Treffern zeig bis zu 3 zur Auswahl. Ohne Treffer sag das offen und frag nach Packungsgröße und Nährwerten pro 100 g. Erfinde niemals Nährwerte, Preise oder Barcodes.\n3. Zeig eine kurze Zusammenfassung: Name, Marke, Packungsgröße, Preis, Lagerort, Haltbarkeit, kcal/Protein/Fett/KH pro 100 g. Frag „Soll ich es so anlegen?“ und warte auf die Antwort.\n4. Erst wenn der Nutzer in seiner nächsten Nachricht mit ja zustimmt: grocy_produkt_anlegen, danach naehrwerte_merken (wenn Makros bekannt) und grocy_barcode_zuordnen (nur wenn ein Barcode bekannt ist). Bestätige mit der neuen product_id. Bestand nur einbuchen, wenn der Nutzer es sagt.\n   Änderungswünsche oder Rückfragen („Haltbarkeit eher 21 Tage“) sind KEINE Zustimmung: Zusammenfassung anpassen, erneut zeigen und wieder auf ja warten.\n\nEin- und Ausbuchen: Bei klaren Angaben („Hab 2 Eier gegessen“, „3 Joghurt gekauft“, „Milch weggeworfen“) ohne Rückfrage buchen und danach kurz bestätigen, was gebucht wurde. Nachfragen nur, wenn Produkt oder Menge unklar ist. Menge in die Lagereinheit umrechnen und nie mehr ausbuchen als vorhanden.\n\nVerzehr-Protokoll (tatsächlich Gegessenes, unabhängig vom Plan):\n- Was aus dem Vorrat als verbraucht ausgebucht wird, landet automatisch im Protokoll (weggeworfen nicht). Nicht zusätzlich eintragen.\n- Isst der Nutzer etwas, das nicht im Vorrat ist (auswärts, Mensa, Bäcker, eingeladen, nicht in Grocy), trag es mit verzehr_eintragen ein: realistische Portion in g und Nährwerte der ganzen Portion.\n  Für Supermarktprodukte nimm die Werte aus rewe_produkt_suchen (geschaetzt=false), sonst schätze realistisch (geschaetzt=true). Nenne danach kurz, was du eingetragen hast.\n- „Hab 2 Eier gegessen“: sind sie im Vorrat, ausbuchen; sonst mit verzehr_eintragen erfassen.\n- Wasser (Mineral-, Tafel-, Sprudel-, Leitungswasser) wird nie eingebucht, angelegt oder im Verzehr eingetragen.\n- Fragen zum Ist-Konsum („wie viel habe ich im September/diese Woche/gestern gegessen“, Durchschnitt): verzehr_auswerten mit dem Zeitraum (Monat = erster bis letzter Tag).\n  Antworte mit Durchschnitt pro Kalendertag (kcal, Protein, Fett, KH) und Summe, nenne die Tage mit Einträgen und den geschätzten Anteil; auf Wunsch Vergleich mit den Zielen (profil_lesen).\n- Korrekturen („hab ich doch nicht gegessen“): mit verzehr_eintraege suchen, mit verzehr_korrigieren herausnehmen.\n- Nenne Summen oder „noch übrig“-Werte für einen Tag oder Zeitraum nur, wenn du sie gerade mit verzehr_auswerten abgefragt hast. Erfinde nie bisherige Mengen.\n\nEinkauf und Planung: Für Einkaufsfragen schlag mit rewe_produkt_suchen konkrete Produkte vor (Marke, Packungsgröße, Preis). Bevorzuge günstigen Preis pro kg/l, weise auf aktuelle Angebote hin und nenne bei Eiweißquellen den Preis pro 100 g Protein. Für Rezeptideen verweise auf /rezepte, für komplette Wochenpläne auf /wochenplan.\n\nAntworte kurz auf Deutsch, nutze passende Emojis, keine Markdown-Tabellen.",
             "maxIterations": 12,
             "enableStreaming": false
           }
@@ -1804,7 +1804,7 @@
         "parameters": {
           "mode": "runOnceForAllItems",
           "language": "javaScript",
-          "jsCode": "const ctx = $('Update auswerten').first().json;\nconst t = String(ctx.param || '').split(':');\nconst grocy_id = Number(t[2]) || 0;\nconst r = $input.first().json || {};\nconst esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nconst p = r.produkt;\nlet text;\nif (!r.ok) text = '⚠️ Konnte die Antwort nicht speichern: ' + esc(r.fehler || r.detail || 'REWE-Dienst nicht erreichbar');\nelse if (!p) text = '👌 Okay, „' + esc(r.bon_text) + '“ bleibt wie eingebucht.';\nelse text = '✅ Gemerkt: „' + esc(r.bon_text) + '“ = <b>' + esc(p.name) + '</b>' + (p.brand ? ' (' + esc(p.brand) + ')' : '')\n  + (grocy_id ? '\\nIn Grocy umbenannt' + (p.ean ? ', Barcode gespeichert' : '') + (p.kcal_100 != null ? ', REWE-Nährwerte übernommen' : '') + '.' : '')\n  + '\\nBeim nächsten Bon erkenne ich es automatisch.';\nconst preis = p && p.price != null ? Number(p.price).toFixed(2).replace('.', ',') + ' €' : '';\nreturn [{ json: { chat_id: ctx.chat_id, text, grocy_id, gewaehlt: !!(r.ok && p && grocy_id), produkt: p || {},\n  beschreibung: p ? ['REWE', p.brand, preis, 'REWE-ID ' + p.rewe_product_id, p.ean ? 'EAN ' + p.ean : ''].filter(Boolean).join(' · ') : '' } }];"
+          "jsCode": "// Antwort auf eine eBon-Rückfrage: Grocy-Produkt vollständig auf das gewählte REWE-Produkt umstellen\n// callback „bon:<zeile>:<rewe_id|0>:<grocy_id>:<gebuchte Menge>“ (die Menge fehlt bei älteren Buttons)\nconst ctx = $('Update auswerten').first().json;\nconst t = String(ctx.param || '').split(':');\nconst grocy_id = Number(t[2]) || 0;\nconst gebucht = t[3] !== undefined && t[3] !== '' && Number.isFinite(Number(t[3])) ? Number(t[3]) : null;\nconst r = $('Bon-Antwort speichern').first().json || {};\nconst g = $input.first().json || {};\nconst esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nconst p = r.produkt;\nconst qu = String((g.quantity_unit_stock || {}).name || '').toLowerCase();\nconst einheit = qu === 'gramm' ? 'g' : qu === 'milliliter' ? 'ml' : qu ? 'stk' : null;\nconst bestand = Number(g.stock_amount) || 0;\n// Zielmenge: Packungsgröße × Anzahl vom Bon, bei Gewichtsware das gewogene Gewicht\nlet ziel = null;\nif (p && einheit) {\n  if (r.gewicht_kg && einheit === 'g') ziel = Math.round(r.gewicht_kg * 1000);\n  else if (p.size_value && ((p.size_unit === 'g' && einheit === 'g') || (p.size_unit === 'ml' && einheit === 'ml') || (p.size_unit === 'Stück' && einheit === 'stk')))\n    ziel = Math.round(p.size_value * (r.anzahl || 1) * 100) / 100;\n}\n// neuer Gesamtbestand: nur die Menge aus diesem Bon wird ersetzt, anderer Bestand bleibt\nconst neue_menge = ziel !== null && gebucht !== null && Math.abs(ziel - gebucht) > 0.001 ? Math.max(0, Math.round((bestand - gebucht + ziel) * 100) / 100) : null;\nconst kcal_einheit = p && p.kcal_100 != null && (einheit === 'g' || einheit === 'ml') ? Math.round(p.kcal_100) / 100 : null;\nconst e = einheit === 'stk' ? 'Stk' : einheit;\nconst aenderungen = [];\nif (p && grocy_id) {\n  aenderungen.push('Name');\n  if (neue_menge !== null) aenderungen.push('Menge ' + gebucht + ' → ' + ziel + ' ' + e);\n  if (p.kcal_100 != null) aenderungen.push('Nährwerte');\n  if (p.ean) aenderungen.push('Barcode');\n}\nlet text;\nif (!r.ok) text = '⚠️ Konnte die Antwort nicht speichern: ' + esc(r.fehler || r.detail || 'REWE-Dienst nicht erreichbar');\nelse if (!p) text = '👌 Okay, „' + esc(r.bon_text) + '“ bleibt wie eingebucht.';\nelse text = '✅ Gemerkt: „' + esc(r.bon_text) + '“ = <b>' + esc(p.name) + '</b>' + (p.brand ? ' (' + esc(p.brand) + ')' : '')\n  + (aenderungen.length ? '\\nIn Grocy aktualisiert: ' + aenderungen.join(', ') + '.' : '')\n  + '\\nBeim nächsten Bon erkenne ich es automatisch.';\nconst preis = p && p.price != null ? Number(p.price).toFixed(2).replace('.', ',') + ' €' : '';\nreturn [{ json: { chat_id: ctx.chat_id, text, grocy_id, gewaehlt: !!(r.ok && p && grocy_id), produkt: p || {}, neue_menge, kcal_einheit,\n  beschreibung: p ? ['REWE', p.brand, preis, 'REWE-ID ' + p.rewe_product_id, p.ean ? 'EAN ' + p.ean : ''].filter(Boolean).join(' · ') : '' } }];"
         }
       },
       {
@@ -1863,7 +1863,7 @@
           "sendBody": true,
           "contentType": "json",
           "specifyBody": "json",
-          "jsonBody": "={{ JSON.stringify({ name: $json.produkt.name, description: $json.beschreibung }) }}",
+          "jsonBody": "={{ JSON.stringify(Object.assign({ name: $json.produkt.name, description: $json.beschreibung }, $json.kcal_einheit != null ? { calories: $json.kcal_einheit } : {})) }}",
           "options": {
             "response": {
               "response": {
@@ -2241,6 +2241,101 @@
           "query": "UPDATE verzehr SET ignoriert = true, notiz = coalesce(nullif($2, ''), 'vom Nutzer korrigiert') WHERE id = $1::bigint RETURNING id, name, round(kcal) AS kcal;",
           "options": {
             "queryReplacement": "={{ [ String($fromAI('id', 'id des Eintrags', 'number')), $fromAI('grund', 'kurzer Grund, sonst leer', 'string', \"\") ] }}"
+          }
+        }
+      },
+      {
+        "id": "f1000000-0011-4000-8000-botbon000011",
+        "name": "Grocy-Produkt holen (Bon)",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          1802,
+          -104
+        ],
+        "credentials": {
+          "httpCustomAuth": {
+            "id": "sWOsDlhSjQx2Y5EN",
+            "name": "Custom Auth account"
+          }
+        },
+        "parameters": {
+          "method": "GET",
+          "url": "={{ $('Profil laden').first().json.grocy_url }}/api/stock/products/{{ Number(String($('Update auswerten').first().json.param || '').split(':')[2]) || 0 }}",
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpCustomAuth",
+          "options": {
+            "response": {
+              "response": {
+                "neverError": true
+              }
+            }
+          }
+        }
+      },
+      {
+        "id": "f1000000-0012-4000-8000-botbon000012",
+        "name": "Menge korrigieren?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          2462,
+          -204
+        ],
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose"
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "m",
+                "leftValue": "={{ $('Bon-Korrektur vorbereiten').first().json.neue_menge !== null }}",
+                "rightValue": "",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                }
+              }
+            ]
+          },
+          "options": {}
+        }
+      },
+      {
+        "id": "f1000000-0013-4000-8000-botbon000013",
+        "name": "Bestand korrigieren (Bon)",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          2572,
+          -304
+        ],
+        "credentials": {
+          "httpCustomAuth": {
+            "id": "sWOsDlhSjQx2Y5EN",
+            "name": "Custom Auth account"
+          }
+        },
+        "parameters": {
+          "method": "POST",
+          "url": "={{ $('Profil laden').first().json.grocy_url }}/api/stock/products/{{ $('Bon-Korrektur vorbereiten').first().json.grocy_id }}/inventory",
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpCustomAuth",
+          "sendBody": true,
+          "contentType": "json",
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ new_amount: $('Bon-Korrektur vorbereiten').first().json.neue_menge }) }}",
+          "options": {
+            "response": {
+              "response": {
+                "neverError": true
+              }
+            }
           }
         }
       }
@@ -2756,7 +2851,7 @@
         "main": [
           [
             {
-              "node": "Bon-Korrektur vorbereiten",
+              "node": "Grocy-Produkt holen (Bon)",
               "type": "main",
               "index": 0
             }
@@ -2796,7 +2891,7 @@
         "main": [
           [
             {
-              "node": "REWE-Nährwerte vorhanden?",
+              "node": "Menge korrigieren?",
               "type": "main",
               "index": 0
             }
@@ -2915,6 +3010,46 @@
             }
           ]
         ]
+      },
+      "Grocy-Produkt holen (Bon)": {
+        "main": [
+          [
+            {
+              "node": "Bon-Korrektur vorbereiten",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Menge korrigieren?": {
+        "main": [
+          [
+            {
+              "node": "Bestand korrigieren (Bon)",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "REWE-Nährwerte vorhanden?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Bestand korrigieren (Bon)": {
+        "main": [
+          [
+            {
+              "node": "REWE-Nährwerte vorhanden?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
       }
     },
     "settings": {
@@ -3001,9 +3136,9 @@
       }
     ],
     "pinData": null,
-    "versionId": "238ea740-43c5-4dd2-a3aa-61be342500c2",
-    "activeVersionId": "238ea740-43c5-4dd2-a3aa-61be342500c2",
-    "versionCounter": 12,
+    "versionId": "466a7417-d4fa-48c1-8e5c-dfc70ae7d0ce",
+    "activeVersionId": "466a7417-d4fa-48c1-8e5c-dfc70ae7d0ce",
+    "versionCounter": 13,
     "triggerCount": 1,
     "sourceWorkflowId": null,
     "tags": [],
