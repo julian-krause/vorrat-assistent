@@ -251,7 +251,7 @@ CREATE TABLE IF NOT EXISTS vorrat_produkte (
     naehrwert_quelle  text CHECK (naehrwert_quelle IN ('manuell', 'rewe', 'off_barcode', 'off_name', 'bls', 'ki')),
     naehrwert_rang    smallint CHECK (naehrwert_rang BETWEEN 1 AND 6),
     naehrwert_stand   timestamptz,
-    naehrwert_detail  text,             -- z.B. OFF-Code, BLS-Code, „Etikett-Foto“
+    naehrwert_detail  text,             -- z.B. OFF-Code, BLS-Code, „vom Nutzer“
     gramm_pro_stk     numeric(7, 1) CHECK (gramm_pro_stk > 0),   -- essbarer Anteil eines Stücks
     gramm_quelle      text CHECK (gramm_quelle IN ('manuell', 'packung', 'referenz', 'ki')),
     gramm_rang        smallint CHECK (gramm_rang BETWEEN 1 AND 4),
@@ -354,15 +354,5 @@ CREATE TABLE IF NOT EXISTS verzehr_korrektur (
     erstellt_at timestamptz NOT NULL DEFAULT now()
 );
 
--- Etikett-Foto: von der KI ausgelesene Werte warten auf die Bestätigung per Button (Ja-Sperre), danach Rang 1
-CREATE TABLE IF NOT EXISTS naehrwert_vorschlaege (
-    id               bigserial PRIMARY KEY,
-    grocy_product_id integer,
-    produkt_text     text,
-    werte            jsonb NOT NULL,
-    plausibel        boolean NOT NULL,
-    grund            text,
-    status           text NOT NULL DEFAULT 'offen' CHECK (status IN ('offen', 'bestaetigt', 'verworfen')),
-    erstellt_at      timestamptz NOT NULL DEFAULT now(),
-    beantwortet_at   timestamptz
-);
+-- Etikett-Foto wurde wieder entfernt
+DROP TABLE IF EXISTS naehrwert_vorschlaege;

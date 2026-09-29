@@ -147,7 +147,7 @@ Beide REWE-Workflows haben zusätzlich einen Node „Manuell starten“, um sie 
 - **Barcode:** Die API hat kein eigenes EAN-Feld, aber die `articleId` ist im Onlineshop meist die GTIN/EAN (geprüft mit Open Food Facts, z. B. Arla Skyr Natur 450 g = 4016241030603). Sie wird gespeichert, wenn die GS1-Prüfziffer stimmt; sonst bleibt `ean` leer (im Test: 40 von 64 Produkten mit EAN).
 - Größe aus Texten wie „500g (1 kg = 3,98 €)“, „6 x 1,5 l“, „10 Stück“ → `size_value`/`size_unit` (g/ml/Stück), daraus `price_per_kg_or_l`. Nicht erkannte Größen landen in `crawl_log`.
 - 2–3 s Pause zwischen Requests. Der Fortschritt wird nach jeder Seite gespeichert; nach einem Abbruch setzt der nächste `POST /crawl` an derselben Stelle fort.
-- Tests: `docker exec rewe-service python -m pytest -q tests` (Parser und Crawler gegen nachgebaute API-Antworten; Nährwert-Regeln: Plausibilität, „leer überschreibt nie“, 20-%-Meldung, Rangregel, Korrektur-Job, Regression „REWE-Details fehlen beim Import“; BLS, Stückgewichte, Etikett-Vorschlag). Ohne Neustart des laufenden Dienstes: `docker compose --env-file rewe.env -f rewe.compose.yml run --rm --build --no-deps rewe-service python -m pytest -q -p no:cacheprovider`.
+- Tests: `docker exec rewe-service python -m pytest -q tests` (Parser und Crawler gegen nachgebaute API-Antworten; Nährwert-Regeln: Plausibilität, „leer überschreibt nie“, 20-%-Meldung, Rangregel, Korrektur-Job, Regression „REWE-Details fehlen beim Import“; BLS, Stückgewichte, Korrektur durch den Nutzer). Ohne Neustart des laufenden Dienstes: `docker compose --env-file rewe.env -f rewe.compose.yml run --rm --build --no-deps rewe-service python -m pytest -q -p no:cacheprovider`.
 
 ## Vorratsprodukte und Nährwert-Quellen
 
@@ -155,7 +155,7 @@ Beide REWE-Workflows haben zusätzlich einen Node „Manuell starten“, um sie 
 
 | Rang | Nährwerte | Stückgewicht |
 |---|---|---|
-| 1 | `manuell` (Etikett-Foto, Korrektur durch den Nutzer) | `manuell` (gewogen) |
+| 1 | `manuell` (Angabe oder Korrektur durch den Nutzer per Text) | `manuell` (gewogen) |
 | 2 | `rewe` (Packungsangabe aus `rewe_products`, nur wenn plausibel) | `packung` (z. B. Gewichtsklasse im Namen) |
 | 3 | `off_barcode` (Open Food Facts per EAN) | `referenz` (Standard-Stückgewichte) |
 | 4 | `off_name` (Namenssuche, nur bei gleicher Marke) | `ki` |
@@ -178,7 +178,7 @@ In n8n kapselt der Unter-Workflow **„Vorrat · Nährwerte ermitteln“** (10) 
 
 - **≈** markiert geschätzte Werte (Nährwert-Rang ≥ 5 oder KI-Stückgewicht): im Bestand (`/inventar`), in Rezepten und im Wochenplan (Rezept/Tag enthält geschätzte Zutaten), in Auswertungen (der Agent nennt immer den Anteil geschätzter kcal).
 - **`/unsicher`** listet Produkte mit Nährwert-Rang ≥ 5 oder Stückgewicht-Rang ≥ 3 (`GET /unsicher` liefert dasselbe).
-- **Etikett-Foto:** Foto der Nährwerttabelle mit dem Produktnamen als Bildunterschrift schicken. MiniMax-M3 liest die Werte pro 100 g, der Dienst prüft die Plausibilität und ordnet das Produkt zu (`POST /etikett/vorschlag`), übernommen wird erst per Button „✅ Übernehmen“ (`POST /etikett/vorschlag/{id}`), dann mit Rang 1; Grocy-kcal wird neu gesetzt.
+- **Korrektur per Text** („Mein Skyr hat laut Packung 63 kcal, 11 g Eiweiß, 0,2 g Fett, 3,9 g KH pro 100 g“): Der Agent speichert die Werte über `naehrwerte_merken` mit `werte_quelle = manuell` (Rang 1, schlägt alle anderen Quellen); der Dienst prüft die Plausibilität, Grocy-kcal wird neu gesetzt.
 - **Stückgewicht per Nachricht** („Avocado wiegt 142 g“): Der Bot fragt, ob mit oder ohne Schale/Kern gewogen wurde, und speichert den essbaren Anteil mit Rang 1 (mit Schale: × Anteil essbar aus der Referenztabelle).
 - Tool `vorrat_naehrwerte`: der Agent liest Nährwerte des Vorrats mit Quelle und Rang.
 

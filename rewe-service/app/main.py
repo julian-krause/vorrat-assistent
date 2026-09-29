@@ -233,20 +233,6 @@ def stueckgewichte():
     return [dict(zip(("schluessel", "bezeichnung", "gramm_essbar", "anteil_essbar", "quelle"), r)) for r in z]
 
 
-@app.post("/etikett/vorschlag")
-def etikett_vorschlag(produkt_text: str = Body(""), werte: dict = Body(...), grocy_product_id: int | None = Body(None)):
-    """Vom Etikett-Foto gelesene Werte: Plausibilität prüfen, Produkt zuordnen, auf Bestätigung warten."""
-    with db.verbinden() as con:
-        return vorrat.vorschlag_anlegen(con, produkt_text, werte, grocy_product_id)
-
-
-@app.post("/etikett/vorschlag/{vid}")
-def etikett_antwort(vid: int, annehmen: bool = Body(..., embed=True)):
-    """Button-Antwort: annehmen = Rang 1 (manuell) speichern, sonst verwerfen."""
-    with db.verbinden() as con:
-        return vorrat.vorschlag_beantworten(con, vid, annehmen)
-
-
 @app.get("/unsicher")
 def unsicher():
     """Produkte mit Nährwert-Rang ≥ 5 (BLS/KI) oder Stückgewicht-Rang ≥ 3 (Referenz/KI)."""

@@ -82,22 +82,14 @@ def test_migration(db):
     assert b[13]["rewe_product_id"] is None and b[13]["hinweise"] and b[13]["gramm_pro_stk"] is None
 
 
-def test_etikett_vorschlag(db):
+def test_leer_ueberschreibt_zusatzangaben_nicht(db):
     with db.verbinden() as con:
-        vorrat.speichern(con, 1, {"name": "Skyr Natur", "naehrwerte": {"kcal": 65, "protein": 11, "fett": 0.2, "kh": 4}, "naehrwert_quelle": "ki"})
-        vorrat.speichern(con, 16, {"name": "Harry 1688 Steinofenbrot 500g"})
-        v = vorrat.vorschlag_anlegen(con, "skyr", {"kcal": 63, "protein": 11, "fett": 0.2, "kh": 3.9, "salz": 0.1})
-        assert v["plausibel"] and v["produkt"]["grocy_product_id"] == 1
-        erg = vorrat.vorschlag_beantworten(con, v["id"], True)
-        assert erg["ok"] and erg["produkt"]["naehrwert_quelle"] == "manuell" and erg["produkt"]["salz_100"] == 0.1
-        assert vorrat.vorschlag_beantworten(con, v["id"], True)["ok"] is False          # nur einmal
-        # unplausibel (kcal pro Portion gelesen): kann nicht übernommen werden
-        v = vorrat.vorschlag_anlegen(con, "Steinofenbrot", {"kcal": 22, "protein": 7.1, "fett": 1.5, "kh": 42})
-        assert not v["plausibel"] and v["produkt"]["grocy_product_id"] == 16
-        assert vorrat.vorschlag_beantworten(con, v["id"], True)["status"] == "verworfen"
-        # gleiche Quelle, Salz fehlt: vorhandenes Salz bleibt
-        vorrat.speichern(con, 1, {"naehrwerte": {"kcal": 64, "protein": 11, "fett": 0.2, "kh": 4.1}, "naehrwert_quelle": "manuell"})
-        assert vorrat.lesen(con, 1)["salz_100"] == 0.1
+        vorrat.speichern(con, 1, {"name": "Skyr Natur", "naehrwerte": {"kcal": 63, "protein": 11, "fett": 0.2, "kh": 3.9, "salz": 0.1},
+                                  "naehrwert_quelle": "manuell"})
+        # Korrektur durch den Nutzer (gleiche Quelle, Rang 1), Salz nicht genannt: vorhandenes Salz bleibt
+        erg = vorrat.speichern(con, 1, {"naehrwerte": {"kcal": 64, "protein": 11, "fett": 0.2, "kh": 4.1}, "naehrwert_quelle": "manuell"})
+        p = erg["produkt"]
+        assert (p["kcal_100"], p["naehrwert_quelle"], p["naehrwert_rang"], p["salz_100"]) == (64, "manuell", 1, 0.1)
 
 
 def test_gewogenes_stueck(db):
