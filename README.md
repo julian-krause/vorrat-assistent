@@ -149,13 +149,28 @@ Beide REWE-Workflows haben zusätzlich einen Node „Manuell starten“, um sie 
 - 2–3 s Pause zwischen Requests. Der Fortschritt wird nach jeder Seite gespeichert; nach einem Abbruch setzt der nächste `POST /crawl` an derselben Stelle fort.
 - Tests: `docker exec rewe-service python -m pytest -q tests` (Parser und Crawler gegen nachgebaute API-Antworten).
 
+## Vorratsprodukte und Nährwert-Quellen
+
+`vorrat_produkte` (Postgres, ein Eintrag je Grocy-Produkt) verknüpft Grocy mit REWE (`rewe_product_id`) und hält eigene Werte nur dort, wo REWE keine hat oder der Nutzer korrigiert. Die View **`vorrat_naehrwerte`** liefert pro Produkt den besten Wert mit `naehrwert_quelle`/`naehrwert_rang`, dazu Stückgewicht (`gramm_pro_stk`, essbarer Anteil, mit `gramm_quelle`/`gramm_rang`), `geschaetzt` und `kcal_pro_einheit` (für das Grocy-Feld). Sie ist die einzige Wahrheit; das kcal-Feld in Grocy ist nur eine Kopie.
+
+| Rang | Nährwerte | Stückgewicht |
+|---|---|---|
+| 1 | `manuell` (Etikett-Foto, Korrektur durch den Nutzer) | `manuell` (gewogen) |
+| 2 | `rewe` (Packungsangabe aus `rewe_products`, nur wenn plausibel) | `packung` (z. B. Gewichtsklasse im Namen) |
+| 3 | `off_barcode` (Open Food Facts per EAN) | `referenz` (Standard-Stückgewichte) |
+| 4 | `off_name` (Namenssuche, nur bei gleicher Marke) | `ki` |
+| 5 | `bls` (Bundeslebensmittelschlüssel) | |
+| 6 | `ki` (Schätzung) | |
+
+Geschrieben wird nur über den rewe-service (`POST /vorrat/produkte/{grocy_id}`), der die Regeln prüft: schlechter überschreibt nie besser, leere Werte überschreiben nie, unplausible Werte werden abgelehnt und gemeldet. Gelesen wird direkt aus der View (Planer, Verzehr-Abgleich) oder über `GET /vorrat/produkte/{grocy_id}`. Die frühere n8n-Datentabelle `vorrat_produkte` wurde mit `POST /vorrat/migrieren` übernommen (REWE-ID aus der Grocy-Beschreibung „REWE-ID 123“).
+
 ## Ist-Verbrauch (Verzehr-Protokoll)
 
 Unabhängig vom Plan wird festgehalten, was tatsächlich gegessen wurde – Tabelle `verzehr` in der REWE-Postgres, mit Zeitstempel und zum Zeitpunkt des Essens festgeschriebenen Nährwerten:
 
 | Quelle | Wie es hineinkommt |
 |---|---|
-| `grocy` | Workflow 08 übernimmt alle 5 Minuten jede Verbrauchsbuchung aus Grocy (Chat „Hab 2 Eier gegessen“, „✅ Gekocht“, Grocy-App). Weggeworfenes zählt nicht; rückgängig gemachte Buchungen werden als ignoriert markiert. Nährwerte aus `vorrat_produkte`. |
+| `grocy` | Workflow 08 übernimmt alle 5 Minuten jede Verbrauchsbuchung aus Grocy (Chat „Hab 2 Eier gegessen“, „✅ Gekocht“, Grocy-App). Weggeworfenes zählt nicht; rückgängig gemachte Buchungen werden als ignoriert markiert. Nährwerte aus der View `vorrat_naehrwerte`. |
 | `rezept` | „✅ Gekocht“: Zutaten, die nicht (ganz) aus dem Vorrat abgebucht werden konnten, mit den Nährwerten pro 100 g aus dem Rezept (ältere Rezepte: anteilig, als geschätzt markiert). |
 | `manuell` | Der Agent trägt auswärts Gegessenes ein („Mittags Currywurst in der Mensa“), mit geschätzten oder REWE-Nährwerten. |
 

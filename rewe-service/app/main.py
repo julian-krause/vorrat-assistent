@@ -10,7 +10,7 @@ from pathlib import Path
 from fastapi import Body, FastAPI, HTTPException, Query
 from fastapi.responses import HTMLResponse, JSONResponse
 
-from . import bon, db, planer, rewe
+from . import bon, db, planer, rewe, vorrat
 from .crawler import Crawler, details_uebernehmen, kategorien_config, listen_produkt
 from .parse import ean_aus_article_id, finde_ean, parse_naehrwerte
 
@@ -182,6 +182,30 @@ def planer_kandidaten(namen: list[str] = Body(..., embed=True, description="Zuta
     """Bis zu 8 REWE-Kandidaten je Zutat (Nährwerte, Packungsgröße, aktueller Preis inkl. Angebot), bester zuerst."""
     with db.verbinden() as con:
         return {"kandidaten": planer.zutaten_kandidaten(con, namen)}
+
+
+@app.get("/vorrat/produkte/{grocy_product_id}")
+def vorrat_lesen(grocy_product_id: int):
+    """Bester Nährwert eines Vorratsprodukts (View vorrat_naehrwerte) mit Quelle und Rang."""
+    with db.verbinden() as con:
+        p = vorrat.lesen(con, grocy_product_id)
+    if not p:
+        raise HTTPException(status_code=404, detail="Produkt nicht in vorrat_produkte")
+    return p
+
+
+@app.post("/vorrat/produkte/{grocy_product_id}")
+def vorrat_speichern(grocy_product_id: int, daten: dict = Body(...)):
+    """Anlegen/aktualisieren mit Rangregel (schlechter überschreibt nie besser, leer nie, unplausibel wird gemeldet)."""
+    with db.verbinden() as con:
+        return vorrat.speichern(con, grocy_product_id, daten)
+
+
+@app.post("/vorrat/migrieren")
+def vorrat_migrieren(zeilen: list[dict] = Body(..., embed=True)):
+    """Einmalige Übernahme aus der n8n-Datentabelle (mit Grocy-Beschreibung für die REWE-ID)."""
+    with db.verbinden() as con:
+        return {"produkte": vorrat.migrieren(con, zeilen)}
 
 
 @app.post("/crawl", status_code=202)

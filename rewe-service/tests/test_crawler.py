@@ -164,3 +164,16 @@ def test_details_aktuell_halten(umgebung, monkeypatch):
         assert stats["name_groesse_geaendert"] == 1 and stats["erneuert"] == 2
         # Nährwerte der Bananen unverändert -> kein zweiter Verlaufseintrag
         assert con.execute("SELECT count(*) FROM rewe_naehrwert_verlauf WHERE rewe_product_id = '1000001'").fetchone()[0] == 1
+
+
+def test_vorratsprodukte_zuerst(umgebung, monkeypatch):
+    crawler, rewe, db = umgebung
+    monkeypatch.setattr(rewe, "aufruf", FakeRewe())
+    laufen(crawler, {"kategorien": None, "max_seiten": None, "details": True, "max_details": None})
+    with db.verbinden() as con:
+        con.execute("INSERT INTO vorrat_produkte (grocy_product_id, name, rewe_product_id) VALUES (4, 'Spaghetti', '2000001')")
+    fake = FakeRewe()
+    monkeypatch.setattr(rewe, "aufruf", fake)
+    # auch ohne Erneuerungs-Kontingent werden verknüpfte Vorratsprodukte in jedem Lauf zuerst erneuert
+    laufen(crawler, {"kategorien": None, "max_seiten": None, "details": True, "max_details": None, "max_erneuern": 0}, neu=True)
+    assert [a[1][0] for a in fake.aufrufe if a[0] == "produkt_detail"] == ["2000001"]

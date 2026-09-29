@@ -240,18 +240,23 @@ class Crawler:
         return cursor
 
     def _naechstes_detail(self, con, run_id, params, cursor):
-        """Reihenfolge: ohne Details (neu oder Name/Größe geändert), dann die ältesten Details bis zur Grenze.
+        """Reihenfolge: Vorratsprodukte (jeder Lauf), ohne Details (neu oder Name/Größe geändert),
+        dann die ältesten Details bis zur Grenze.
 
         Alles, was in diesem Lauf schon geholt wurde, hat details_fetched_at > Laufbeginn und kommt nicht erneut.
         """
         grenze = params.get("max_erneuern")
         grenze = DETAILS_ERNEUERN if grenze is None else grenze
         return con.execute("""
-            SELECT p.rewe_product_id, p.details_fetched_at IS NOT NULL
-            FROM rewe_products p, crawl_runs r
-            WHERE r.id = %(run)s
-              AND (p.details_fetched_at IS NULL OR (%(erneuert)s < %(grenze)s AND p.details_fetched_at < r.started_at))
-            ORDER BY p.details_fetched_at IS NOT NULL, p.details_fetched_at, p.first_seen, p.rewe_product_id
+            SELECT p.rewe_product_id, p.details_fetched_at IS NOT NULL AND v.rewe_product_id IS NULL
+            FROM rewe_products p
+            JOIN crawl_runs r ON r.id = %(run)s
+            LEFT JOIN (SELECT DISTINCT rewe_product_id FROM vorrat_produkte) v ON v.rewe_product_id = p.rewe_product_id
+            WHERE p.details_fetched_at IS NULL
+               OR (v.rewe_product_id IS NOT NULL AND p.details_fetched_at < r.started_at)
+               OR (%(erneuert)s < %(grenze)s AND p.details_fetched_at < r.started_at)
+            ORDER BY v.rewe_product_id IS NULL, p.details_fetched_at IS NOT NULL, p.details_fetched_at, p.first_seen,
+                     p.rewe_product_id
             LIMIT 1""", {"run": run_id, "erneuert": cursor.get("erneuert", 0), "grenze": grenze}).fetchone()
 
     def _phase_details(self, con, run_id, params, cursor, stats) -> None:

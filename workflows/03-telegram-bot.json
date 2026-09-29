@@ -1,6 +1,6 @@
 [
   {
-    "updatedAt": "2026-09-29T11:34:26.000Z",
+    "updatedAt": "2026-09-29T12:33:55.000Z",
     "createdAt": "2026-09-27T15:07:02.162Z",
     "id": "JStsSgy75x6xLQzD",
     "name": "Vorrat · Telegram-Bot",
@@ -1577,145 +1577,30 @@
         }
       },
       {
-        "id": "c1a2b3d4-0003-4e5f-8a9b-naehrwerte001",
+        "type": "n8n-nodes-base.httpRequestTool",
+        "typeVersion": 4.2,
+        "parameters": {
+          "toolDescription": "Speichert Nährwerte pro 100 g/ml, REWE-Verknüpfung und Stückgewicht eines Grocy-Produkts für Wochenplan, Rezepte und Verzehr-Protokoll. Direkt nach grocy_produkt_anlegen aufrufen. Schlechtere Quellen überschreiben nie bessere (Antwort naehrwerte = schlechter), unplausible Werte werden abgelehnt (unplausibel).",
+          "method": "POST",
+          "url": "={{ 'http://rewe-service:8000/vorrat/produkte/' + $fromAI('grocy_product_id', 'product_id aus grocy_produkt_anlegen', 'number') }}",
+          "sendBody": true,
+          "contentType": "json",
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ name: $fromAI('name', 'Produktname wie in Grocy', 'string'), einheit: $fromAI('einheit', 'g, ml oder stk', 'string'), kategorie: $fromAI('kategorie', 'z.B. Milchprodukte, Obst, Fleisch', 'string'), rewe_product_id: $fromAI('rewe_product_id', 'rewe_product_id aus rewe_produkt_suchen, sonst leer', 'string', '') || null, ean: $fromAI('ean', 'Barcode, falls bekannt, sonst leer', 'string', '') || null, naehrwerte: { kcal: $fromAI('kcal_100', 'kcal pro 100 g/ml', 'number'), protein: $fromAI('protein_100', 'Protein g pro 100 g/ml', 'number'), fett: $fromAI('fett_100', 'Fett g pro 100 g/ml', 'number'), kh: $fromAI('kh_100', 'Kohlenhydrate g pro 100 g/ml', 'number') }, naehrwert_quelle: $fromAI('quelle', 'rewe = Werte aus rewe_produkt_suchen (dann rewe_product_id angeben); manuell = der Nutzer hat die Werte genannt oder vom Etikett abgelesen; ki = geschätzt', 'string'), gramm_pro_stk: Number($fromAI('gramm_pro_stk', 'essbares Gewicht eines Stücks in g, nur bei Stückware, sonst 0', 'number')) || null, gramm_quelle: $fromAI('gramm_quelle', 'manuell = vom Nutzer gewogen, ki = geschätzt', 'string', 'ki') }) }}",
+          "options": {
+            "response": {
+              "response": {
+                "neverError": true
+              }
+            }
+          }
+        },
         "name": "naehrwerte_merken",
-        "type": "n8n-nodes-base.dataTableTool",
-        "typeVersion": 1.1,
         "position": [
           2944,
           1968
         ],
-        "parameters": {
-          "descriptionType": "manual",
-          "toolDescription": "Speichert die Nährwerte pro 100 g/ml eines gerade angelegten Grocy-Produkts für Wochenplan und Rezepte. Direkt nach grocy_produkt_anlegen aufrufen, wenn Nährwerte bekannt sind.",
-          "resource": "row",
-          "operation": "insert",
-          "dataTableId": {
-            "__rl": true,
-            "mode": "id",
-            "value": "kil5ZUYaG9x3uGat",
-            "cachedResultName": "vorrat_produkte"
-          },
-          "columns": {
-            "mappingMode": "defineBelow",
-            "matchingColumns": [],
-            "value": {
-              "grocy_product_id": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('grocy_product_id', 'product_id aus grocy_produkt_anlegen', 'number') }}",
-              "name": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('name', 'Produktname wie in Grocy', 'string') }}",
-              "einheit": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('einheit', 'g, ml oder stk', 'string') }}",
-              "kategorie": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('kategorie', 'z.B. Milchprodukte, Obst, Fleisch', 'string') }}",
-              "kcal_100": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('kcal_100', 'kcal pro 100 g/ml', 'number') }}",
-              "protein_100": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('protein_100', 'Protein g pro 100 g/ml', 'number') }}",
-              "fett_100": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fett_100', 'Fett g pro 100 g/ml', 'number') }}",
-              "kh_100": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('kh_100', 'Kohlenhydrate g pro 100 g/ml', 'number') }}",
-              "gramm_pro_stk": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('gramm_pro_stk', 'Gewicht eines Stücks in g, sonst 0', 'number') }}",
-              "off_name": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('marke_und_name', 'Marke und Produktname, z.B. Milbona Skyr', 'string') }}",
-              "quelle": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('quelle', 'rewe, wenn aus rewe_produkt_suchen, sonst nutzer', 'string') }}"
-            },
-            "schema": [
-              {
-                "id": "grocy_product_id",
-                "displayName": "grocy_product_id",
-                "required": false,
-                "defaultMatch": false,
-                "display": true,
-                "type": "number",
-                "canBeUsedToMatch": true
-              },
-              {
-                "id": "name",
-                "displayName": "name",
-                "required": false,
-                "defaultMatch": false,
-                "display": true,
-                "type": "string",
-                "canBeUsedToMatch": true
-              },
-              {
-                "id": "einheit",
-                "displayName": "einheit",
-                "required": false,
-                "defaultMatch": false,
-                "display": true,
-                "type": "string",
-                "canBeUsedToMatch": true
-              },
-              {
-                "id": "kategorie",
-                "displayName": "kategorie",
-                "required": false,
-                "defaultMatch": false,
-                "display": true,
-                "type": "string",
-                "canBeUsedToMatch": true
-              },
-              {
-                "id": "kcal_100",
-                "displayName": "kcal_100",
-                "required": false,
-                "defaultMatch": false,
-                "display": true,
-                "type": "number",
-                "canBeUsedToMatch": true
-              },
-              {
-                "id": "protein_100",
-                "displayName": "protein_100",
-                "required": false,
-                "defaultMatch": false,
-                "display": true,
-                "type": "number",
-                "canBeUsedToMatch": true
-              },
-              {
-                "id": "fett_100",
-                "displayName": "fett_100",
-                "required": false,
-                "defaultMatch": false,
-                "display": true,
-                "type": "number",
-                "canBeUsedToMatch": true
-              },
-              {
-                "id": "kh_100",
-                "displayName": "kh_100",
-                "required": false,
-                "defaultMatch": false,
-                "display": true,
-                "type": "number",
-                "canBeUsedToMatch": true
-              },
-              {
-                "id": "gramm_pro_stk",
-                "displayName": "gramm_pro_stk",
-                "required": false,
-                "defaultMatch": false,
-                "display": true,
-                "type": "number",
-                "canBeUsedToMatch": true
-              },
-              {
-                "id": "off_name",
-                "displayName": "off_name",
-                "required": false,
-                "defaultMatch": false,
-                "display": true,
-                "type": "string",
-                "canBeUsedToMatch": true
-              },
-              {
-                "id": "quelle",
-                "displayName": "quelle",
-                "required": false,
-                "defaultMatch": false,
-                "display": true,
-                "type": "string",
-                "canBeUsedToMatch": true
-              }
-            ]
-          },
-          "options": {}
-        }
+        "id": "c1a2b3d4-0003-4e5f-8a9b-naehrwerte001"
       },
       {
         "id": "c1a2b3d4-0004-4e5f-8a9b-rewesuche0001",
@@ -1874,124 +1759,29 @@
         }
       },
       {
-        "id": "f1000000-0006-4000-8000-botbon000006",
         "name": "Nährwerte korrigieren",
-        "type": "n8n-nodes-base.dataTable",
-        "typeVersion": 1.1,
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "parameters": {
+          "method": "POST",
+          "url": "={{ 'http://rewe-service:8000/vorrat/produkte/' + $('Bon-Korrektur vorbereiten').first().json.grocy_id }}",
+          "sendBody": true,
+          "contentType": "json",
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ name: $('Bon-Korrektur vorbereiten').first().json.produkt.name, rewe_product_id: $('Bon-Korrektur vorbereiten').first().json.produkt.rewe_product_id, ean: $('Bon-Korrektur vorbereiten').first().json.produkt.ean || null, naehrwerte: { kcal: $('Bon-Korrektur vorbereiten').first().json.produkt.kcal_100, protein: $('Bon-Korrektur vorbereiten').first().json.produkt.protein_100, fett: $('Bon-Korrektur vorbereiten').first().json.produkt.fett_100, kh: $('Bon-Korrektur vorbereiten').first().json.produkt.kh_100 }, naehrwert_quelle: 'rewe' }) }}",
+          "options": {
+            "response": {
+              "response": {
+                "neverError": true
+              }
+            }
+          }
+        },
         "position": [
           2572,
           -364
         ],
-        "alwaysOutputData": true,
-        "onError": "continueRegularOutput",
-        "parameters": {
-          "resource": "row",
-          "operation": "update",
-          "dataTableId": {
-            "__rl": true,
-            "mode": "id",
-            "value": "kil5ZUYaG9x3uGat",
-            "cachedResultName": "vorrat_produkte"
-          },
-          "filters": {
-            "conditions": [
-              {
-                "keyName": "grocy_product_id",
-                "condition": "eq",
-                "keyValue": "={{ $('Bon-Korrektur vorbereiten').first().json.grocy_id }}"
-              }
-            ]
-          },
-          "columns": {
-            "mappingMode": "defineBelow",
-            "matchingColumns": [],
-            "value": {
-              "name": "={{ $('Bon-Korrektur vorbereiten').first().json.produkt.name }}",
-              "kcal_100": "={{ $('Bon-Korrektur vorbereiten').first().json.produkt.kcal_100 }}",
-              "protein_100": "={{ $('Bon-Korrektur vorbereiten').first().json.produkt.protein_100 }}",
-              "fett_100": "={{ $('Bon-Korrektur vorbereiten').first().json.produkt.fett_100 }}",
-              "kh_100": "={{ $('Bon-Korrektur vorbereiten').first().json.produkt.kh_100 }}",
-              "off_code": "={{ $('Bon-Korrektur vorbereiten').first().json.produkt.ean || '' }}",
-              "off_name": "={{ (($('Bon-Korrektur vorbereiten').first().json.produkt.brand || '') + ' ' + $('Bon-Korrektur vorbereiten').first().json.produkt.name).trim() }}",
-              "quelle": "rewe"
-            },
-            "schema": [
-              {
-                "id": "name",
-                "displayName": "name",
-                "required": false,
-                "defaultMatch": false,
-                "display": true,
-                "type": "string",
-                "canBeUsedToMatch": true
-              },
-              {
-                "id": "off_code",
-                "displayName": "off_code",
-                "required": false,
-                "defaultMatch": false,
-                "display": true,
-                "type": "string",
-                "canBeUsedToMatch": true
-              },
-              {
-                "id": "off_name",
-                "displayName": "off_name",
-                "required": false,
-                "defaultMatch": false,
-                "display": true,
-                "type": "string",
-                "canBeUsedToMatch": true
-              },
-              {
-                "id": "quelle",
-                "displayName": "quelle",
-                "required": false,
-                "defaultMatch": false,
-                "display": true,
-                "type": "string",
-                "canBeUsedToMatch": true
-              },
-              {
-                "id": "kcal_100",
-                "displayName": "kcal_100",
-                "required": false,
-                "defaultMatch": false,
-                "display": true,
-                "type": "number",
-                "canBeUsedToMatch": true
-              },
-              {
-                "id": "protein_100",
-                "displayName": "protein_100",
-                "required": false,
-                "defaultMatch": false,
-                "display": true,
-                "type": "number",
-                "canBeUsedToMatch": true
-              },
-              {
-                "id": "fett_100",
-                "displayName": "fett_100",
-                "required": false,
-                "defaultMatch": false,
-                "display": true,
-                "type": "number",
-                "canBeUsedToMatch": true
-              },
-              {
-                "id": "kh_100",
-                "displayName": "kh_100",
-                "required": false,
-                "defaultMatch": false,
-                "display": true,
-                "type": "number",
-                "canBeUsedToMatch": true
-              }
-            ]
-          },
-          "options": {}
-        }
+        "id": "f1000000-0006-4000-8000-botbon000006"
       },
       {
         "id": "f1000000-0007-4000-8000-botbon000007",
@@ -2083,39 +1873,6 @@
             "appendAttribution": false,
             "parse_mode": "HTML"
           }
-        }
-      },
-      {
-        "id": "f1000000-0010-4000-8000-botbon000010",
-        "name": "REWE-Nährwerte vorhanden?",
-        "type": "n8n-nodes-base.if",
-        "typeVersion": 2.2,
-        "position": [
-          2462,
-          -204
-        ],
-        "parameters": {
-          "conditions": {
-            "options": {
-              "caseSensitive": true,
-              "leftValue": "",
-              "typeValidation": "loose"
-            },
-            "combinator": "and",
-            "conditions": [
-              {
-                "id": "n",
-                "leftValue": "={{ $('Bon-Korrektur vorbereiten').first().json.produkt.kcal_100 != null }}",
-                "rightValue": "",
-                "operator": {
-                  "type": "boolean",
-                  "operation": "true",
-                  "singleValue": true
-                }
-              }
-            ]
-          },
-          "options": {}
         }
       },
       {
@@ -2898,24 +2655,6 @@
           ]
         ]
       },
-      "REWE-Nährwerte vorhanden?": {
-        "main": [
-          [
-            {
-              "node": "Nährwerte korrigieren",
-              "type": "main",
-              "index": 0
-            }
-          ],
-          [
-            {
-              "node": "Barcode bekannt? (Bon)",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
       "Nährwerte korrigieren": {
         "main": [
           [
@@ -3033,7 +2772,7 @@
           ],
           [
             {
-              "node": "REWE-Nährwerte vorhanden?",
+              "node": "Nährwerte korrigieren",
               "type": "main",
               "index": 0
             }
@@ -3044,7 +2783,7 @@
         "main": [
           [
             {
-              "node": "REWE-Nährwerte vorhanden?",
+              "node": "Nährwerte korrigieren",
               "type": "main",
               "index": 0
             }
@@ -3136,9 +2875,9 @@
       }
     ],
     "pinData": null,
-    "versionId": "466a7417-d4fa-48c1-8e5c-dfc70ae7d0ce",
-    "activeVersionId": "466a7417-d4fa-48c1-8e5c-dfc70ae7d0ce",
-    "versionCounter": 13,
+    "versionId": "42c6d555-8d1c-48ea-9658-220f928542e4",
+    "activeVersionId": "42c6d555-8d1c-48ea-9658-220f928542e4",
+    "versionCounter": 14,
     "triggerCount": 1,
     "sourceWorkflowId": null,
     "tags": [],

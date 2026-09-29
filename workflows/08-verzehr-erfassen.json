@@ -1,6 +1,6 @@
 [
   {
-    "updatedAt": "2026-09-29T11:34:34.000Z",
+    "updatedAt": "2026-09-29T12:34:00.000Z",
     "createdAt": "2026-09-29T10:59:19.666Z",
     "id": "VorratVerzehr001",
     "name": "Vorrat · Verzehr erfassen (alle 5 Min.)",
@@ -143,27 +143,27 @@
         }
       },
       {
-        "id": "c3000000-0007-4000-8000-verzehrwf007",
         "name": "Nährwerte laden",
-        "type": "n8n-nodes-base.dataTable",
-        "typeVersion": 1.1,
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.6,
+        "credentials": {
+          "postgres": {
+            "id": "RewePostgres0001",
+            "name": "REWE Postgres"
+          }
+        },
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "SELECT * FROM vorrat_naehrwerte ORDER BY grocy_product_id;",
+          "options": {}
+        },
+        "executeOnce": true,
+        "alwaysOutputData": true,
         "position": [
           1100,
           0
         ],
-        "executeOnce": true,
-        "alwaysOutputData": true,
-        "parameters": {
-          "resource": "row",
-          "operation": "get",
-          "dataTableId": {
-            "__rl": true,
-            "mode": "id",
-            "value": "kil5ZUYaG9x3uGat",
-            "cachedResultName": "vorrat_produkte"
-          },
-          "returnAll": true
-        }
+        "id": "c3000000-0007-4000-8000-verzehrwf007"
       },
       {
         "id": "c3000000-0008-4000-8000-verzehrwf008",
@@ -177,7 +177,7 @@
         "parameters": {
           "mode": "runOnceForAllItems",
           "language": "javaScript",
-          "jsCode": "// Grocy-Verbrauchsbuchungen der letzten 35 Tage -> Verzehr mit festgeschriebenen Nährwerten.\n// Weggeworfen (spoiled) zählt nicht; rückgängig gemachte Buchungen werden im Protokoll als ignoriert markiert.\nconst produkte = {};\nfor (const i of $('Grocy-Produkte laden').all()) if (i.json && i.json.id) produkte[i.json.id] = i.json;\nconst qu = {};\nfor (const i of $('Grocy-Einheiten laden').all()) if (i.json && i.json.id) qu[i.json.id] = String(i.json.name || '').toLowerCase();\nconst nw = {};\nfor (const i of $('Nährwerte laden').all()) if (i.json && i.json.grocy_product_id) nw[i.json.grocy_product_id] = i.json;\nconst einheitVon = p => { const n = qu[p.qu_id_stock] || ''; return n === 'gramm' ? 'g' : n === 'milliliter' ? 'ml' : 'stk'; };\nconst r1 = x => (x === null || x === undefined || !Number.isFinite(x)) ? null : Math.round(x * 10) / 10;\n// Wasser wird nie erfasst\nconst istWasser = t => /wasser|sprudel/i.test(String(t || '')) && !/melone|kokos|rosen|orangenbl/i.test(String(t || ''));\nconst neu = [];\nconst rueck = [];\nfor (const i of $('Grocy-Verbrauch laden').all()) {\n  const l = i.json;\n  if (!l || !l.id) continue;\n  if (Number(l.undone) === 1) { rueck.push(l.id); continue; }\n  if (Number(l.spoiled) === 1 || l.transaction_type !== 'consume') continue;\n  const menge = Math.abs(Number(l.amount) || 0);\n  if (!menge) continue;\n  const p = produkte[l.product_id] || {};\n  if (istWasser(p.name)) continue;\n  const n = nw[l.product_id] || {};\n  const einheit = n.einheit || einheitVon(p);\n  const gramm = (einheit === 'g' || einheit === 'ml') ? menge : (Number(n.gramm_pro_stk) > 0 ? menge * Number(n.gramm_pro_stk) : null);\n  const hat = n.kcal_100 !== null && n.kcal_100 !== undefined && gramm !== null;\n  const f = hat ? gramm / 100 : 0;\n  const makro = k => hat && n[k] !== null && n[k] !== undefined ? r1(Number(n[k]) * f) : null;\n  neu.push({\n    log_id: l.id, zeitpunkt: l.row_created_timestamp, product_id: l.product_id, name: p.name || n.name || ('Produkt ' + l.product_id),\n    menge, einheit, gramm: r1(gramm),\n    // ohne Nährwert-Eintrag: Grocy-Kalorien pro Lagereinheit als Rückfall\n    kcal: hat ? r1(Number(n.kcal_100) * f) : (Number(p.calories) > 0 ? r1(Number(p.calories) * menge) : null),\n    protein: makro('protein_100'), fett: makro('fett_100'), kh: makro('kh_100'),\n    geschaetzt: !hat || n.quelle === 'ki-schaetzung',\n  });\n}\nreturn [{ json: { neu, rueck, anzahl: neu.length } }];"
+          "jsCode": "// Grocy-Verbrauchsbuchungen der letzten 35 Tage -> Verzehr mit festgeschriebenen Nährwerten.\n// Weggeworfen (spoiled) zählt nicht; rückgängig gemachte Buchungen werden im Protokoll als ignoriert markiert.\nconst produkte = {};\nfor (const i of $('Grocy-Produkte laden').all()) if (i.json && i.json.id) produkte[i.json.id] = i.json;\nconst qu = {};\nfor (const i of $('Grocy-Einheiten laden').all()) if (i.json && i.json.id) qu[i.json.id] = String(i.json.name || '').toLowerCase();\nconst nw = {};\nfor (const i of $('Nährwerte laden').all()) if (i.json && i.json.grocy_product_id) nw[i.json.grocy_product_id] = i.json;\nconst einheitVon = p => { const n = qu[p.qu_id_stock] || ''; return n === 'gramm' ? 'g' : n === 'milliliter' ? 'ml' : 'stk'; };\nconst r1 = x => (x === null || x === undefined || !Number.isFinite(x)) ? null : Math.round(x * 10) / 10;\n// Wasser wird nie erfasst\nconst istWasser = t => /wasser|sprudel/i.test(String(t || '')) && !/melone|kokos|rosen|orangenbl/i.test(String(t || ''));\nconst neu = [];\nconst rueck = [];\nfor (const i of $('Grocy-Verbrauch laden').all()) {\n  const l = i.json;\n  if (!l || !l.id) continue;\n  if (Number(l.undone) === 1) { rueck.push(l.id); continue; }\n  if (Number(l.spoiled) === 1 || l.transaction_type !== 'consume') continue;\n  const menge = Math.abs(Number(l.amount) || 0);\n  if (!menge) continue;\n  const p = produkte[l.product_id] || {};\n  if (istWasser(p.name)) continue;\n  const n = nw[l.product_id] || {};\n  const einheit = n.einheit || einheitVon(p);\n  const gramm = (einheit === 'g' || einheit === 'ml') ? menge : (Number(n.gramm_pro_stk) > 0 ? menge * Number(n.gramm_pro_stk) : null);\n  const hat = n.kcal_100 !== null && n.kcal_100 !== undefined && gramm !== null;\n  const f = hat ? gramm / 100 : 0;\n  const makro = k => hat && n[k] !== null && n[k] !== undefined ? r1(Number(n[k]) * f) : null;\n  neu.push({\n    log_id: l.id, zeitpunkt: l.row_created_timestamp, product_id: l.product_id, name: p.name || n.name || ('Produkt ' + l.product_id),\n    menge, einheit, gramm: r1(gramm),\n    // ohne Nährwert-Eintrag: Grocy-Kalorien pro Lagereinheit als Rückfall\n    kcal: hat ? r1(Number(n.kcal_100) * f) : (Number(p.calories) > 0 ? r1(Number(p.calories) * menge) : null),\n    protein: makro('protein_100'), fett: makro('fett_100'), kh: makro('kh_100'),\n    geschaetzt: !hat || n.geschaetzt === true,\n  });\n}\nreturn [{ json: { neu, rueck, anzahl: neu.length } }];"
         }
       },
       {
@@ -331,9 +331,9 @@
     "meta": null,
     "nodeGroups": [],
     "pinData": null,
-    "versionId": "90c14c9e-606b-4dd7-86c2-6c63037850fa",
-    "activeVersionId": "90c14c9e-606b-4dd7-86c2-6c63037850fa",
-    "versionCounter": 2,
+    "versionId": "64b17e4a-6d58-4c8a-a67c-64e8fb3d5488",
+    "activeVersionId": "64b17e4a-6d58-4c8a-a67c-64e8fb3d5488",
+    "versionCounter": 3,
     "triggerCount": 1,
     "sourceWorkflowId": null,
     "tags": [],

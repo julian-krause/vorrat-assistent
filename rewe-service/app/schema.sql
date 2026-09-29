@@ -230,3 +230,66 @@ CREATE OR REPLACE FUNCTION verzehr_auswertung(von date, bis date) RETURNS jsonb 
             FROM e GROUP BY name ORDER BY sum(kcal) DESC NULLS LAST LIMIT 8) x)
     ) FROM g, s, t;
 $$;
+
+-- Vorratsprodukte (ein Eintrag je Grocy-Produkt): Verknüpfung zu REWE und eigene Werte.
+-- Eigene Nährwerte nur für Produkte ohne REWE-Werte oder für Korrekturen durch den Nutzer; die View
+-- vorrat_naehrwerte liefert pro Produkt den besten Wert. Schreiben nur über den rewe-service (Rangregel).
+CREATE TABLE IF NOT EXISTS vorrat_produkte (
+    grocy_product_id  integer PRIMARY KEY,
+    name              text NOT NULL,
+    einheit           text NOT NULL DEFAULT 'g' CHECK (einheit IN ('g', 'ml', 'stk')),
+    kategorie         text,
+    rewe_product_id   text REFERENCES rewe_products (rewe_product_id),
+    ean               text,
+    kcal_100          numeric(7, 1),
+    protein_100       numeric(6, 1),
+    fett_100          numeric(6, 1),
+    kh_100            numeric(6, 1),
+    zucker_100        numeric(6, 1),
+    ballaststoffe_100 numeric(6, 1),
+    salz_100          numeric(6, 2),
+    naehrwert_quelle  text CHECK (naehrwert_quelle IN ('manuell', 'rewe', 'off_barcode', 'off_name', 'bls', 'ki')),
+    naehrwert_rang    smallint CHECK (naehrwert_rang BETWEEN 1 AND 6),
+    naehrwert_stand   timestamptz,
+    naehrwert_detail  text,             -- z.B. OFF-Code, BLS-Code, „Etikett-Foto“
+    gramm_pro_stk     numeric(7, 1) CHECK (gramm_pro_stk > 0),   -- essbarer Anteil eines Stücks
+    gramm_quelle      text CHECK (gramm_quelle IN ('manuell', 'packung', 'referenz', 'ki')),
+    gramm_rang        smallint CHECK (gramm_rang BETWEEN 1 AND 4),
+    gramm_detail      text,
+    nutriscore        text,
+    nova              smallint,
+    erstellt_at       timestamptz NOT NULL DEFAULT now(),
+    aktualisiert_at   timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS vorrat_produkte_rewe_idx ON vorrat_produkte (rewe_product_id);
+
+-- Bester Nährwert je Vorratsprodukt: kleinster Rang aus eigenem Wert und REWE-Produkt (REWE nur, wenn plausibel);
+-- bei gleichem Rang gewinnt das REWE-Produkt. Zahlen als float8, damit n8n echte Zahlen bekommt.
+DROP VIEW IF EXISTS vorrat_naehrwerte CASCADE;
+CREATE VIEW vorrat_naehrwerte AS
+SELECT v.grocy_product_id, v.name, v.einheit, v.kategorie, v.rewe_product_id, coalesce(v.ean, r.ean) AS ean,
+       b.kcal_100::float8 AS kcal_100, b.protein_100::float8 AS protein_100, b.fett_100::float8 AS fett_100,
+       b.kh_100::float8 AS kh_100, b.zucker_100::float8 AS zucker_100, b.ballaststoffe_100::float8 AS ballaststoffe_100,
+       b.salz_100::float8 AS salz_100,
+       b.quelle AS naehrwert_quelle, b.rang AS naehrwert_rang, b.verlauf_id AS naehrwert_verlauf_id, b.stand AS naehrwert_stand,
+       v.gramm_pro_stk::float8 AS gramm_pro_stk, v.gramm_quelle, v.gramm_rang,
+       (b.rang IS NULL OR b.rang >= 5 OR (v.einheit = 'stk' AND coalesce(v.gramm_rang, 4) >= 4)) AS geschaetzt,
+       CASE WHEN v.einheit = 'stk' THEN round(b.kcal_100 * v.gramm_pro_stk / 100, 1)::float8
+            ELSE round(b.kcal_100 / 100, 4)::float8 END AS kcal_pro_einheit,
+       v.nutriscore, v.nova, r.name AS rewe_name, r.brand AS rewe_marke
+FROM vorrat_produkte v
+LEFT JOIN rewe_products r ON r.rewe_product_id = v.rewe_product_id
+LEFT JOIN LATERAL (
+    SELECT x.* FROM (VALUES
+        (v.kcal_100, v.protein_100, v.fett_100, v.kh_100, v.zucker_100, v.ballaststoffe_100, v.salz_100,
+         v.naehrwert_quelle, v.naehrwert_rang::integer, NULL::bigint, v.naehrwert_stand),
+        (r.kcal_100, r.protein_100, r.fett_100, r.kh_100, r.zucker_100, r.ballaststoffe_100, r.salz_100,
+         CASE r.naehrwerte_quelle WHEN 'rewe' THEN 'rewe' WHEN 'openfoodfacts' THEN 'off_barcode' END,
+         CASE r.naehrwerte_quelle WHEN 'rewe' THEN 2 WHEN 'openfoodfacts' THEN 3 END,
+         r.naehrwert_verlauf_id, r.details_fetched_at)
+    ) x(kcal_100, protein_100, fett_100, kh_100, zucker_100, ballaststoffe_100, salz_100, quelle, rang, verlauf_id, stand)
+    WHERE x.kcal_100 IS NOT NULL AND x.rang IS NOT NULL
+      AND (x.verlauf_id IS NULL OR naehrwerte_plausibel(x.kcal_100, x.protein_100, x.fett_100, x.kh_100, x.ballaststoffe_100))
+    ORDER BY x.rang, x.verlauf_id IS NULL
+    LIMIT 1
+) b ON true;

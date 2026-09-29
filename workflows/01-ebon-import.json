@@ -1,6 +1,6 @@
 [
   {
-    "updatedAt": "2026-09-29T11:34:30.000Z",
+    "updatedAt": "2026-09-29T12:33:47.000Z",
     "createdAt": "2026-09-27T15:00:32.007Z",
     "id": "WI7rA3dd4TMM2WVb",
     "name": "Vorrat · eBon-Import (REWE → Grocy)",
@@ -556,172 +556,30 @@
         }
       },
       {
-        "id": "b1cf5f58-3967-4462-a038-31ff33ae10e5",
         "name": "Nährwerte merken",
-        "type": "n8n-nodes-base.dataTable",
-        "typeVersion": 1.1,
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "options": {},
+        "parameters": {
+          "method": "POST",
+          "url": "={{ 'http://rewe-service:8000/vorrat/produkte/' + $json.product_id }}",
+          "sendBody": true,
+          "contentType": "json",
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ name: $json.name, einheit: $json.einheit, kategorie: $json.kategorie, rewe_product_id: $json.rewe_product_id || null, ean: $json.off_code || null, nutriscore: $json.nutriscore || null, nova: $json.nova || null, naehrwerte: { kcal: $json.kcal_100, protein: $json.protein_100, fett: $json.fett_100, kh: $json.kh_100 }, naehrwert_quelle: ({ rewe: 'rewe', openfoodfacts: 'off_name', 'ki-schaetzung': 'ki' })[$json.quelle] || 'ki', gramm_pro_stk: $json.einheit === 'stk' ? $json.gramm_pro_stk : null, gramm_quelle: 'ki' }) }}",
+          "options": {
+            "response": {
+              "response": {
+                "neverError": true
+              }
+            }
+          }
+        },
         "position": [
           4692,
           224
         ],
-        "parameters": {
-          "resource": "row",
-          "operation": "insert",
-          "dataTableId": {
-            "__rl": true,
-            "mode": "id",
-            "value": "kil5ZUYaG9x3uGat",
-            "cachedResultName": "vorrat_produkte"
-          },
-          "columns": {
-            "mappingMode": "defineBelow",
-            "matchingColumns": [],
-            "value": {
-              "grocy_product_id": "={{ $json.product_id }}",
-              "name": "={{ $json.name }}",
-              "einheit": "={{ $json.einheit }}",
-              "kategorie": "={{ $json.kategorie }}",
-              "kcal_100": "={{ $json.kcal_100 }}",
-              "protein_100": "={{ $json.protein_100 }}",
-              "fett_100": "={{ $json.fett_100 }}",
-              "kh_100": "={{ $json.kh_100 }}",
-              "gramm_pro_stk": "={{ $json.gramm_pro_stk }}",
-              "nutriscore": "={{ $json.nutriscore }}",
-              "nova": "={{ $json.nova }}",
-              "off_code": "={{ $json.off_code }}",
-              "off_name": "={{ $json.off_name }}",
-              "quelle": "={{ $json.quelle }}"
-            },
-            "schema": [
-              {
-                "id": "grocy_product_id",
-                "displayName": "grocy_product_id",
-                "required": false,
-                "defaultMatch": false,
-                "display": true,
-                "type": "number",
-                "canBeUsedToMatch": true
-              },
-              {
-                "id": "name",
-                "displayName": "name",
-                "required": false,
-                "defaultMatch": false,
-                "display": true,
-                "type": "string",
-                "canBeUsedToMatch": true
-              },
-              {
-                "id": "einheit",
-                "displayName": "einheit",
-                "required": false,
-                "defaultMatch": false,
-                "display": true,
-                "type": "string",
-                "canBeUsedToMatch": true
-              },
-              {
-                "id": "kategorie",
-                "displayName": "kategorie",
-                "required": false,
-                "defaultMatch": false,
-                "display": true,
-                "type": "string",
-                "canBeUsedToMatch": true
-              },
-              {
-                "id": "kcal_100",
-                "displayName": "kcal_100",
-                "required": false,
-                "defaultMatch": false,
-                "display": true,
-                "type": "number",
-                "canBeUsedToMatch": true
-              },
-              {
-                "id": "protein_100",
-                "displayName": "protein_100",
-                "required": false,
-                "defaultMatch": false,
-                "display": true,
-                "type": "number",
-                "canBeUsedToMatch": true
-              },
-              {
-                "id": "fett_100",
-                "displayName": "fett_100",
-                "required": false,
-                "defaultMatch": false,
-                "display": true,
-                "type": "number",
-                "canBeUsedToMatch": true
-              },
-              {
-                "id": "kh_100",
-                "displayName": "kh_100",
-                "required": false,
-                "defaultMatch": false,
-                "display": true,
-                "type": "number",
-                "canBeUsedToMatch": true
-              },
-              {
-                "id": "gramm_pro_stk",
-                "displayName": "gramm_pro_stk",
-                "required": false,
-                "defaultMatch": false,
-                "display": true,
-                "type": "number",
-                "canBeUsedToMatch": true
-              },
-              {
-                "id": "nutriscore",
-                "displayName": "nutriscore",
-                "required": false,
-                "defaultMatch": false,
-                "display": true,
-                "type": "string",
-                "canBeUsedToMatch": true
-              },
-              {
-                "id": "nova",
-                "displayName": "nova",
-                "required": false,
-                "defaultMatch": false,
-                "display": true,
-                "type": "number",
-                "canBeUsedToMatch": true
-              },
-              {
-                "id": "off_code",
-                "displayName": "off_code",
-                "required": false,
-                "defaultMatch": false,
-                "display": true,
-                "type": "string",
-                "canBeUsedToMatch": true
-              },
-              {
-                "id": "off_name",
-                "displayName": "off_name",
-                "required": false,
-                "defaultMatch": false,
-                "display": true,
-                "type": "string",
-                "canBeUsedToMatch": true
-              },
-              {
-                "id": "quelle",
-                "displayName": "quelle",
-                "required": false,
-                "defaultMatch": false,
-                "display": true,
-                "type": "string",
-                "canBeUsedToMatch": true
-              }
-            ]
-          }
-        }
+        "id": "b1cf5f58-3967-4462-a038-31ff33ae10e5"
       },
       {
         "id": "233710ac-9f98-4bcb-a848-87abddfd0fe9",
@@ -1902,9 +1760,9 @@
       }
     ],
     "pinData": null,
-    "versionId": "642997bb-a217-4dd7-9e00-ebe860b72895",
-    "activeVersionId": "642997bb-a217-4dd7-9e00-ebe860b72895",
-    "versionCounter": 8,
+    "versionId": "4dd0afa0-40d7-482c-8091-a39150127f1e",
+    "activeVersionId": "4dd0afa0-40d7-482c-8091-a39150127f1e",
+    "versionCounter": 9,
     "triggerCount": 1,
     "sourceWorkflowId": null,
     "tags": [],

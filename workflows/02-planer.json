@@ -1,6 +1,6 @@
 [
   {
-    "updatedAt": "2026-09-29T10:59:40.000Z",
+    "updatedAt": "2026-09-29T12:33:51.000Z",
     "createdAt": "2026-09-27T14:58:40.924Z",
     "id": "2dBOwb9KJDnwi1Id",
     "name": "Vorrat · Planer (Rezepte & Wochenplan)",
@@ -223,27 +223,27 @@
         }
       },
       {
-        "id": "def8d75e-feaf-4b26-b05d-247dd9c00725",
         "name": "Nährwerte laden",
-        "type": "n8n-nodes-base.dataTable",
-        "typeVersion": 1.1,
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.6,
+        "credentials": {
+          "postgres": {
+            "id": "RewePostgres0001",
+            "name": "REWE Postgres"
+          }
+        },
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "SELECT * FROM vorrat_naehrwerte ORDER BY grocy_product_id;",
+          "options": {}
+        },
+        "executeOnce": true,
+        "alwaysOutputData": true,
         "position": [
           1344,
           96
         ],
-        "parameters": {
-          "resource": "row",
-          "operation": "get",
-          "dataTableId": {
-            "__rl": true,
-            "mode": "id",
-            "value": "kil5ZUYaG9x3uGat",
-            "cachedResultName": "vorrat_produkte"
-          },
-          "returnAll": true
-        },
-        "executeOnce": true,
-        "alwaysOutputData": true
+        "id": "def8d75e-feaf-4b26-b05d-247dd9c00725"
       },
       {
         "id": "b8ecc5bb-9a2f-49cc-b947-182161a57925",
@@ -1129,9 +1129,9 @@
       }
     ],
     "pinData": null,
-    "versionId": "b557334c-7f0a-423c-84d0-c30feafd4b6e",
-    "activeVersionId": "b557334c-7f0a-423c-84d0-c30feafd4b6e",
-    "versionCounter": 5,
+    "versionId": "8074d6e8-bf2c-4dd3-bd7f-2e88e2855ef6",
+    "activeVersionId": "8074d6e8-bf2c-4dd3-bd7f-2e88e2855ef6",
+    "versionCounter": 6,
     "triggerCount": 1,
     "sourceWorkflowId": null,
     "tags": [],
