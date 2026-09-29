@@ -1,6 +1,6 @@
 [
   {
-    "updatedAt": "2026-09-29T14:45:36.000Z",
+    "updatedAt": "2026-09-29T19:55:51.000Z",
     "createdAt": "2026-09-27T15:07:02.162Z",
     "id": "JStsSgy75x6xLQzD",
     "name": "Vorrat · Telegram-Bot",
@@ -76,7 +76,7 @@
         "parameters": {
           "mode": "runOnceForAllItems",
           "language": "javaScript",
-          "jsCode": "const u = $('Telegram Trigger').first().json;\nconst profil = $input.first().json || {};\nconst cb = u.callback_query;\nconst msg = u.message || (cb && cb.message) || {};\nconst chatId = String((msg.chat && msg.chat.id) || '');\nconst text = String((u.message && u.message.text) || '').trim();\nif (!chatId) return [];\nif (profil.chat_id && String(profil.chat_id) !== chatId) return [];\n\nlet aktion = 'chat';\nlet param = '';\nconst lower = text.toLowerCase();\nconst rest = text.includes(' ') ? text.slice(text.indexOf(' ') + 1).trim() : '';\nif (cb) {\n  const teile = String(cb.data || '').split(':');\n  const art = teile.shift();\n  param = teile.join(':');\n  if (art === 'cook') aktion = 'kochen';\n  else if (art === 'inv') aktion = 'inventar_aktion';\n  else if (art === 'bon') aktion = 'bon_antwort';\n  else if (art === 'cmd' && param === 'rezepte') aktion = 'rezepte';\n  else aktion = 'hilfe';\n} else if (lower.startsWith('/start')) aktion = 'start';\nelse if (lower.startsWith('/rezepte')) { aktion = 'rezepte'; param = rest; }\nelse if (lower.startsWith('/wochenplan')) { aktion = 'wochenplan'; param = rest; }\nelse if (lower.startsWith('/inventar') || lower.startsWith('/vorrat')) aktion = 'inventar';\nelse if (lower.startsWith('/hilfe') || lower.startsWith('/help')) aktion = 'hilfe';\nelse if (lower.startsWith('/unsicher')) aktion = 'unsicher';\nelse if (!text) aktion = 'hilfe';\n\nreturn [{ json: { aktion, param, chat_id: chatId, text, callback_id: cb ? String(cb.id) : '' } }];"
+          "jsCode": "const u = $('Telegram Trigger').first().json;\nconst profil = $input.first().json || {};\nconst cb = u.callback_query;\nconst msg = u.message || (cb && cb.message) || {};\nconst chatId = String((msg.chat && msg.chat.id) || '');\nconst text = String((u.message && u.message.text) || '').trim();\nif (!chatId) return [];\nif (profil.chat_id && String(profil.chat_id) !== chatId) return [];\n\nlet aktion = 'chat';\nlet param = '';\nlet tage = 0;\nconst lower = text.toLowerCase();\nconst rest = text.includes(' ') ? text.slice(text.indexOf(' ') + 1).trim() : '';\nif (cb) {\n  const teile = String(cb.data || '').split(':');\n  const art = teile.shift();\n  param = teile.join(':');\n  if (art === 'cook') aktion = 'kochen';\n  else if (art === 'inv') aktion = 'inventar_aktion';\n  else if (art === 'bon') aktion = 'bon_antwort';\n  else if (art === 'cmd' && param === 'rezepte') aktion = 'rezepte';\n  else aktion = 'hilfe';\n} else if (lower.startsWith('/start')) aktion = 'start';\nelse if (lower.startsWith('/rezepte')) { aktion = 'rezepte'; param = rest; }\nelse if (lower.startsWith('/wochenplan')) { aktion = 'wochenplan'; param = rest; tage = 7; }\nelse if (/^\\/plan\\b/.test(lower)) {\n  // „/plan 3 vegetarisch“: Plan für 3 Tage ab morgen (ohne Zahl: 1 Tag)\n  aktion = 'wochenplan';\n  const m = rest.match(/^(\\d{1,2})\\s*(tage?n?)?\\s*(.*)$/i);\n  tage = m ? Math.max(1, Math.min(14, Number(m[1]))) : 1;\n  param = m ? m[3].trim() : rest;\n}\nelse if (lower.startsWith('/inventar') || lower.startsWith('/vorrat')) aktion = 'inventar';\nelse if (lower.startsWith('/hilfe') || lower.startsWith('/help')) aktion = 'hilfe';\nelse if (lower.startsWith('/unsicher')) aktion = 'unsicher';\nelse if (!text) aktion = 'hilfe';\n\nreturn [{ json: { aktion, param, tage, chat_id: chatId, text, callback_id: cb ? String(cb.id) : '' } }];"
         }
       },
       {
@@ -769,6 +769,60 @@
                 "display": true,
                 "canBeUsedToMatch": true,
                 "type": "string"
+              },
+              {
+                "id": "tage",
+                "displayName": "tage",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "number"
+              },
+              {
+                "id": "start",
+                "displayName": "start",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
+              },
+              {
+                "id": "anzahl",
+                "displayName": "anzahl",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "number"
+              },
+              {
+                "id": "ziel_kcal",
+                "displayName": "ziel_kcal",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "number"
+              },
+              {
+                "id": "ziel_protein",
+                "displayName": "ziel_protein",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "number"
+              },
+              {
+                "id": "mahlzeit",
+                "displayName": "mahlzeit",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
               }
             ],
             "attemptToConvertTypes": false,
@@ -792,7 +846,7 @@
           "resource": "message",
           "operation": "sendMessage",
           "chatId": "={{ $json.chat_id }}",
-          "text": "⏳ Ich plane deine Woche passend zu deinen Zielen. Das dauert 1–2 Minuten…",
+          "text": "={{ (() => { const t = $json.tage || 7; return '⏳ Ich plane ' + (t === 7 ? 'deine Woche' : t === 1 ? 'deinen Tag' : 'deine ' + t + ' Tage') + ' passend zu deinen Zielen. Das dauert 1–2 Minuten…'; })() }}",
           "additionalFields": {
             "appendAttribution": false
           }
@@ -827,7 +881,8 @@
             "mappingMode": "defineBelow",
             "value": {
               "modus": "wochenplan",
-              "hinweis": "={{ $('Update auswerten').first().json.param }}"
+              "hinweis": "={{ $('Update auswerten').first().json.param }}",
+              "tage": "={{ $('Update auswerten').first().json.tage || 7 }}"
             },
             "matchingColumns": [],
             "schema": [
@@ -843,6 +898,60 @@
               {
                 "id": "hinweis",
                 "displayName": "hinweis",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
+              },
+              {
+                "id": "tage",
+                "displayName": "tage",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "number"
+              },
+              {
+                "id": "start",
+                "displayName": "start",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
+              },
+              {
+                "id": "anzahl",
+                "displayName": "anzahl",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "number"
+              },
+              {
+                "id": "ziel_kcal",
+                "displayName": "ziel_kcal",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "number"
+              },
+              {
+                "id": "ziel_protein",
+                "displayName": "ziel_protein",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "number"
+              },
+              {
+                "id": "mahlzeit",
+                "displayName": "mahlzeit",
                 "required": false,
                 "defaultMatch": false,
                 "display": true,
@@ -985,7 +1094,7 @@
           "resource": "message",
           "operation": "sendMessage",
           "chatId": "={{ $json.chat_id }}",
-          "text": "<b>So nutzt du mich</b>\n/rezepte – 3 Rezeptideen aus dem Vorrat (z.B. /rezepte schnell, vegetarisch)\n/wochenplan – Wochenplan passend zu deinen Makros + Einkaufsliste\n/inventar – was ist noch da und wie lange hält es? (≈ = Nährwerte geschätzt)\n/unsicher – Produkte mit geschätzten Nährwerten oder Stückgewichten\n\nEinfach schreiben geht auch:\n• „Meine Ziele: 2000 kcal, 150 g Protein, 65 g Fett, 200 g KH“\n• „Hab 2 Eier und 100 g Käse gegessen“\n• „Mein Skyr hat laut Packung 63 kcal, 11 g Eiweiß, 0,2 g Fett, 3,9 g KH pro 100 g“\n• „Die Milch hab ich weggeworfen“\n• „Der Joghurt hält noch bis 15.10.“\n• „Hab noch 1 kg Reis gekauft“ (wenn das Produkt in Grocy existiert)",
+          "text": "<b>So nutzt du mich</b>\n/rezepte – 3 Rezeptideen aus dem Vorrat (z.B. /rezepte schnell, vegetarisch)\n/wochenplan – Wochenplan passend zu deinen Makros + Einkaufsliste\n/plan 3 – Plan für 3 Tage ab morgen (/plan = 1 Tag, z.B. /plan 2 vegetarisch)\n/inventar – was ist noch da und wie lange hält es? (≈ = Nährwerte geschätzt)\n/unsicher – Produkte mit geschätzten Nährwerten oder Stückgewichten\n\nEinfach schreiben geht auch:\n• „Meine Ziele: 2000 kcal, 150 g Protein, 65 g Fett, 200 g KH“\n• „Gib mir ein Rezept mit etwa 1000 kcal“ oder „Mach mir einen Plan für die nächsten 3 Tage“\n• „Hab 2 Eier und 100 g Käse gegessen“\n• „Mein Skyr hat laut Packung 63 kcal, 11 g Eiweiß, 0,2 g Fett, 3,9 g KH pro 100 g“\n• „Die Milch hab ich weggeworfen“\n• „Der Joghurt hält noch bis 15.10.“\n• „Hab noch 1 kg Reis gekauft“ (wenn das Produkt in Grocy existiert)",
           "additionalFields": {
             "appendAttribution": false,
             "parse_mode": "HTML"
@@ -1012,7 +1121,7 @@
           "promptType": "define",
           "text": "={{ $('Update auswerten').first().json.text }}",
           "options": {
-            "systemMessage": "=Du bist ein freundlicher deutscher Vorrats- und Ernährungsassistent in Telegram. Du verwaltest den Vorrat in Grocy selbst: Du darfst Produkte anlegen sowie Bestand einbuchen und ausbuchen. Heute ist {{ $now.setZone(\"Europe/Berlin\").toFormat(\"cccc, dd.LL.yyyy\") }}.\n\nWICHTIG: Aussagen über Bestand, Inventar, Produkte in Grocy oder Verzehr immer frisch mit dem passenden Werkzeug prüfen (grocy_bestand, grocy_produkt_suchen, verzehr_auswerten), nie aus dem bisherigen Gesprächsverlauf ableiten – der Bestand ändert sich auch ohne dich (eBon-Import, Grocy-App). Behaupte nichts, was kein Werkzeug gerade bestätigt hat.\n\nWerkzeuge:\n- grocy_bestand: aktueller Bestand (product_id, Menge in der Lagereinheit, MHD). Vor jedem Ein- oder Ausbuchen zuerst aufrufen.\n- grocy_produkt_suchen: prüft per Name oder Barcode, ob ein Produkt in Grocy schon existiert.\n- rewe_produkt_suchen: lokale REWE-Produkttabelle mit Marke, Packungsgröße, Preis, Preis pro kg/l, Angeboten und Makros pro 100 g.\n- grocy_produkt_anlegen, naehrwerte_merken, grocy_barcode_zuordnen: neues Produkt anlegen (Ablauf unten).\n- grocy_bestand_hinzufuegen / grocy_bestand_verbrauchen: einbuchen bzw. ausbuchen (gegessen oder weggeworfen).\n- grocy_eintraege + grocy_mhd_aendern: MHD korrigieren, z.B. „Joghurt hält bis 15.10.“.\n- verzehr_eintragen, verzehr_auswerten, verzehr_eintraege, verzehr_korrigieren: Verzehr-Protokoll (siehe unten).\n- profil_lesen und ziele_speichern: Ernährungsziele verwalten. Nennt der Nutzer nur kcal, schlage gesunde Makros vor (Protein ca. 1,6-2 g pro kg Körpergewicht bzw. ca. 30 Prozent, Fett 25-30 Prozent, Rest Kohlenhydrate) und speichere sie.\n\nProdukt aufnehmen („Nimm X auf“):\n1. grocy_produkt_suchen: Gibt es das Produkt schon, sag das und lege nichts an (biete an, Bestand einzubuchen).\n2. rewe_produkt_suchen mit Name und Marke. Passt ein Treffer, übernimm Name, Marke, Größe, Preis und Makros daraus. Bei mehreren plausiblen Treffern zeig bis zu 3 zur Auswahl. Ohne Treffer sag das offen und frag nach Packungsgröße und – falls der Nutzer sie hat – den Nährwerten pro 100 g vom Etikett. Erfinde niemals Preise oder Barcodes. Nährwerte ermittelt naehrwerte_merken selbst (REWE, Open Food Facts, BLS); deine Schätzung ist nur der letzte Ausweg.\n3. Zeig eine kurze Zusammenfassung: Name, Marke, Packungsgröße, Preis, Lagerort, Haltbarkeit, kcal/Protein/Fett/KH pro 100 g. Frag „Soll ich es so anlegen?“ und warte auf die Antwort.\n4. Erst wenn der Nutzer in seiner nächsten Nachricht mit ja zustimmt: grocy_produkt_anlegen, danach IMMER naehrwerte_merken (mit rewe_product_id, Marke und Barcode, soweit bekannt; Werte des Nutzers mit werte_quelle=manuell) und grocy_barcode_zuordnen (nur wenn ein Barcode bekannt ist). Bestätige mit der neuen product_id. Bestand nur einbuchen, wenn der Nutzer es sagt.\n   Änderungswünsche oder Rückfragen („Haltbarkeit eher 21 Tage“) sind KEINE Zustimmung: Zusammenfassung anpassen, erneut zeigen und wieder auf ja warten.\n\nEin- und Ausbuchen: Bei klaren Angaben („Hab 2 Eier gegessen“, „3 Joghurt gekauft“, „Milch weggeworfen“) ohne Rückfrage buchen und danach kurz bestätigen, was gebucht wurde. Nachfragen nur, wenn Produkt oder Menge unklar ist. Menge in die Lagereinheit umrechnen und nie mehr ausbuchen als vorhanden.\n\nVerzehr-Protokoll (tatsächlich Gegessenes, unabhängig vom Plan):\n- Was aus dem Vorrat als verbraucht ausgebucht wird, landet automatisch im Protokoll (weggeworfen nicht). Nicht zusätzlich eintragen.\n- Isst der Nutzer etwas, das nicht im Vorrat ist (auswärts, Mensa, Bäcker, eingeladen, nicht in Grocy), trag es mit verzehr_eintragen ein: realistische Portion in g und Nährwerte der ganzen Portion.\n  Für Supermarktprodukte nimm die Werte aus rewe_produkt_suchen (geschaetzt=false), sonst schätze realistisch (geschaetzt=true). Nenne danach kurz, was du eingetragen hast.\n- „Hab 2 Eier gegessen“: sind sie im Vorrat, ausbuchen; sonst mit verzehr_eintragen erfassen.\n- Wasser (Mineral-, Tafel-, Sprudel-, Leitungswasser) wird nie eingebucht, angelegt oder im Verzehr eingetragen.\n- Fragen zum Ist-Konsum („wie viel habe ich im September/diese Woche/gestern gegessen“, Durchschnitt): verzehr_auswerten mit dem Zeitraum (Monat = erster bis letzter Tag).\n  Antworte mit Durchschnitt pro Kalendertag (kcal, Protein, Fett, KH) und Summe, nenne die Tage mit Einträgen und den geschätzten Anteil; auf Wunsch Vergleich mit den Zielen (profil_lesen).\n- Korrekturen („hab ich doch nicht gegessen“): mit verzehr_eintraege suchen, mit verzehr_korrigieren herausnehmen.\n- Nenne Summen oder „noch übrig“-Werte für einen Tag oder Zeitraum nur, wenn du sie gerade mit verzehr_auswerten abgefragt hast. Erfinde nie bisherige Mengen.\n\nEinkauf und Planung: Für Einkaufsfragen schlag mit rewe_produkt_suchen konkrete Produkte vor (Marke, Packungsgröße, Preis). Bevorzuge günstigen Preis pro kg/l, weise auf aktuelle Angebote hin und nenne bei Eiweißquellen den Preis pro 100 g Protein. Für Rezeptideen verweise auf /rezepte, für komplette Wochenpläne auf /wochenplan.\n\nAntworte kurz auf Deutsch, nutze passende Emojis, keine Markdown-Tabellen.\n\nGeschätzte Werte und Quellen:\n- Nährwerte kommen aus fester Rangfolge (vom Nutzer genannt > REWE > Open Food Facts > BLS > KI). Kennzeichne geschätzte Zahlen (geschaetzt = true, BLS oder KI) immer mit ≈.\n- Bei Auswertungen (verzehr_auswerten) nenne immer, wie viel Prozent der kcal auf Schätzungen beruhen (anteil_geschaetzt_prozent); ist der Anteil > 0, setze ≈ vor die Summen.\n- Nennt der Nutzer ein gewogenes Stückgewicht („Avocado wiegt 142 g“): frag zuerst, ob mit oder ohne Schale/Kern gewogen wurde. Dann naehrwerte_merken mit gramm_pro_stk = gewogenes Gewicht, gramm_quelle = manuell, mit_schale = ja/nein und kcal_100 = 0 (die Nährwerte ermittelt der Dienst). Nenne danach den gespeicherten essbaren Anteil. Meldet die Antwort gramm_fehler, gib ihn weiter.\n- Nennt der Nutzer Nährwerte eines Vorratsprodukts per Text (z.B. von der Packung abgeschrieben) oder korrigiert sie: naehrwerte_merken mit diesen Werten und werte_quelle = manuell (Rang 1, schlägt alle anderen Quellen). Lehnt der Dienst sie als unplausibel ab, sag das und frag nach. /unsicher zeigt alle Produkte mit geschätzten Werten.",
+            "systemMessage": "=Du bist ein freundlicher deutscher Vorrats- und Ernährungsassistent in Telegram. Du verwaltest den Vorrat in Grocy selbst: Du darfst Produkte anlegen sowie Bestand einbuchen und ausbuchen. Heute ist {{ $now.setZone(\"Europe/Berlin\").toFormat(\"cccc, dd.LL.yyyy\") }}.\n\nWICHTIG: Aussagen über Bestand, Inventar, Produkte in Grocy oder Verzehr immer frisch mit dem passenden Werkzeug prüfen (grocy_bestand, grocy_produkt_suchen, verzehr_auswerten), nie aus dem bisherigen Gesprächsverlauf ableiten – der Bestand ändert sich auch ohne dich (eBon-Import, Grocy-App). Behaupte nichts, was kein Werkzeug gerade bestätigt hat.\n\nWerkzeuge:\n- grocy_bestand: aktueller Bestand (product_id, Menge in der Lagereinheit, MHD). Vor jedem Ein- oder Ausbuchen zuerst aufrufen.\n- grocy_produkt_suchen: prüft per Name oder Barcode, ob ein Produkt in Grocy schon existiert.\n- rewe_produkt_suchen: lokale REWE-Produkttabelle mit Marke, Packungsgröße, Preis, Preis pro kg/l, Angeboten und Makros pro 100 g.\n- grocy_produkt_anlegen, naehrwerte_merken, grocy_barcode_zuordnen: neues Produkt anlegen (Ablauf unten).\n- grocy_bestand_hinzufuegen / grocy_bestand_verbrauchen: einbuchen bzw. ausbuchen (gegessen oder weggeworfen).\n- grocy_eintraege + grocy_mhd_aendern: MHD korrigieren, z.B. „Joghurt hält bis 15.10.“.\n- verzehr_eintragen, verzehr_auswerten, verzehr_eintraege, verzehr_korrigieren: Verzehr-Protokoll (siehe unten).\n- profil_lesen und ziele_speichern: Ernährungsziele verwalten. Nennt der Nutzer nur kcal, schlage gesunde Makros vor (Protein ca. 1,6-2 g pro kg Körpergewicht bzw. ca. 30 Prozent, Fett 25-30 Prozent, Rest Kohlenhydrate) und speichere sie.\n\nProdukt aufnehmen („Nimm X auf“):\n1. grocy_produkt_suchen: Gibt es das Produkt schon, sag das und lege nichts an (biete an, Bestand einzubuchen).\n2. rewe_produkt_suchen mit Name und Marke. Passt ein Treffer, übernimm Name, Marke, Größe, Preis und Makros daraus. Bei mehreren plausiblen Treffern zeig bis zu 3 zur Auswahl. Ohne Treffer sag das offen und frag nach Packungsgröße und – falls der Nutzer sie hat – den Nährwerten pro 100 g vom Etikett. Erfinde niemals Preise oder Barcodes. Nährwerte ermittelt naehrwerte_merken selbst (REWE, Open Food Facts, BLS); deine Schätzung ist nur der letzte Ausweg.\n3. Zeig eine kurze Zusammenfassung: Name, Marke, Packungsgröße, Preis, Lagerort, Haltbarkeit, kcal/Protein/Fett/KH pro 100 g. Frag „Soll ich es so anlegen?“ und warte auf die Antwort.\n4. Erst wenn der Nutzer in seiner nächsten Nachricht mit ja zustimmt: grocy_produkt_anlegen, danach IMMER naehrwerte_merken (mit rewe_product_id, Marke und Barcode, soweit bekannt; Werte des Nutzers mit werte_quelle=manuell) und grocy_barcode_zuordnen (nur wenn ein Barcode bekannt ist). Bestätige mit der neuen product_id. Bestand nur einbuchen, wenn der Nutzer es sagt.\n   Änderungswünsche oder Rückfragen („Haltbarkeit eher 21 Tage“) sind KEINE Zustimmung: Zusammenfassung anpassen, erneut zeigen und wieder auf ja warten.\n\nEin- und Ausbuchen: Bei klaren Angaben („Hab 2 Eier gegessen“, „3 Joghurt gekauft“, „Milch weggeworfen“) ohne Rückfrage buchen und danach kurz bestätigen, was gebucht wurde. Nachfragen nur, wenn Produkt oder Menge unklar ist. Menge in die Lagereinheit umrechnen und nie mehr ausbuchen als vorhanden.\n\nVerzehr-Protokoll (tatsächlich Gegessenes, unabhängig vom Plan):\n- Was aus dem Vorrat als verbraucht ausgebucht wird, landet automatisch im Protokoll (weggeworfen nicht). Nicht zusätzlich eintragen.\n- Isst der Nutzer etwas, das nicht im Vorrat ist (auswärts, Mensa, Bäcker, eingeladen, nicht in Grocy), trag es mit verzehr_eintragen ein: realistische Portion in g und Nährwerte der ganzen Portion.\n  Für Supermarktprodukte nimm die Werte aus rewe_produkt_suchen (geschaetzt=false), sonst schätze realistisch (geschaetzt=true). Nenne danach kurz, was du eingetragen hast.\n- „Hab 2 Eier gegessen“: sind sie im Vorrat, ausbuchen; sonst mit verzehr_eintragen erfassen.\n- Wasser (Mineral-, Tafel-, Sprudel-, Leitungswasser) wird nie eingebucht, angelegt oder im Verzehr eingetragen.\n- Fragen zum Ist-Konsum („wie viel habe ich im September/diese Woche/gestern gegessen“, Durchschnitt): verzehr_auswerten mit dem Zeitraum (Monat = erster bis letzter Tag).\n  Antworte mit Durchschnitt pro Kalendertag (kcal, Protein, Fett, KH) und Summe, nenne die Tage mit Einträgen und den geschätzten Anteil; auf Wunsch Vergleich mit den Zielen (profil_lesen).\n- Korrekturen („hab ich doch nicht gegessen“): mit verzehr_eintraege suchen, mit verzehr_korrigieren herausnehmen.\n- Nenne Summen oder „noch übrig“-Werte für einen Tag oder Zeitraum nur, wenn du sie gerade mit verzehr_auswerten abgefragt hast. Erfinde nie bisherige Mengen.\n\nEinkauf und Planung: Für Einkaufsfragen schlag mit rewe_produkt_suchen konkrete Produkte vor (Marke, Packungsgröße, Preis). Bevorzuge günstigen Preis pro kg/l, weise auf aktuelle Angebote hin und nenne bei Eiweißquellen den Preis pro 100 g Protein. Rezepte und Pläne erstellst du NIE selbst (keine Mengen, kcal oder Makros aus dem Kopf): Wünscht der Nutzer ein Rezept, Gericht oder eine Mahlzeitidee – auch mit Vorgabe wie „etwa 1000 kcal“ oder „viel Protein“ –, rufe rezept_vorschlagen auf. Wünscht er einen Plan für einen oder mehrere Tage (morgen, 3 Tage, Woche), rufe plan_erstellen auf. Beide schicken das Ergebnis selbst als Nachricht; antworte danach nur mit einem kurzen Satz und wiederhole den Inhalt nicht.\n\nAntworte kurz auf Deutsch, nutze passende Emojis, keine Markdown-Tabellen.\n\nGeschätzte Werte und Quellen:\n- Nährwerte kommen aus fester Rangfolge (vom Nutzer genannt > REWE > Open Food Facts > BLS > KI). Kennzeichne geschätzte Zahlen (geschaetzt = true, BLS oder KI) immer mit ≈.\n- Bei Auswertungen (verzehr_auswerten) nenne immer, wie viel Prozent der kcal auf Schätzungen beruhen (anteil_geschaetzt_prozent); ist der Anteil > 0, setze ≈ vor die Summen.\n- Nennt der Nutzer ein gewogenes Stückgewicht („Avocado wiegt 142 g“): frag zuerst, ob mit oder ohne Schale/Kern gewogen wurde. Dann naehrwerte_merken mit gramm_pro_stk = gewogenes Gewicht, gramm_quelle = manuell, mit_schale = ja/nein und kcal_100 = 0 (die Nährwerte ermittelt der Dienst). Nenne danach den gespeicherten essbaren Anteil. Meldet die Antwort gramm_fehler, gib ihn weiter.\n- Nennt der Nutzer Nährwerte eines Vorratsprodukts per Text (z.B. von der Packung abgeschrieben) oder korrigiert sie: naehrwerte_merken mit diesen Werten und werte_quelle = manuell (Rang 1, schlägt alle anderen Quellen). Lehnt der Dienst sie als unplausibel ab, sag das und frag nach. /unsicher zeigt alle Produkte mit geschätzten Werten.",
             "maxIterations": 12,
             "enableStreaming": false
           }
@@ -2553,6 +2662,220 @@
             "queryReplacement": "={{ [ $fromAI('suchbegriff', 'Teil des Produktnamens, leer = alle', 'string', '') ] }}"
           }
         }
+      },
+      {
+        "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+        "typeVersion": 2.2,
+        "id": "f8000000-0001-4000-8000-botplantool1",
+        "name": "plan_erstellen",
+        "position": [
+          3072,
+          2168
+        ],
+        "parameters": {
+          "description": "Erstellt einen Ernährungsplan für einen oder mehrere Tage (1–14) mit dem Planer: Rezepte aus Vorrat und REWE-Katalog, Nährwerte aus der festen Rangfolge, Portionen berechnet auf die Tagesziele, Einkaufsliste in Grocy, „✅ Gekocht“-Buttons. Der Plan wird direkt als Telegram-Nachricht geschickt. Ersetzt noch nicht gekochte Plan-Rezepte ab dem Starttag. Dauert 1–2 Minuten.",
+          "source": "database",
+          "workflowId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "2dBOwb9KJDnwi1Id",
+            "cachedResultName": "Vorrat · Planer (Rezepte & Wochenplan)"
+          },
+          "workflowInputs": {
+            "mappingMode": "defineBelow",
+            "matchingColumns": [],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false,
+            "schema": [
+              {
+                "id": "modus",
+                "displayName": "modus",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
+              },
+              {
+                "id": "hinweis",
+                "displayName": "hinweis",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
+              },
+              {
+                "id": "tage",
+                "displayName": "tage",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "number"
+              },
+              {
+                "id": "start",
+                "displayName": "start",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
+              },
+              {
+                "id": "anzahl",
+                "displayName": "anzahl",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "number"
+              },
+              {
+                "id": "ziel_kcal",
+                "displayName": "ziel_kcal",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "number"
+              },
+              {
+                "id": "ziel_protein",
+                "displayName": "ziel_protein",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "number"
+              },
+              {
+                "id": "mahlzeit",
+                "displayName": "mahlzeit",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
+              }
+            ],
+            "value": {
+              "modus": "wochenplan",
+              "tage": "={{ $fromAI('tage', 'Anzahl Tage, 1–14 (Woche = 7)', 'number') }}",
+              "start": "={{ $fromAI('start', 'erster Tag als YYYY-MM-DD; leer = morgen. Für „heute“ das heutige Datum', 'string', '') }}",
+              "hinweis": "={{ $fromAI('hinweis', 'Wünsche des Nutzers, z.B. vegetarisch, schnell, wenig Aufwand; sonst leer', 'string', '') }}"
+            }
+          }
+        }
+      },
+      {
+        "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+        "typeVersion": 2.2,
+        "id": "f8000000-0002-4000-8000-botrezepttool",
+        "name": "rezept_vorschlagen",
+        "position": [
+          3200,
+          2168
+        ],
+        "parameters": {
+          "description": "Schlägt 1–5 Rezepte mit dem Planer vor: Zutaten aus Vorrat und REWE-Katalog, Nährwerte aus der festen Rangfolge, Portion so berechnet, dass sie die Zielvorgabe trifft (z.B. etwa 1000 kcal oder 50 g Protein). Die Rezepte kommen direkt als Telegram-Nachricht mit „✅ Gekocht“-Button. Immer nutzen, wenn der Nutzer ein Rezept, Gericht oder eine Mahlzeitidee möchte.",
+          "source": "database",
+          "workflowId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "2dBOwb9KJDnwi1Id",
+            "cachedResultName": "Vorrat · Planer (Rezepte & Wochenplan)"
+          },
+          "workflowInputs": {
+            "mappingMode": "defineBelow",
+            "matchingColumns": [],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false,
+            "schema": [
+              {
+                "id": "modus",
+                "displayName": "modus",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
+              },
+              {
+                "id": "hinweis",
+                "displayName": "hinweis",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
+              },
+              {
+                "id": "tage",
+                "displayName": "tage",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "number"
+              },
+              {
+                "id": "start",
+                "displayName": "start",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
+              },
+              {
+                "id": "anzahl",
+                "displayName": "anzahl",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "number"
+              },
+              {
+                "id": "ziel_kcal",
+                "displayName": "ziel_kcal",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "number"
+              },
+              {
+                "id": "ziel_protein",
+                "displayName": "ziel_protein",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "number"
+              },
+              {
+                "id": "mahlzeit",
+                "displayName": "mahlzeit",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
+              }
+            ],
+            "value": {
+              "modus": "rezepte",
+              "anzahl": "={{ $fromAI('anzahl', 'Anzahl Rezepte 1–5: „ein Rezept“ oder ohne Angabe = 1, „ein paar Ideen“ = 3', 'number', 1) }}",
+              "ziel_kcal": "={{ $fromAI('ziel_kcal', 'gewünschte kcal pro Rezept, z.B. 1000; 0 = nach den Tageszielen', 'number', 0) }}",
+              "ziel_protein": "={{ $fromAI('ziel_protein', 'gewünschtes Protein in g pro Rezept; 0 = nach den Tageszielen', 'number', 0) }}",
+              "mahlzeit": "={{ $fromAI('mahlzeit', 'Frühstück, Mittag, Abend oder Snack, falls genannt; sonst leer', 'string', '') }}",
+              "hinweis": "={{ $fromAI('hinweis', 'weitere Wünsche, z.B. mit Hähnchen, vegetarisch, schnell; sonst leer', 'string', '') }}"
+            }
+          }
+        }
       }
     ],
     "connections": {
@@ -3298,6 +3621,28 @@
             }
           ]
         ]
+      },
+      "plan_erstellen": {
+        "ai_tool": [
+          [
+            {
+              "node": "Vorrats-Assistent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "rezept_vorschlagen": {
+        "ai_tool": [
+          [
+            {
+              "node": "Vorrats-Assistent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
       }
     },
     "settings": {
@@ -3384,8 +3729,8 @@
       }
     ],
     "pinData": null,
-    "versionId": "5a45a9b4-cc95-4d31-8aca-d220511150f5",
-    "activeVersionId": "5a45a9b4-cc95-4d31-8aca-d220511150f5",
+    "versionId": "ba83a217-dc59-43b4-97db-2cac1612d900",
+    "activeVersionId": "ba83a217-dc59-43b4-97db-2cac1612d900",
     "versionCounter": 19,
     "triggerCount": 1,
     "sourceWorkflowId": null,

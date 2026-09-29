@@ -1,6 +1,6 @@
 [
   {
-    "updatedAt": "2026-09-29T13:48:17.000Z",
+    "updatedAt": "2026-09-29T19:54:06.000Z",
     "createdAt": "2026-09-27T15:00:32.007Z",
     "id": "WI7rA3dd4TMM2WVb",
     "name": "Vorrat · eBon-Import (REWE → Grocy)",
@@ -645,6 +645,60 @@
               {
                 "id": "hinweis",
                 "displayName": "hinweis",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
+              },
+              {
+                "id": "tage",
+                "displayName": "tage",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "number"
+              },
+              {
+                "id": "start",
+                "displayName": "start",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
+              },
+              {
+                "id": "anzahl",
+                "displayName": "anzahl",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "number"
+              },
+              {
+                "id": "ziel_kcal",
+                "displayName": "ziel_kcal",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "number"
+              },
+              {
+                "id": "ziel_protein",
+                "displayName": "ziel_protein",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "number"
+              },
+              {
+                "id": "mahlzeit",
+                "displayName": "mahlzeit",
                 "required": false,
                 "defaultMatch": false,
                 "display": true,
@@ -1793,9 +1847,9 @@
       }
     ],
     "pinData": null,
-    "versionId": "01a9647d-32f5-4499-98b1-bb8ba860fb00",
-    "activeVersionId": "01a9647d-32f5-4499-98b1-bb8ba860fb00",
-    "versionCounter": 11,
+    "versionId": "dfee90fc-c0cb-459c-ac43-9546a4e060b1",
+    "activeVersionId": "dfee90fc-c0cb-459c-ac43-9546a4e060b1",
+    "versionCounter": 12,
     "triggerCount": 1,
     "sourceWorkflowId": null,
     "tags": [],

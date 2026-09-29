@@ -200,6 +200,16 @@ Auswertung: `verzehr_auswertung(von, bis)` summiert kcal/Protein/Fett/KH und tei
 
 ## Wochenplan mit REWE-Produkten
 
+**Pläne und Rezepte laufen immer durch den Planer** (Vorrat + REWE-Katalog, Nährwerte aus der Rangfolge, Portionen berechnet auf das Ziel, gerundet auf kaufbare Mengen):
+
+| Anfrage | Weg | Planer-Eingaben |
+|---|---|---|
+| `/wochenplan`, sonntags 10 Uhr | Befehl bzw. Zeitplan | `modus=wochenplan`, `tage=7` ab morgen |
+| `/plan 3 vegetarisch`, „Mach mir einen Plan für die nächsten 3 Tage“ | Befehl bzw. Agent-Tool `plan_erstellen` | `tage` 1–14, `start` (Standard morgen, „heute“ möglich), `hinweis` |
+| `/rezepte`, „Gib mir ein Rezept mit etwa 1000 kcal“ | Befehl bzw. Agent-Tool `rezept_vorschlagen` | `modus=rezepte`, `anzahl` 1–5, optional `ziel_kcal`, `ziel_protein`, `mahlzeit` |
+
+Mit Zielvorgabe wird das Rezept auf dieses Ziel skaliert (Makros im Verhältnis der Tagesziele, Protein auf Wunsch fest), sonst auf die Mahlzeit-Verteilung. Der Agent erstellt Rezepte und Pläne nie selbst mit Mengen oder kcal. Ein neuer Plan ersetzt noch nicht gekochte Plan-Rezepte ab seinem Starttag und die Grocy-Einkaufsposten früherer Pläne (Marke „Plan tt.mm.–tt.mm.jjjj“). Beginnt der Plan heute, kommen die heutigen Rezepte sofort mit „✅ Gekocht“-Button, sonst morgens einzeln.
+
 Nach „MiniMax plant Rezepte“ sammelt der Planer alle Zutaten, die nicht aus dem Vorrat kommen, und fragt `POST /planer/kandidaten`: bis zu 8 REWE-Kandidaten je Zutat (Wortsuche mit Synonymen wie „Vollkornnudeln“ → „Vollkorn Penne“, Ähnlichkeitssuche; Geschmacksvarianten und Klammerzusätze wie „(Rest)“/„(TK)“ werden ausgefiltert bzw. ignoriert). „MiniMax wählt Produkte“ nimmt daraus das passende Grundprodukt (z. B. für „Olivenöl“ das Öl, nicht „Feta in Olivenöl“) oder keins.
 
 Ergebnis: Nährwerte der Zutaten aus den REWE-Daten statt KI-Schätzung, Einkaufsliste mit konkreten Produkten („3× ja! Eismeergarnelen 225g · 3,29 €“), Angeboten (🏷️) und geschätzten Wochenkosten. Fällt der REWE-Dienst oder die Produktwahl aus, entsteht der Plan wie vorher ohne REWE-Daten. Ungültiges JSON der KI wird einmal automatisch repariert (z. B. „1.“ oder Dezimalkomma).
