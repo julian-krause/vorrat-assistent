@@ -1,5 +1,5 @@
 # Lebensmittelkategorien für den monatlichen REWE-Crawl (Markt 1940430, Catharina-Müller-Str., Münster).
-# Ohne Süßes, Eis, Pizza, Kuchen, Softdrinks, Alkohol und Tabak.
+# Ohne Süßes, Eis, Pizza, Kuchen, Softdrinks, Alkohol und Tabak. Slugs aus dem Abholmarkt 1940222.
 #
 # name:    eigener Name, landet in rewe_products.category
 # slugs:   REWE-Kategorien (Unterkategorien sind im Slug der Oberkategorie enthalten)
@@ -24,3 +24,9 @@ kategorien:
     slugs: [tiefkuehl-gemuese, tiefkuehl-fisch, tiefkuehl-fleisch, tiefkuehl-obst, tiefkuehl-kartoffelprodukte, tiefkuehl-kraeuter]
   - name: Getränke
     slugs: [wasser, saefte-nektare-smoothies, getraenke-auf-milchbasis]
+  - name: Öle & Würzen
+    slugs: [oele, essig, gewuerzpasten]
+  - name: Nüsse & Kerne
+    slugs: [nuesse, trockenfruechte-kerne, nussmus-nusscremes, erdnussbutter]
+  - name: Vorratsküche
+    slugs: [asiasossen, hummus, oliven, honig-sirup, kokosmilch, mehl, zucker-suessungsmittel]

@@ -31,6 +31,10 @@ def schema_anlegen() -> None:
             con.execute("GRANT SELECT ON ALL TABLES IN SCHEMA public TO n8n")
             con.execute("GRANT UPDATE (angebotspreis, angebot_bis) ON rewe_products TO n8n")
             con.execute("GRANT EXECUTE ON FUNCTION produkt_suche(text, integer) TO n8n")
+            # Chat-Gedächtnis des Telegram-Agenten (n8n „Postgres Chat Memory“ legt seine Tabelle selbst an):
+            # eigenes Schema, das n8n gehört – so braucht n8n keine Schreibrechte auf die Produktdaten
+            con.execute("CREATE SCHEMA IF NOT EXISTS chat AUTHORIZATION n8n")
+            con.execute("ALTER ROLE n8n SET search_path = chat, public")
 
 
 def log(con: psycopg.Connection, run_id: int | None, level: str, message: str, payload: dict | None = None) -> None:

@@ -77,7 +77,7 @@ Der Node „Vorrats-Assistent“ (MiniMax-M3, Gedächtnis: letzte 10 Nachrichten
 - **Harte Sperre:** `grocy_produkt_anlegen` schreibt nur, wenn die aktuelle Nachricht mit einer Zustimmung beginnt (ja, ok, passt, genau, leg an …). Sonst lehnt Grocy den Request ab (Feld `ABGELEHNT_kein_ja_vom_Nutzer…`), auch wenn das Modell es trotzdem versucht.
 - **Ein-/Ausbuchen** bei klaren Angaben („Hab 2 Eier gegessen“) ohne Rückfrage, danach kurze Bestätigung.
 - Standardwerte beim Anlegen: Lagerorte Kühlschrank = 3, Tiefkühler = 4, Vorratsschrank = 5 (Standard); Einheiten Gramm = 4, Milliliter = 6, Stück = 5 (Kauf-, Lager-, Verbrauchs- und Preiseinheit gleich). `calories` = kcal pro Lagereinheit.
-- Hinweis: Das Gedächtnis des Agenten liegt im Arbeitsspeicher und ist nach einem n8n-Neustart leer.
+- Gedächtnis: „Postgres Chat Memory“ (letzte 10 Nachrichten pro Chat) in der REWE-Postgres, Schema `chat` (gehört der Rolle `n8n`, Suchpfad `chat, public`) – bleibt über n8n-Neustarts erhalten.
 
 ## REWE-Dienst (rewerse)
 
@@ -144,6 +144,12 @@ Beide REWE-Workflows haben zusätzlich einen Node „Manuell starten“, um sie 
 - Größe aus Texten wie „500g (1 kg = 3,98 €)“, „6 x 1,5 l“, „10 Stück“ → `size_value`/`size_unit` (g/ml/Stück), daraus `price_per_kg_or_l`. Nicht erkannte Größen landen in `crawl_log`.
 - 2–3 s Pause zwischen Requests. Der Fortschritt wird nach jeder Seite gespeichert; nach einem Abbruch setzt der nächste `POST /crawl` an derselben Stelle fort.
 - Tests: `docker exec rewe-service python -m pytest -q tests` (Parser und Crawler gegen nachgebaute API-Antworten).
+
+## Wochenplan mit REWE-Produkten
+
+Nach „MiniMax plant Rezepte“ sammelt der Planer alle Zutaten, die nicht aus dem Vorrat kommen, und fragt `POST /planer/kandidaten`: bis zu 8 REWE-Kandidaten je Zutat (Wortsuche mit Synonymen wie „Vollkornnudeln“ → „Vollkorn Penne“, Ähnlichkeitssuche; Geschmacksvarianten und Klammerzusätze wie „(Rest)“/„(TK)“ werden ausgefiltert bzw. ignoriert). „MiniMax wählt Produkte“ nimmt daraus das passende Grundprodukt (z. B. für „Olivenöl“ das Öl, nicht „Feta in Olivenöl“) oder keins.
+
+Ergebnis: Nährwerte der Zutaten aus den REWE-Daten statt KI-Schätzung, Einkaufsliste mit konkreten Produkten („3× ja! Eismeergarnelen 225g · 3,29 €“), Angeboten (🏷️) und geschätzten Wochenkosten. Fällt der REWE-Dienst oder die Produktwahl aus, entsteht der Plan wie vorher ohne REWE-Daten. Ungültiges JSON der KI wird einmal automatisch repariert (z. B. „1.“ oder Dezimalkomma).
 
 ## eBon → REWE-Produkte
 

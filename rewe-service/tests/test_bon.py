@@ -106,3 +106,35 @@ def test_getrennte_zeilen():
     b = bon_lesen("EUR\nHAHN.LYONER\n2,19 B\nAVOCADO VORGER.\n2,38 B\n 2 Stk x 1,19\nPFAND 0,25 EURO\n0,25 A *\n SUMME EUR 4,82\n")
     assert [(z["bon_text"], str(z["einzelpreis"]), z["anzahl"]) for z in b["zeilen"]] == [
         ("HAHN.LYONER", "2.19", 1), ("AVOCADO VORGER.", "1.19", 2), ("PFAND 0,25 EURO", "0.25", 1)]
+
+
+def test_planer_zutaten(test_db):
+    from app import planer
+    rows = [
+        ("2001", "Arla Skyr Natur 450g", "Arla", 1.99, 450, "g"),
+        ("2002", "Arla Skyr Erdbeere 450g", "Arla", 1.49, 450, "g"),
+        ("2003", "ja! Skyr 500g", "ja!", 1.49, 500, "g"),
+        ("2004", "Kölln Haferflocken Blütenzart 500g", "Kölln", 1.79, 500, "g"),
+        ("2005", "ja! Haferflocken zart 500g", "ja!", 0.79, 500, "g"),
+        ("2006", "Haferflocken-Riegel Schoko 4x25g", None, 1.29, 100, "g"),
+    ]
+    with test_db.verbinden() as con:
+        for pid, name, marke, preis, groesse, einheit in rows:
+            con.execute("INSERT INTO rewe_products (rewe_product_id, name, brand, price, size_value, size_unit) VALUES (%s,%s,%s,%s,%s,%s)",
+                        (pid, name, marke, preis, groesse, einheit))
+        con.execute("UPDATE rewe_products SET angebotspreis = 1.29, angebot_bis = current_date + 3 WHERE rewe_product_id = '2001'")
+        erg = planer.zutaten_kandidaten(con, ["Skyr", "Haferflocken", "Drachenfrucht"])
+    skyr = [p["rewe_product_id"] for p in erg["Skyr"]]
+    assert skyr[0] == "2001" and erg["Skyr"][0]["im_angebot"]  # Angebot 1,29 € / 450 g schlägt ja! 1,49 € / 500 g
+    assert "2002" not in skyr  # Erdbeere ist eine Variante
+    assert erg["Haferflocken"][0]["rewe_product_id"] == "2005"  # günstigste schlichte Variante
+    assert "2006" not in [p["rewe_product_id"] for p in erg["Haferflocken"]]  # kein Riegel
+    assert erg["Drachenfrucht"] == []
+
+
+def test_suchbegriffe():
+    from app.planer import _suchbegriffe
+    assert "eier" in _suchbegriffe("Ei")
+    assert _suchbegriffe("Eis") == ["Eis"]  # „ei“ nur als ganzes Wort
+    assert "vollkorn penne" in _suchbegriffe("Vollkornnudeln")
+    assert "naturreis" in _suchbegriffe("Vollkornreis")

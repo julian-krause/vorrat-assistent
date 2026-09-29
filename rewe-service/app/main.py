@@ -10,7 +10,7 @@ from pathlib import Path
 from fastapi import Body, FastAPI, HTTPException, Query
 from fastapi.responses import HTMLResponse, JSONResponse
 
-from . import bon, db, rewe
+from . import bon, db, planer, rewe
 from .crawler import Crawler, kategorien_config, listen_produkt
 from .parse import ean_aus_article_id, finde_ean, parse_naehrwerte
 
@@ -160,6 +160,13 @@ def bon_antwort(zeile_id: int = Body(...), rewe_product_id: str | None = Body(No
     """Antwort auf eine Rückfrage: Zuordnung lernen und Produktdaten zurückgeben."""
     with db.verbinden() as con:
         return bon.antwort_speichern(con, zeile_id, rewe_product_id or None)
+
+
+@app.post("/planer/kandidaten")
+def planer_kandidaten(namen: list[str] = Body(..., embed=True, description="Zutatennamen aus dem Wochenplan")):
+    """Bis zu 8 REWE-Kandidaten je Zutat (Nährwerte, Packungsgröße, aktueller Preis inkl. Angebot), bester zuerst."""
+    with db.verbinden() as con:
+        return {"kandidaten": planer.zutaten_kandidaten(con, namen)}
 
 
 @app.post("/crawl", status_code=202)

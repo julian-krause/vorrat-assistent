@@ -1,6 +1,6 @@
 [
   {
-    "updatedAt": "2026-09-28T18:28:34.000Z",
+    "updatedAt": "2026-09-29T10:26:57.000Z",
     "createdAt": "2026-09-27T15:07:02.162Z",
     "id": "JStsSgy75x6xLQzD",
     "name": "Vorrat · Telegram-Bot",
@@ -1027,7 +1027,7 @@
       {
         "id": "6c7f17ef-5c48-4020-9585-14acb2b29109",
         "name": "Chat-Gedächtnis",
-        "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+        "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
         "typeVersion": 1.4,
         "position": [
           1024,
@@ -1036,7 +1036,14 @@
         "parameters": {
           "sessionIdType": "customKey",
           "sessionKey": "={{ String($('Telegram Trigger').first().json.message?.chat?.id ?? $('Telegram Trigger').first().json.callback_query?.message?.chat?.id) }}",
+          "tableName": "n8n_chat_histories",
           "contextWindowLength": 10
+        },
+        "credentials": {
+          "postgres": {
+            "id": "RewePostgres0001",
+            "name": "REWE Postgres"
+          }
         }
       },
       {
@@ -2813,9 +2820,9 @@
       }
     ],
     "pinData": null,
-    "versionId": "5083144c-d90e-4f87-a305-907663844520",
-    "activeVersionId": "5083144c-d90e-4f87-a305-907663844520",
-    "versionCounter": 8,
+    "versionId": "5a6a31ab-c6d2-4c77-8b42-def58c30cc94",
+    "activeVersionId": "5a6a31ab-c6d2-4c77-8b42-def58c30cc94",
+    "versionCounter": 9,
     "triggerCount": 1,
     "sourceWorkflowId": null,
     "tags": [],
