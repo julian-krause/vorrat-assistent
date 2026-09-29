@@ -12,6 +12,7 @@ WORKFLOWS=(
   "VorratFehler0001:05-fehlermeldung"
   "VorratReweAngeb1:06-rewe-angebote"
   "VorratReweCrawl1:07-rewe-crawl"
+  "VorratVerzehr001:08-verzehr-erfassen"
 )
 mkdir -p workflows
 for pair in "${WORKFLOWS[@]}"; do

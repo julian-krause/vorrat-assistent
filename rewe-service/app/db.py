@@ -31,6 +31,10 @@ def schema_anlegen() -> None:
             con.execute("GRANT SELECT ON ALL TABLES IN SCHEMA public TO n8n")
             con.execute("GRANT UPDATE (angebotspreis, angebot_bis) ON rewe_products TO n8n")
             con.execute("GRANT EXECUTE ON FUNCTION produkt_suche(text, integer) TO n8n")
+            # Ist-Verbrauch: n8n trägt ein (Abgleich, Rezepte, Agent) und markiert Korrekturen als ignoriert
+            con.execute("GRANT SELECT, INSERT, UPDATE ON verzehr TO n8n")
+            con.execute("GRANT USAGE ON SEQUENCE verzehr_id_seq TO n8n")
+            con.execute("GRANT EXECUTE ON FUNCTION verzehr_auswertung(date, date) TO n8n")
             # Chat-Gedächtnis des Telegram-Agenten (n8n „Postgres Chat Memory“ legt seine Tabelle selbst an):
             # eigenes Schema, das n8n gehört – so braucht n8n keine Schreibrechte auf die Produktdaten
             con.execute("CREATE SCHEMA IF NOT EXISTS chat AUTHORIZATION n8n")

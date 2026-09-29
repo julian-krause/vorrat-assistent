@@ -1,6 +1,6 @@
 [
   {
-    "updatedAt": "2026-09-29T10:26:57.000Z",
+    "updatedAt": "2026-09-29T11:07:21.000Z",
     "createdAt": "2026-09-27T15:07:02.162Z",
     "id": "JStsSgy75x6xLQzD",
     "name": "Vorrat · Telegram-Bot",
@@ -394,7 +394,7 @@
         "parameters": {
           "mode": "runOnceForAllItems",
           "language": "javaScript",
-          "jsCode": "const ctx = $('Update auswerten').first().json;\nconst rezept = $('Rezept laden').first().json || {};\nconst esc = t => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nif (!rezept.id) return [{ json: { product_id: 0, rezept_id: 0, chat_id: ctx.chat_id, text: 'Dieses Rezept finde ich nicht mehr 🤔' } }];\nif (rezept.status === 'gekocht') return [{ json: { product_id: 0, rezept_id: rezept.id, chat_id: ctx.chat_id, text: '„' + esc(rezept.titel) + '“ ist schon als gekocht gebucht ✅' } }];\n\nconst klein = x => String(x || '').trim().toLowerCase();\nconst quCode = {};\nfor (const i of $('Grocy-Einheiten laden').all()) { const q = i.json; if (q && q.id) quCode[q.id] = klein(q.name) === 'gramm' ? 'g' : klein(q.name) === 'milliliter' ? 'ml' : klein(q.name) === 'stück' ? 'stk' : klein(q.name); }\nconst inv = {};\nfor (const i of $('Grocy-Bestand laden (Kochen)').all()) {\n  const r = i.json;\n  if (r && r.product_id) inv[r.product_id] = { id: Number(r.product_id), name: (r.product || {}).name, menge: Number(r.amount) || 0, einheit: quCode[(r.product || {}).qu_id_stock] || 'stk' };\n}\nlet zutaten = [];\ntry { zutaten = JSON.parse(rezept.zutaten_json || '[]'); } catch (e) { zutaten = []; }\n\nconst gruppen = { g: ['g', 1], kg: ['g', 1000], ml: ['ml', 1], l: ['ml', 1000] };\nconst umrechnen = (menge, von, nach) => {\n  von = String(von || '').toLowerCase(); nach = String(nach || '').toLowerCase();\n  if (von === nach) return menge;\n  const a = gruppen[von], b = gruppen[nach];\n  if (a && b && a[0] === b[0]) return menge * a[1] / b[1];\n  return null;\n};\n\nconst abbuchung = {};\nconst probleme = [];\nfor (const z of zutaten) {\n  const pid = z.product_id != null ? z.product_id : z.inventar_id;\n  if (pid == null) continue;\n  const v = inv[pid];\n  if (!v || v.menge <= 0) { probleme.push(esc(z.name) + ' (nicht mehr im Bestand)'); continue; }\n  const abzug = umrechnen(Number(z.menge) || 0, z.einheit, v.einheit);\n  if (abzug === null) { probleme.push(esc(z.name) + ' (Einheit passt nicht)'); continue; }\n  let menge = Math.min(v.menge, Math.round(abzug * 100) / 100);\n  if (v.einheit === 'stk' && v.menge - menge < 0.25) menge = v.menge;\n  if (menge <= 0) continue;\n  v.menge = Math.round((v.menge - menge) * 100) / 100;\n  abbuchung[v.id] = { product_id: v.id, amount: Math.round(((abbuchung[v.id] ? abbuchung[v.id].amount : 0) + menge) * 100) / 100, name: v.name, rest: v.menge, einheit: v.einheit };\n}\nconst zeilen = Object.values(abbuchung).map(u => '• ' + esc(u.name) + ': −' + u.amount + ' ' + esc(u.einheit) + (u.rest <= 0 ? ' (aufgebraucht)' : ', noch ' + u.rest + ' ' + esc(u.einheit)));\nlet text = '✅ <b>' + esc(rezept.titel) + '</b> als gekocht gebucht (' + (rezept.kcal || 0) + ' kcal · P ' + (rezept.protein_g || 0) + ' g)';\nif (zeilen.length) text += '\\n\\n<b>In Grocy verbraucht</b>\\n' + zeilen.join('\\n');\nif (probleme.length) text += '\\n\\n⚠️ Nicht abgebucht: ' + probleme.join(', ') + '. Schreib mir kurz, was du verbraucht hast.';\n\nconst list = Object.values(abbuchung);\nif (!list.length) return [{ json: { product_id: 0, rezept_id: rezept.id, chat_id: ctx.chat_id, text } }];\nreturn list.map(u => ({ json: { product_id: u.product_id, amount: u.amount, rezept_id: rezept.id, chat_id: ctx.chat_id, text } }));"
+          "jsCode": "const ctx = $('Update auswerten').first().json;\nconst rezept = $('Rezept laden').first().json || {};\nconst esc = t => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nif (!rezept.id) return [{ json: { product_id: 0, rezept_id: 0, chat_id: ctx.chat_id, text: 'Dieses Rezept finde ich nicht mehr 🤔' } }];\nif (rezept.status === 'gekocht') return [{ json: { product_id: 0, rezept_id: rezept.id, chat_id: ctx.chat_id, text: '„' + esc(rezept.titel) + '“ ist schon als gekocht gebucht ✅' } }];\n\nconst klein = x => String(x || '').trim().toLowerCase();\nconst quCode = {};\nfor (const i of $('Grocy-Einheiten laden').all()) { const q = i.json; if (q && q.id) quCode[q.id] = klein(q.name) === 'gramm' ? 'g' : klein(q.name) === 'milliliter' ? 'ml' : klein(q.name) === 'stück' ? 'stk' : klein(q.name); }\nconst inv = {};\nfor (const i of $('Grocy-Bestand laden (Kochen)').all()) {\n  const r = i.json;\n  if (r && r.product_id) inv[r.product_id] = { id: Number(r.product_id), name: (r.product || {}).name, menge: Number(r.amount) || 0, einheit: quCode[(r.product || {}).qu_id_stock] || 'stk' };\n}\nlet zutaten = [];\ntry { zutaten = JSON.parse(rezept.zutaten_json || '[]'); } catch (e) { zutaten = []; }\n\nconst gruppen = { g: ['g', 1], kg: ['g', 1000], ml: ['ml', 1], l: ['ml', 1000] };\nconst umrechnen = (menge, von, nach) => {\n  von = String(von || '').toLowerCase(); nach = String(nach || '').toLowerCase();\n  if (von === nach) return menge;\n  const a = gruppen[von], b = gruppen[nach];\n  if (a && b && a[0] === b[0]) return menge * a[1] / b[1];\n  return null;\n};\n\nconst abbuchung = {};\nconst probleme = [];\n// Ist-Verbrauch: Anteil jeder Zutat, der nicht aus dem Vorrat abgebucht wird (fehlt, Einheit passt nicht, nur teilweise da)\nconst rest = [];\nconst restEintrag = (z, anteil) => { if (anteil > 0.01) rest.push({ z, anteil }); };\nfor (const z of zutaten) {\n  const pid = z.product_id != null ? z.product_id : z.inventar_id;\n  if (pid == null) { restEintrag(z, 1); continue; }\n  const v = inv[pid];\n  if (!v || v.menge <= 0) { probleme.push(esc(z.name) + ' (nicht mehr im Bestand)'); restEintrag(z, 1); continue; }\n  const abzug = umrechnen(Number(z.menge) || 0, z.einheit, v.einheit);\n  if (abzug === null) { probleme.push(esc(z.name) + ' (Einheit passt nicht)'); restEintrag(z, 1); continue; }\n  let menge = Math.min(v.menge, Math.round(abzug * 100) / 100);\n  if (abzug > 0 && menge < abzug) restEintrag(z, 1 - menge / abzug);\n  if (v.einheit === 'stk' && v.menge - menge < 0.25) menge = v.menge;\n  if (menge <= 0) continue;\n  v.menge = Math.round((v.menge - menge) * 100) / 100;\n  abbuchung[v.id] = { product_id: v.id, amount: Math.round(((abbuchung[v.id] ? abbuchung[v.id].amount : 0) + menge) * 100) / 100, name: v.name, rest: v.menge, einheit: v.einheit };\n}\nconst zeilen = Object.values(abbuchung).map(u => '• ' + esc(u.name) + ': −' + u.amount + ' ' + esc(u.einheit) + (u.rest <= 0 ? ' (aufgebraucht)' : ', noch ' + u.rest + ' ' + esc(u.einheit)));\nlet text = '✅ <b>' + esc(rezept.titel) + '</b> als gekocht gebucht (' + (rezept.kcal || 0) + ' kcal · P ' + (rezept.protein_g || 0) + ' g)';\nif (zeilen.length) text += '\\n\\n<b>In Grocy verbraucht</b>\\n' + zeilen.join('\\n');\nif (probleme.length) text += '\\n\\n⚠️ Nicht aus dem Vorrat abgebucht: ' + probleme.join(', ') + '.';\n\n// Nährwerte des Rests: je Zutat aus dem Rezept (pro 100 g), sonst anteilig aus den Rezeptwerten (geschätzt)\nconst r1 = x => Math.round(x * 10) / 10;\nconst gesamtGramm = zutaten.reduce((s, z) => s + (Number(z.gramm) || 0), 0);\nconst verzehr_rest = rest.map(({ z, anteil }) => {\n  const gramm = (Number(z.gramm) || 0) * anteil;\n  if (z.kcal_100 != null && gramm > 0) {\n    const f = gramm / 100;\n    return { name: z.name, gramm: r1(gramm), kcal: r1(z.kcal_100 * f), protein: r1((z.p_100 || 0) * f), fett: r1((z.f_100 || 0) * f), kh: r1((z.kh_100 || 0) * f), geschaetzt: false };\n  }\n  const teil = gesamtGramm > 0 ? gramm / gesamtGramm : anteil / Math.max(1, zutaten.length);\n  return { name: z.name, gramm: gramm > 0 ? r1(gramm) : null, kcal: r1((rezept.kcal || 0) * teil), protein: r1((rezept.protein_g || 0) * teil),\n    fett: r1((rezept.fett_g || 0) * teil), kh: r1((rezept.kh_g || 0) * teil), geschaetzt: true };\n}).filter(e => e.kcal > 0 || e.gramm > 0);\nif (verzehr_rest.length) text += '\\n📊 ' + verzehr_rest.length + ' Zutat' + (verzehr_rest.length === 1 ? '' : 'en') + ' ohne Vorrat im Verzehr-Protokoll erfasst.';\n\nconst list = Object.values(abbuchung);\nif (!list.length) return [{ json: { product_id: 0, rezept_id: rezept.id, chat_id: ctx.chat_id, text, verzehr_rest } }];\nreturn list.map(u => ({ json: { product_id: u.product_id, amount: u.amount, rezept_id: rezept.id, chat_id: ctx.chat_id, text, verzehr_rest } }));"
         }
       },
       {
@@ -989,7 +989,7 @@
           "promptType": "define",
           "text": "={{ $('Update auswerten').first().json.text }}",
           "options": {
-            "systemMessage": "=Du bist ein freundlicher deutscher Vorrats- und Ernährungsassistent in Telegram. Du verwaltest den Vorrat in Grocy selbst: Du darfst Produkte anlegen sowie Bestand einbuchen und ausbuchen. Heute ist {{ $now.setZone(\"Europe/Berlin\").toFormat(\"cccc, dd.LL.yyyy\") }}.\n\nWerkzeuge:\n- grocy_bestand: aktueller Bestand (product_id, Menge in der Lagereinheit, MHD). Vor jedem Ein- oder Ausbuchen zuerst aufrufen.\n- grocy_produkt_suchen: prüft per Name oder Barcode, ob ein Produkt in Grocy schon existiert.\n- rewe_produkt_suchen: lokale REWE-Produkttabelle mit Marke, Packungsgröße, Preis, Preis pro kg/l, Angeboten und Makros pro 100 g.\n- grocy_produkt_anlegen, naehrwerte_merken, grocy_barcode_zuordnen: neues Produkt anlegen (Ablauf unten).\n- grocy_bestand_hinzufuegen / grocy_bestand_verbrauchen: einbuchen bzw. ausbuchen (gegessen oder weggeworfen).\n- grocy_eintraege + grocy_mhd_aendern: MHD korrigieren, z.B. „Joghurt hält bis 15.10.“.\n- profil_lesen und ziele_speichern: Ernährungsziele verwalten. Nennt der Nutzer nur kcal, schlage gesunde Makros vor (Protein ca. 1,6-2 g pro kg Körpergewicht bzw. ca. 30 Prozent, Fett 25-30 Prozent, Rest Kohlenhydrate) und speichere sie.\n\nProdukt aufnehmen („Nimm X auf“):\n1. grocy_produkt_suchen: Gibt es das Produkt schon, sag das und lege nichts an (biete an, Bestand einzubuchen).\n2. rewe_produkt_suchen mit Name und Marke. Passt ein Treffer, übernimm Name, Marke, Größe, Preis und Makros daraus. Bei mehreren plausiblen Treffern zeig bis zu 3 zur Auswahl. Ohne Treffer sag das offen und frag nach Packungsgröße und Nährwerten pro 100 g. Erfinde niemals Nährwerte, Preise oder Barcodes.\n3. Zeig eine kurze Zusammenfassung: Name, Marke, Packungsgröße, Preis, Lagerort, Haltbarkeit, kcal/Protein/Fett/KH pro 100 g. Frag „Soll ich es so anlegen?“ und warte auf die Antwort.\n4. Erst wenn der Nutzer in seiner nächsten Nachricht mit ja zustimmt: grocy_produkt_anlegen, danach naehrwerte_merken (wenn Makros bekannt) und grocy_barcode_zuordnen (nur wenn ein Barcode bekannt ist). Bestätige mit der neuen product_id. Bestand nur einbuchen, wenn der Nutzer es sagt.\n   Änderungswünsche oder Rückfragen („Haltbarkeit eher 21 Tage“) sind KEINE Zustimmung: Zusammenfassung anpassen, erneut zeigen und wieder auf ja warten.\n\nEin- und Ausbuchen: Bei klaren Angaben („Hab 2 Eier gegessen“, „3 Joghurt gekauft“, „Milch weggeworfen“) ohne Rückfrage buchen und danach kurz bestätigen, was gebucht wurde. Nachfragen nur, wenn Produkt oder Menge unklar ist. Menge in die Lagereinheit umrechnen und nie mehr ausbuchen als vorhanden.\n\nEinkauf und Planung: Für Einkaufsfragen schlag mit rewe_produkt_suchen konkrete Produkte vor (Marke, Packungsgröße, Preis). Bevorzuge günstigen Preis pro kg/l, weise auf aktuelle Angebote hin und nenne bei Eiweißquellen den Preis pro 100 g Protein. Für Rezeptideen verweise auf /rezepte, für komplette Wochenpläne auf /wochenplan.\n\nAntworte kurz auf Deutsch, nutze passende Emojis, keine Markdown-Tabellen.",
+            "systemMessage": "=Du bist ein freundlicher deutscher Vorrats- und Ernährungsassistent in Telegram. Du verwaltest den Vorrat in Grocy selbst: Du darfst Produkte anlegen sowie Bestand einbuchen und ausbuchen. Heute ist {{ $now.setZone(\"Europe/Berlin\").toFormat(\"cccc, dd.LL.yyyy\") }}.\n\nWerkzeuge:\n- grocy_bestand: aktueller Bestand (product_id, Menge in der Lagereinheit, MHD). Vor jedem Ein- oder Ausbuchen zuerst aufrufen.\n- grocy_produkt_suchen: prüft per Name oder Barcode, ob ein Produkt in Grocy schon existiert.\n- rewe_produkt_suchen: lokale REWE-Produkttabelle mit Marke, Packungsgröße, Preis, Preis pro kg/l, Angeboten und Makros pro 100 g.\n- grocy_produkt_anlegen, naehrwerte_merken, grocy_barcode_zuordnen: neues Produkt anlegen (Ablauf unten).\n- grocy_bestand_hinzufuegen / grocy_bestand_verbrauchen: einbuchen bzw. ausbuchen (gegessen oder weggeworfen).\n- grocy_eintraege + grocy_mhd_aendern: MHD korrigieren, z.B. „Joghurt hält bis 15.10.“.\n- verzehr_eintragen, verzehr_auswerten, verzehr_eintraege, verzehr_korrigieren: Verzehr-Protokoll (siehe unten).\n- profil_lesen und ziele_speichern: Ernährungsziele verwalten. Nennt der Nutzer nur kcal, schlage gesunde Makros vor (Protein ca. 1,6-2 g pro kg Körpergewicht bzw. ca. 30 Prozent, Fett 25-30 Prozent, Rest Kohlenhydrate) und speichere sie.\n\nProdukt aufnehmen („Nimm X auf“):\n1. grocy_produkt_suchen: Gibt es das Produkt schon, sag das und lege nichts an (biete an, Bestand einzubuchen).\n2. rewe_produkt_suchen mit Name und Marke. Passt ein Treffer, übernimm Name, Marke, Größe, Preis und Makros daraus. Bei mehreren plausiblen Treffern zeig bis zu 3 zur Auswahl. Ohne Treffer sag das offen und frag nach Packungsgröße und Nährwerten pro 100 g. Erfinde niemals Nährwerte, Preise oder Barcodes.\n3. Zeig eine kurze Zusammenfassung: Name, Marke, Packungsgröße, Preis, Lagerort, Haltbarkeit, kcal/Protein/Fett/KH pro 100 g. Frag „Soll ich es so anlegen?“ und warte auf die Antwort.\n4. Erst wenn der Nutzer in seiner nächsten Nachricht mit ja zustimmt: grocy_produkt_anlegen, danach naehrwerte_merken (wenn Makros bekannt) und grocy_barcode_zuordnen (nur wenn ein Barcode bekannt ist). Bestätige mit der neuen product_id. Bestand nur einbuchen, wenn der Nutzer es sagt.\n   Änderungswünsche oder Rückfragen („Haltbarkeit eher 21 Tage“) sind KEINE Zustimmung: Zusammenfassung anpassen, erneut zeigen und wieder auf ja warten.\n\nEin- und Ausbuchen: Bei klaren Angaben („Hab 2 Eier gegessen“, „3 Joghurt gekauft“, „Milch weggeworfen“) ohne Rückfrage buchen und danach kurz bestätigen, was gebucht wurde. Nachfragen nur, wenn Produkt oder Menge unklar ist. Menge in die Lagereinheit umrechnen und nie mehr ausbuchen als vorhanden.\n\nVerzehr-Protokoll (tatsächlich Gegessenes, unabhängig vom Plan):\n- Was aus dem Vorrat als verbraucht ausgebucht wird, landet automatisch im Protokoll (weggeworfen nicht). Nicht zusätzlich eintragen.\n- Isst der Nutzer etwas, das nicht im Vorrat ist (auswärts, Mensa, Bäcker, eingeladen, nicht in Grocy), trag es mit verzehr_eintragen ein: realistische Portion in g und Nährwerte der ganzen Portion.\n  Für Supermarktprodukte nimm die Werte aus rewe_produkt_suchen (geschaetzt=false), sonst schätze realistisch (geschaetzt=true). Nenne danach kurz, was du eingetragen hast.\n- „Hab 2 Eier gegessen“: sind sie im Vorrat, ausbuchen; sonst mit verzehr_eintragen erfassen.\n- Fragen zum Ist-Konsum („wie viel habe ich im September/diese Woche/gestern gegessen“, Durchschnitt): verzehr_auswerten mit dem Zeitraum (Monat = erster bis letzter Tag).\n  Antworte mit Durchschnitt pro Kalendertag (kcal, Protein, Fett, KH) und Summe, nenne die Tage mit Einträgen und den geschätzten Anteil; auf Wunsch Vergleich mit den Zielen (profil_lesen).\n- Korrekturen („hab ich doch nicht gegessen“): mit verzehr_eintraege suchen, mit verzehr_korrigieren herausnehmen.\n- Nenne Summen oder „noch übrig“-Werte für einen Tag oder Zeitraum nur, wenn du sie gerade mit verzehr_auswerten abgefragt hast. Erfinde nie bisherige Mengen.\n\nEinkauf und Planung: Für Einkaufsfragen schlag mit rewe_produkt_suchen konkrete Produkte vor (Marke, Packungsgröße, Preis). Bevorzuge günstigen Preis pro kg/l, weise auf aktuelle Angebote hin und nenne bei Eiweißquellen den Preis pro 100 g Protein. Für Rezeptideen verweise auf /rezepte, für komplette Wochenpläne auf /wochenplan.\n\nAntworte kurz auf Deutsch, nutze passende Emojis, keine Markdown-Tabellen.",
             "maxIterations": 12,
             "enableStreaming": false
           }
@@ -1444,7 +1444,7 @@
         "type": "n8n-nodes-base.telegram",
         "typeVersion": 1.2,
         "position": [
-          3376,
+          3592,
           192
         ],
         "parameters": {
@@ -2117,6 +2117,132 @@
           },
           "options": {}
         }
+      },
+      {
+        "id": "a2000000-0001-4000-8000-verzehr00001",
+        "name": "Rezept-Rest protokollieren",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.6,
+        "position": [
+          3372,
+          192
+        ],
+        "executeOnce": true,
+        "alwaysOutputData": true,
+        "onError": "continueRegularOutput",
+        "credentials": {
+          "postgres": {
+            "id": "RewePostgres0001",
+            "name": "REWE Postgres"
+          }
+        },
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "INSERT INTO verzehr (zeitpunkt, quelle, rezept_id, name, gramm, kcal, protein, fett, kh, geschaetzt)\nSELECT now(), 'rezept', $2::int, e->>'name', (e->>'gramm')::numeric, (e->>'kcal')::numeric, (e->>'protein')::numeric,\n       (e->>'fett')::numeric, (e->>'kh')::numeric, (e->>'geschaetzt')::boolean\nFROM jsonb_array_elements($1::jsonb) e\nRETURNING id;",
+          "options": {
+            "queryReplacement": "={{ [ JSON.stringify($('Verbrauch berechnen').first().json.verzehr_rest || []), String($('Verbrauch berechnen').first().json.rezept_id || 0) ] }}"
+          }
+        }
+      },
+      {
+        "id": "a2000000-0011-4000-8000-verzehr00011",
+        "name": "verzehr_eintragen",
+        "type": "n8n-nodes-base.postgresTool",
+        "typeVersion": 2.6,
+        "position": [
+          3200,
+          1968
+        ],
+        "credentials": {
+          "postgres": {
+            "id": "RewePostgres0001",
+            "name": "REWE Postgres"
+          }
+        },
+        "parameters": {
+          "descriptionType": "manual",
+          "toolDescription": "Trägt etwas Gegessenes ins Verzehr-Protokoll ein, das NICHT aus dem Vorrat ausgebucht wird (auswärts, Mensa, Bäcker, eingeladen, nicht in Grocy). Mit realistischer Portion und Nährwerten für die ganze gegessene Menge. Nicht für Vorratsprodukte – deren Ausbuchen wird automatisch protokolliert.",
+          "operation": "executeQuery",
+          "query": "INSERT INTO verzehr (zeitpunkt, quelle, name, gramm, kcal, protein, fett, kh, geschaetzt, notiz)\nVALUES (coalesce(nullif($1, '')::timestamptz, now()), 'manuell', $2, nullif($3, '')::numeric, nullif($4, '')::numeric,\n        nullif($5, '')::numeric, nullif($6, '')::numeric, nullif($7, '')::numeric, coalesce(nullif($8, '')::boolean, true), nullif($9, ''))\nRETURNING id, to_char(zeitpunkt AT TIME ZONE 'Europe/Berlin', 'DD.MM.YYYY HH24:MI') AS zeit, name, kcal, protein;",
+          "options": {
+            "queryReplacement": "={{ [ $fromAI('zeitpunkt', 'Wann gegessen, ISO 8601 mit Zeitzone Europe/Berlin (z.B. 2026-09-29T13:00:00+02:00); leer = jetzt', 'string', \"\"), $fromAI('name', 'Was gegessen wurde, z.B. Döner mit Hähnchen', 'string'), String($fromAI('gramm', 'gegessene Menge in Gramm (Schätzung ok)', 'number')), String($fromAI('kcal', 'kcal der gegessenen Menge', 'number')), String($fromAI('protein', 'Protein in g der gegessenen Menge', 'number')), String($fromAI('fett', 'Fett in g der gegessenen Menge', 'number')), String($fromAI('kh', 'Kohlenhydrate in g der gegessenen Menge', 'number')), String($fromAI('geschaetzt', 'true, wenn Nährwerte geschätzt sind; false nur bei exakten Packungs-/REWE-Werten', 'boolean')), $fromAI('notiz', 'optionale Notiz, sonst leer', 'string', \"\") ] }}"
+          }
+        }
+      },
+      {
+        "id": "a2000000-0012-4000-8000-verzehr00012",
+        "name": "verzehr_auswerten",
+        "type": "n8n-nodes-base.postgresTool",
+        "typeVersion": 2.6,
+        "position": [
+          3328,
+          1968
+        ],
+        "credentials": {
+          "postgres": {
+            "id": "RewePostgres0001",
+            "name": "REWE Postgres"
+          }
+        },
+        "parameters": {
+          "descriptionType": "manual",
+          "toolDescription": "Wertet den tatsächlichen Verzehr eines Zeitraums aus: Summe kcal/Protein/Fett/KH, Durchschnitt pro Kalendertag (liegt das Ende in der Zukunft, nur bis heute), Tage mit Einträgen, Anteil geschätzter Werte, meistgegessene Lebensmittel. Für Fragen wie „wie viel habe ich im September durchschnittlich gegessen“.",
+          "operation": "executeQuery",
+          "query": "SELECT verzehr_auswertung($1::date, $2::date) AS auswertung;",
+          "options": {
+            "queryReplacement": "={{ [ $fromAI('von', 'erster Tag, YYYY-MM-DD', 'string'), $fromAI('bis', 'letzter Tag (einschließlich), YYYY-MM-DD', 'string') ] }}"
+          }
+        }
+      },
+      {
+        "id": "a2000000-0013-4000-8000-verzehr00013",
+        "name": "verzehr_eintraege",
+        "type": "n8n-nodes-base.postgresTool",
+        "typeVersion": 2.6,
+        "position": [
+          3456,
+          1968
+        ],
+        "credentials": {
+          "postgres": {
+            "id": "RewePostgres0001",
+            "name": "REWE Postgres"
+          }
+        },
+        "parameters": {
+          "descriptionType": "manual",
+          "toolDescription": "Listet die einzelnen Verzehr-Einträge eines Zeitraums (id, Zeit, Lebensmittel, Menge, kcal, Quelle, geschätzt) – z.B. für „was habe ich gestern gegessen“ oder um einen Eintrag zum Korrigieren zu finden.",
+          "operation": "executeQuery",
+          "query": "SELECT id, to_char(zeitpunkt AT TIME ZONE 'Europe/Berlin', 'DD.MM. HH24:MI') AS zeit, name, gramm, round(kcal) AS kcal, round(protein) AS protein_g,\n       quelle, geschaetzt\nFROM verzehr WHERE NOT ignoriert AND (zeitpunkt AT TIME ZONE 'Europe/Berlin')::date BETWEEN $1::date AND $2::date\nORDER BY zeitpunkt LIMIT 150;",
+          "options": {
+            "queryReplacement": "={{ [ $fromAI('von', 'erster Tag, YYYY-MM-DD', 'string'), $fromAI('bis', 'letzter Tag (einschließlich), YYYY-MM-DD', 'string') ] }}"
+          }
+        }
+      },
+      {
+        "id": "a2000000-0014-4000-8000-verzehr00014",
+        "name": "verzehr_korrigieren",
+        "type": "n8n-nodes-base.postgresTool",
+        "typeVersion": 2.6,
+        "position": [
+          3584,
+          1968
+        ],
+        "credentials": {
+          "postgres": {
+            "id": "RewePostgres0001",
+            "name": "REWE Postgres"
+          }
+        },
+        "parameters": {
+          "descriptionType": "manual",
+          "toolDescription": "Nimmt einen Verzehr-Eintrag aus der Auswertung (z.B. „das Croissant hab ich doch nicht gegessen“, doppelt eingetragen). id vorher mit verzehr_eintraege suchen.",
+          "operation": "executeQuery",
+          "query": "UPDATE verzehr SET ignoriert = true, notiz = coalesce(nullif($2, ''), 'vom Nutzer korrigiert') WHERE id = $1::bigint RETURNING id, name, round(kcal) AS kcal;",
+          "options": {
+            "queryReplacement": "={{ [ String($fromAI('id', 'id des Eintrags', 'number')), $fromAI('grund', 'kurzer Grund, sonst leer', 'string', \"\") ] }}"
+          }
+        }
       }
     ],
     "connections": {
@@ -2542,7 +2668,7 @@
         "main": [
           [
             {
-              "node": "Gekocht melden",
+              "node": "Rezept-Rest protokollieren",
               "type": "main",
               "index": 0
             }
@@ -2734,6 +2860,61 @@
             }
           ]
         ]
+      },
+      "Rezept-Rest protokollieren": {
+        "main": [
+          [
+            {
+              "node": "Gekocht melden",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "verzehr_eintragen": {
+        "ai_tool": [
+          [
+            {
+              "node": "Vorrats-Assistent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "verzehr_auswerten": {
+        "ai_tool": [
+          [
+            {
+              "node": "Vorrats-Assistent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "verzehr_eintraege": {
+        "ai_tool": [
+          [
+            {
+              "node": "Vorrats-Assistent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "verzehr_korrigieren": {
+        "ai_tool": [
+          [
+            {
+              "node": "Vorrats-Assistent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
       }
     },
     "settings": {
@@ -2820,9 +3001,9 @@
       }
     ],
     "pinData": null,
-    "versionId": "5a6a31ab-c6d2-4c77-8b42-def58c30cc94",
-    "activeVersionId": "5a6a31ab-c6d2-4c77-8b42-def58c30cc94",
-    "versionCounter": 9,
+    "versionId": "593641a1-b4dd-473a-8182-a3b073c62c4d",
+    "activeVersionId": "593641a1-b4dd-473a-8182-a3b073c62c4d",
+    "versionCounter": 11,
     "triggerCount": 1,
     "sourceWorkflowId": null,
     "tags": [],

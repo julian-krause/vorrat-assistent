@@ -36,6 +36,7 @@ Grocy (Bestand, MHD, Einkaufsliste)  ◄─────────────�
 | `workflows/05-fehlermeldung.json` | Vorrat · Fehlermeldung (Telegram) | Error Trigger (Fehler-Workflow von 01–04, 06, 07) |
 | `workflows/06-rewe-angebote.json` | Vorrat · REWE-Angebote (wöchentlich) | Mo 06:00 |
 | `workflows/07-rewe-crawl.json` | Vorrat · REWE-Crawl (monatlich) | am 1. um 02:00 |
+| `workflows/08-verzehr-erfassen.json` | Vorrat · Verzehr erfassen | alle 5 Minuten |
 
 Zeitzone der Zeitpläne: `Europe/Berlin` (in den Workflow-Einstellungen gesetzt).
 
@@ -71,6 +72,7 @@ Der Node „Vorrats-Assistent“ (MiniMax-M3, Gedächtnis: letzte 10 Nachrichten
 | `grocy_bestand_verbrauchen` | gegessen/weggeworfen ausbuchen | HTTP → Grocy |
 | `grocy_eintraege`, `grocy_mhd_aendern` | MHD korrigieren | HTTP → Grocy |
 | `rewe_produkt_suchen` | lokale REWE-Produkttabelle (Marke, Größe, Preis, Preis/kg, Angebot, Makros, Preis pro 100 g Protein) | Postgres |
+| `verzehr_eintragen`, `verzehr_auswerten`, `verzehr_eintraege`, `verzehr_korrigieren` | Ist-Verbrauch protokollieren, auswerten, korrigieren | Postgres |
 | `profil_lesen`, `ziele_speichern` | Ernährungsziele | n8n-Datentabelle |
 
 - **Produkt aufnehmen** („Nimm Skyr von Milbona auf“): Duplikat prüfen → `rewe_produkt_suchen` → Zusammenfassung (Größe, Preis, Makros) → erst nach „ja“ anlegen. Ohne REWE-Treffer fragt der Agent nach Größe und Nährwerten, statt zu raten.
@@ -144,6 +146,18 @@ Beide REWE-Workflows haben zusätzlich einen Node „Manuell starten“, um sie 
 - Größe aus Texten wie „500g (1 kg = 3,98 €)“, „6 x 1,5 l“, „10 Stück“ → `size_value`/`size_unit` (g/ml/Stück), daraus `price_per_kg_or_l`. Nicht erkannte Größen landen in `crawl_log`.
 - 2–3 s Pause zwischen Requests. Der Fortschritt wird nach jeder Seite gespeichert; nach einem Abbruch setzt der nächste `POST /crawl` an derselben Stelle fort.
 - Tests: `docker exec rewe-service python -m pytest -q tests` (Parser und Crawler gegen nachgebaute API-Antworten).
+
+## Ist-Verbrauch (Verzehr-Protokoll)
+
+Unabhängig vom Plan wird festgehalten, was tatsächlich gegessen wurde – Tabelle `verzehr` in der REWE-Postgres, mit Zeitstempel und zum Zeitpunkt des Essens festgeschriebenen Nährwerten:
+
+| Quelle | Wie es hineinkommt |
+|---|---|
+| `grocy` | Workflow 08 übernimmt alle 5 Minuten jede Verbrauchsbuchung aus Grocy (Chat „Hab 2 Eier gegessen“, „✅ Gekocht“, Grocy-App). Weggeworfenes zählt nicht; rückgängig gemachte Buchungen werden als ignoriert markiert. Nährwerte aus `vorrat_produkte`. |
+| `rezept` | „✅ Gekocht“: Zutaten, die nicht (ganz) aus dem Vorrat abgebucht werden konnten, mit den Nährwerten pro 100 g aus dem Rezept (ältere Rezepte: anteilig, als geschätzt markiert). |
+| `manuell` | Der Agent trägt auswärts Gegessenes ein („Mittags Currywurst in der Mensa“), mit geschätzten oder REWE-Nährwerten. |
+
+Auswertung: `verzehr_auswertung(von, bis)` summiert kcal/Protein/Fett/KH und teilt durch die Kalendertage (bei einem laufenden Monat bis heute); dazu Tage mit Einträgen, Anteil geschätzter Werte und die häufigsten Lebensmittel. Im Chat z. B. „Wie viel habe ich im September durchschnittlich gegessen?“. Korrekturen setzen `ignoriert` (statt zu löschen), damit der Abgleich Grocy-Buchungen nicht neu anlegt.
 
 ## Wochenplan mit REWE-Produkten
 

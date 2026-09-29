@@ -1,0 +1,365 @@
+[
+  {
+    "updatedAt": "2026-09-29T10:59:32.000Z",
+    "createdAt": "2026-09-29T10:59:19.666Z",
+    "id": "VorratVerzehr001",
+    "name": "Vorrat · Verzehr erfassen (alle 5 Min.)",
+    "description": null,
+    "active": true,
+    "isArchived": false,
+    "nodes": [
+      {
+        "id": "c3000000-0001-4000-8000-verzehrwf001",
+        "name": "Alle 5 Minuten",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1.2,
+        "position": [
+          0,
+          0
+        ],
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "minutes",
+                "minutesInterval": 5
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "c3000000-0002-4000-8000-verzehrwf002",
+        "name": "Manuell starten",
+        "type": "n8n-nodes-base.manualTrigger",
+        "typeVersion": 1,
+        "position": [
+          0,
+          180
+        ],
+        "parameters": {}
+      },
+      {
+        "id": "c3000000-0003-4000-8000-verzehrwf003",
+        "name": "Profil laden",
+        "type": "n8n-nodes-base.dataTable",
+        "typeVersion": 1.1,
+        "position": [
+          220,
+          0
+        ],
+        "parameters": {
+          "resource": "row",
+          "operation": "get",
+          "dataTableId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "cT54sdECXIGtpqDT",
+            "cachedResultName": "vorrat_profil"
+          },
+          "filters": {
+            "conditions": [
+              {
+                "keyName": "schluessel",
+                "condition": "eq",
+                "keyValue": "main"
+              }
+            ]
+          },
+          "limit": 1
+        }
+      },
+      {
+        "id": "c3000000-0004-4000-8000-verzehrwf004",
+        "name": "Grocy-Verbrauch laden",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          440,
+          0
+        ],
+        "credentials": {
+          "httpCustomAuth": {
+            "id": "sWOsDlhSjQx2Y5EN",
+            "name": "Custom Auth account"
+          }
+        },
+        "executeOnce": true,
+        "alwaysOutputData": true,
+        "parameters": {
+          "method": "GET",
+          "url": "={{ $('Profil laden').first().json.grocy_url }}/api/objects/stock_log?query%5B%5D=transaction_type%3Dconsume&query%5B%5D=row_created_timestamp%3E{{ $now.setZone('Europe/Berlin').minus({ days: 35 }).toFormat('yyyy-MM-dd') }}",
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpCustomAuth",
+          "options": {}
+        }
+      },
+      {
+        "id": "c3000000-0005-4000-8000-verzehrwf005",
+        "name": "Grocy-Produkte laden",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          660,
+          0
+        ],
+        "credentials": {
+          "httpCustomAuth": {
+            "id": "sWOsDlhSjQx2Y5EN",
+            "name": "Custom Auth account"
+          }
+        },
+        "executeOnce": true,
+        "parameters": {
+          "method": "GET",
+          "url": "={{ $('Profil laden').first().json.grocy_url }}/api/objects/products",
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpCustomAuth",
+          "options": {}
+        }
+      },
+      {
+        "id": "c3000000-0006-4000-8000-verzehrwf006",
+        "name": "Grocy-Einheiten laden",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          880,
+          0
+        ],
+        "credentials": {
+          "httpCustomAuth": {
+            "id": "sWOsDlhSjQx2Y5EN",
+            "name": "Custom Auth account"
+          }
+        },
+        "executeOnce": true,
+        "parameters": {
+          "method": "GET",
+          "url": "={{ $('Profil laden').first().json.grocy_url }}/api/objects/quantity_units",
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpCustomAuth",
+          "options": {}
+        }
+      },
+      {
+        "id": "c3000000-0007-4000-8000-verzehrwf007",
+        "name": "Nährwerte laden",
+        "type": "n8n-nodes-base.dataTable",
+        "typeVersion": 1.1,
+        "position": [
+          1100,
+          0
+        ],
+        "executeOnce": true,
+        "alwaysOutputData": true,
+        "parameters": {
+          "resource": "row",
+          "operation": "get",
+          "dataTableId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "kil5ZUYaG9x3uGat",
+            "cachedResultName": "vorrat_produkte"
+          },
+          "returnAll": true
+        }
+      },
+      {
+        "id": "c3000000-0008-4000-8000-verzehrwf008",
+        "name": "Verzehr aufbereiten",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1320,
+          0
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "language": "javaScript",
+          "jsCode": "// Grocy-Verbrauchsbuchungen der letzten 35 Tage -> Verzehr mit festgeschriebenen Nährwerten.\n// Weggeworfen (spoiled) zählt nicht; rückgängig gemachte Buchungen werden im Protokoll als ignoriert markiert.\nconst produkte = {};\nfor (const i of $('Grocy-Produkte laden').all()) if (i.json && i.json.id) produkte[i.json.id] = i.json;\nconst qu = {};\nfor (const i of $('Grocy-Einheiten laden').all()) if (i.json && i.json.id) qu[i.json.id] = String(i.json.name || '').toLowerCase();\nconst nw = {};\nfor (const i of $('Nährwerte laden').all()) if (i.json && i.json.grocy_product_id) nw[i.json.grocy_product_id] = i.json;\nconst einheitVon = p => { const n = qu[p.qu_id_stock] || ''; return n === 'gramm' ? 'g' : n === 'milliliter' ? 'ml' : 'stk'; };\nconst r1 = x => (x === null || x === undefined || !Number.isFinite(x)) ? null : Math.round(x * 10) / 10;\nconst neu = [];\nconst rueck = [];\nfor (const i of $('Grocy-Verbrauch laden').all()) {\n  const l = i.json;\n  if (!l || !l.id) continue;\n  if (Number(l.undone) === 1) { rueck.push(l.id); continue; }\n  if (Number(l.spoiled) === 1 || l.transaction_type !== 'consume') continue;\n  const menge = Math.abs(Number(l.amount) || 0);\n  if (!menge) continue;\n  const p = produkte[l.product_id] || {};\n  const n = nw[l.product_id] || {};\n  const einheit = n.einheit || einheitVon(p);\n  const gramm = (einheit === 'g' || einheit === 'ml') ? menge : (Number(n.gramm_pro_stk) > 0 ? menge * Number(n.gramm_pro_stk) : null);\n  const hat = n.kcal_100 !== null && n.kcal_100 !== undefined && gramm !== null;\n  const f = hat ? gramm / 100 : 0;\n  const makro = k => hat && n[k] !== null && n[k] !== undefined ? r1(Number(n[k]) * f) : null;\n  neu.push({\n    log_id: l.id, zeitpunkt: l.row_created_timestamp, product_id: l.product_id, name: p.name || n.name || ('Produkt ' + l.product_id),\n    menge, einheit, gramm: r1(gramm),\n    // ohne Nährwert-Eintrag: Grocy-Kalorien pro Lagereinheit als Rückfall\n    kcal: hat ? r1(Number(n.kcal_100) * f) : (Number(p.calories) > 0 ? r1(Number(p.calories) * menge) : null),\n    protein: makro('protein_100'), fett: makro('fett_100'), kh: makro('kh_100'),\n    geschaetzt: !hat || n.quelle === 'ki-schaetzung',\n  });\n}\nreturn [{ json: { neu, rueck, anzahl: neu.length } }];"
+        }
+      },
+      {
+        "id": "c3000000-0009-4000-8000-verzehrwf009",
+        "name": "Verzehr speichern",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.6,
+        "position": [
+          1540,
+          0
+        ],
+        "executeOnce": true,
+        "credentials": {
+          "postgres": {
+            "id": "RewePostgres0001",
+            "name": "REWE Postgres"
+          }
+        },
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "WITH neu AS (\n  INSERT INTO verzehr (zeitpunkt, quelle, grocy_log_id, grocy_product_id, name, menge, einheit, gramm, kcal, protein, fett, kh, geschaetzt)\n  SELECT (e->>'zeitpunkt')::timestamp AT TIME ZONE 'Europe/Berlin', 'grocy', (e->>'log_id')::int, (e->>'product_id')::int, e->>'name',\n         (e->>'menge')::numeric, e->>'einheit', (e->>'gramm')::numeric, (e->>'kcal')::numeric, (e->>'protein')::numeric,\n         (e->>'fett')::numeric, (e->>'kh')::numeric, (e->>'geschaetzt')::boolean\n  FROM jsonb_array_elements($1::jsonb) e\n  ON CONFLICT (grocy_log_id) DO NOTHING RETURNING 1\n), rueck AS (\n  UPDATE verzehr SET ignoriert = true, notiz = coalesce(notiz, 'in Grocy rückgängig gemacht')\n  WHERE grocy_log_id IN (SELECT x::int FROM jsonb_array_elements_text($2::jsonb) x) AND NOT ignoriert RETURNING 1\n)\nSELECT (SELECT count(*) FROM neu) AS neu, (SELECT count(*) FROM rueck) AS rueckgaengig;",
+          "options": {
+            "queryReplacement": "={{ [ JSON.stringify($json.neu || []), JSON.stringify($json.rueck || []) ] }}"
+          }
+        }
+      },
+      {
+        "id": "c3000000-0010-4000-8000-verzehrwf010",
+        "name": "Notiz",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          0,
+          -300
+        ],
+        "parameters": {
+          "width": 760,
+          "height": 260,
+          "color": 4,
+          "content": "## Verzehr erfassen\nÜbernimmt alle 5 Minuten die Verbrauchsbuchungen aus Grocy (letzte 35 Tage, idempotent über die stock_log-ID) in die Tabelle `verzehr` (REWE-Postgres), mit Nährwerten aus `vorrat_produkte` zum Zeitpunkt des Essens. Weggeworfenes zählt nicht, rückgängig Gemachtes wird als ignoriert markiert.\nWeitere Quellen: „✅ Gekocht“ (Zutaten ohne Vorrat) und der Agent (auswärts Gegessenes). Auswertung: Funktion `verzehr_auswertung(von, bis)`.\nErfolgreiche Läufe werden nicht gespeichert (Einstellungen), Fehler schon."
+        }
+      }
+    ],
+    "connections": {
+      "Alle 5 Minuten": {
+        "main": [
+          [
+            {
+              "node": "Profil laden",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Profil laden": {
+        "main": [
+          [
+            {
+              "node": "Grocy-Verbrauch laden",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Grocy-Verbrauch laden": {
+        "main": [
+          [
+            {
+              "node": "Grocy-Produkte laden",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Grocy-Produkte laden": {
+        "main": [
+          [
+            {
+              "node": "Grocy-Einheiten laden",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Grocy-Einheiten laden": {
+        "main": [
+          [
+            {
+              "node": "Nährwerte laden",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Nährwerte laden": {
+        "main": [
+          [
+            {
+              "node": "Verzehr aufbereiten",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Verzehr aufbereiten": {
+        "main": [
+          [
+            {
+              "node": "Verzehr speichern",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Manuell starten": {
+        "main": [
+          [
+            {
+              "node": "Profil laden",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1",
+      "timezone": "Europe/Berlin",
+      "errorWorkflow": "VorratFehler0001",
+      "saveDataSuccessExecution": "none",
+      "saveManualExecutions": true
+    },
+    "staticData": {
+      "node:Alle 5 Minuten": {
+        "recurrenceRules": [
+          null
+        ],
+        "recurrenceRuleSignatures": [
+          null
+        ]
+      }
+    },
+    "meta": null,
+    "nodeGroups": [],
+    "pinData": null,
+    "versionId": "2615b664-7fe1-42b5-a664-63d9dfca79b2",
+    "activeVersionId": "2615b664-7fe1-42b5-a664-63d9dfca79b2",
+    "versionCounter": 1,
+    "triggerCount": 1,
+    "sourceWorkflowId": null,
+    "tags": [],
+    "shared": [
+      {
+        "updatedAt": "2026-09-29T10:59:19.669Z",
+        "createdAt": "2026-09-29T10:59:19.669Z",
+        "role": "workflow:owner",
+        "workflowId": "VorratVerzehr001",
+        "projectId": "nzlXKBBRrLp3C73r",
+        "project": {
+          "updatedAt": "2026-09-27T10:46:36.945Z",
+          "createdAt": "2026-09-27T10:43:38.721Z",
+          "id": "nzlXKBBRrLp3C73r",
+          "name": "Julian Krause <cjuliankrause@icloud.com>",
+          "type": "personal",
+          "icon": null,
+          "description": null,
+          "customTelemetryTags": [],
+          "creatorId": "d119e51b-5188-40f3-82ab-3c4e7b4f489e"
+        }
+      }
+    ],
+    "versionMetadata": {
+      "name": null,
+      "description": null
+    }
+  }
+]

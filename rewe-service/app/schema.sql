@@ -116,3 +116,56 @@ CREATE TABLE IF NOT EXISTS bon_zeilen (
     beantwortet_at  timestamptz,
     UNIQUE (bon_id, bon_text_norm)
 );
+
+-- Ist-Verbrauch: was tatsächlich gegessen wurde, mit Zeitstempel und festgeschriebenen Nährwerten.
+-- quelle: grocy (Verbrauchsbuchung aus dem Vorrat, per n8n-Abgleich) | rezept (Zutaten eines gekochten Rezepts,
+-- die nicht aus dem Vorrat kamen) | manuell (vom Agenten eingetragen, z.B. auswärts gegessen)
+CREATE TABLE IF NOT EXISTS verzehr (
+    id               bigserial PRIMARY KEY,
+    zeitpunkt        timestamptz NOT NULL,
+    quelle           text NOT NULL CHECK (quelle IN ('grocy', 'rezept', 'manuell')),
+    grocy_log_id     integer UNIQUE,
+    grocy_product_id integer,
+    rezept_id        integer,
+    name             text NOT NULL,
+    menge            numeric(10, 2),
+    einheit          text,
+    gramm            numeric(10, 1),
+    kcal             numeric(8, 1),
+    protein          numeric(7, 1),
+    fett             numeric(7, 1),
+    kh               numeric(7, 1),
+    geschaetzt       boolean NOT NULL DEFAULT false,
+    ignoriert        boolean NOT NULL DEFAULT false,  -- vom Nutzer korrigiert; bleibt stehen, damit der Abgleich es nicht neu anlegt
+    notiz            text,
+    erfasst_at       timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS verzehr_zeitpunkt_idx ON verzehr (zeitpunkt);
+
+-- Summe und Durchschnitt pro Kalendertag (Europe/Berlin). Liegt „bis“ in der Zukunft, zählt nur bis heute.
+CREATE OR REPLACE FUNCTION verzehr_auswertung(von date, bis date) RETURNS jsonb LANGUAGE sql STABLE AS $$
+    WITH g AS (
+        SELECT von AS v, LEAST(bis, (now() AT TIME ZONE 'Europe/Berlin')::date) AS b
+    ), e AS (
+        SELECT x.*, (x.zeitpunkt AT TIME ZONE 'Europe/Berlin')::date AS tag
+        FROM verzehr x, g WHERE NOT x.ignoriert AND (x.zeitpunkt AT TIME ZONE 'Europe/Berlin')::date BETWEEN g.v AND g.b
+    ), s AS (
+        SELECT coalesce(sum(kcal), 0) AS kcal, coalesce(sum(protein), 0) AS p, coalesce(sum(fett), 0) AS f, coalesce(sum(kh), 0) AS kh,
+               count(*) AS n, count(DISTINCT tag) AS tage_mit, coalesce(sum(kcal) FILTER (WHERE geschaetzt), 0) AS kcal_geschaetzt,
+               count(*) FILTER (WHERE kcal IS NULL) AS ohne_nw
+        FROM e
+    ), t AS (SELECT GREATEST(g.b - g.v + 1, 0) AS tage FROM g)
+    SELECT jsonb_build_object(
+        'von', g.v, 'bis', g.b, 'kalendertage', t.tage, 'tage_mit_eintraegen', s.tage_mit, 'eintraege', s.n,
+        'summe', jsonb_build_object('kcal', round(s.kcal), 'protein_g', round(s.p), 'fett_g', round(s.f), 'kh_g', round(s.kh)),
+        'durchschnitt_pro_kalendertag', CASE WHEN t.tage > 0 THEN jsonb_build_object(
+            'kcal', round(s.kcal / t.tage), 'protein_g', round(s.p / t.tage), 'fett_g', round(s.f / t.tage), 'kh_g', round(s.kh / t.tage)) END,
+        'durchschnitt_pro_tag_mit_eintraegen', CASE WHEN s.tage_mit > 0 THEN jsonb_build_object(
+            'kcal', round(s.kcal / s.tage_mit), 'protein_g', round(s.p / s.tage_mit), 'fett_g', round(s.f / s.tage_mit), 'kh_g', round(s.kh / s.tage_mit)) END,
+        'anteil_geschaetzt_prozent', CASE WHEN s.kcal > 0 THEN round(100 * s.kcal_geschaetzt / s.kcal) END,
+        'eintraege_ohne_naehrwerte', s.ohne_nw,
+        'top_lebensmittel', (SELECT coalesce(jsonb_agg(x), '[]'::jsonb) FROM (
+            SELECT name, round(sum(kcal)) AS kcal, round(sum(protein)) AS protein_g, count(*) AS mal
+            FROM e GROUP BY name ORDER BY sum(kcal) DESC NULLS LAST LIMIT 8) x)
+    ) FROM g, s, t;
+$$;
