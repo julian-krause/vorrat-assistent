@@ -146,3 +146,17 @@ def test_wasser():
         assert ist_wasser(t), t
     for t in ["WASSERMELONE", "Kokoswasser", "HAHN.LYONER"]:
         assert not ist_wasser(t), t
+
+
+def test_wasser_ueber_rewe_produkt(test_db):
+    """Kassentext ohne „Wasser“: erkannt über Kategorie + Beschreibung des zugeordneten REWE-Produkts."""
+    from app import bon
+    with test_db.verbinden() as con:
+        con.execute("""INSERT INTO rewe_products (rewe_product_id, name, category, description, price) VALUES
+            ('6200095', 'Rheinfels Quelle Klassik 1l', 'Getränke', 'Natürliches Mineralwasser mit Kohlensäure versetzt', 0.59),
+            ('7814109', 'ja! Kichererbsen 265g', 'Vorratsküche', 'Kichererbsen in Wasser, Salz', 0.79)""")
+        text = "EUR\nRHEINFELS KLASSI 0,59 A\nKICHERERBSEN 0,79 B\n SUMME EUR 1,38\nDatum: 30.09.2026\n"
+        erg = bon.zuordnen(con, text, "bon-w", ["RHEINFELS KLASSI", "KICHERERBSEN"])
+        assert erg["artikel"][0] == {"bon_text": "RHEINFELS KLASSI", "ignorieren": True, "grund": "Wasser"}
+        assert erg["artikel"][1]["produkt"]["rewe_product_id"] == "7814109"     # „in Wasser“ in der Beschreibung zählt nicht
+        assert [z["bon_text"] for z in erg["zeilen"]] == ["KICHERERBSEN"]

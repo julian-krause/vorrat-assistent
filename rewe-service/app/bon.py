@@ -34,6 +34,22 @@ _KEIN_WASSER = re.compile(r"melone|kokos|rosen|orangenbl", re.I)
 def ist_wasser(text: str) -> bool:
     t = normalisieren(text)
     return bool(_WASSER.search(t)) and not _KEIN_WASSER.search(t)
+
+
+# Der Kassentext verrät Wasser oft nicht („RHEINFELS KLASSI“), das zugeordnete REWE-Produkt schon
+_WASSER_PRODUKT = re.compile(r"\b(mineral|tafel|heil|quell)wasser\b", re.I)
+
+
+def ist_wasser_produkt(con, rewe_product_id: str | None) -> bool:
+    if not rewe_product_id:
+        return False
+    z = con.execute("SELECT name, category, description FROM rewe_products WHERE rewe_product_id = %s", (rewe_product_id,)).fetchone()
+    if not z:
+        return False
+    name, kategorie, beschreibung = z
+    if ist_wasser(name or ""):
+        return True
+    return (kategorie or "") == "Getränke" and bool(_WASSER_PRODUKT.search(beschreibung or ""))
 TOLERANZ_TAGE = 45
 
 
@@ -222,10 +238,15 @@ def zuordnen(con, bon_text_roh: str, bon_id: str, texte: list[str] | None = None
     bon = bon_lesen(bon_text_roh)
     datum = bon["datum"] or (date.fromisoformat(kaufdatum) if kaufdatum else date.today())
     ergebnisse = []
+    wasser: set[str] = set()
     for z in bon["zeilen"]:
         if z["ignorieren"]:
             continue
         erg = zeile_zuordnen(con, z, datum)
+        if erg["status"] == "sicher" and ist_wasser_produkt(con, (erg["produkt"] or {}).get("rewe_product_id")):
+            # Wasser wird nie erfasst: Zeile weglassen, n8n bekommt „ignorieren“ für den KI-Artikel
+            wasser.add(normalisieren(z["bon_text"]))
+            continue
         zeile_id = con.execute("""
             INSERT INTO bon_zeilen (bon_id, kaufdatum, bon_text, bon_text_norm, anzahl, einzelpreis, gewicht_kg, kilopreis,
                                     status, rewe_product_id, kandidaten)
@@ -247,7 +268,8 @@ def zuordnen(con, bon_text_roh: str, bon_id: str, texte: list[str] | None = None
     zu_artikeln = None
     if texte is not None:
         nach_text = {normalisieren(e["bon_text"]): e for e in ergebnisse}
-        zu_artikeln = [nach_text.get(normalisieren(t)) for t in texte]
+        zu_artikeln = [{"bon_text": t, "ignorieren": True, "grund": "Wasser"} if normalisieren(t) in wasser
+                       else nach_text.get(normalisieren(t)) for t in texte]
     return {"kaufdatum": datum.isoformat(), "markt": bon["markt"], "zeilen": ergebnisse, "artikel": zu_artikeln,
             "statistik": {s: sum(1 for e in ergebnisse if e["status"] == s) for s in ("sicher", "unsicher", "keine")}}
 

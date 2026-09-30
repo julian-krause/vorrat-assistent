@@ -1,11 +1,11 @@
 [
   {
-    "updatedAt": "2026-09-27T17:22:54.854Z",
+    "updatedAt": "2026-09-30T11:16:36.000Z",
     "createdAt": "2026-09-27T17:22:54.854Z",
     "id": "VorratFehler0001",
     "name": "Vorrat · Fehlermeldung (Telegram)",
     "description": null,
-    "active": false,
+    "active": true,
     "isArchived": false,
     "nodes": [
       {
@@ -134,8 +134,8 @@
     "meta": null,
     "nodeGroups": [],
     "pinData": null,
-    "versionId": "48bb5010-e2da-456f-81cb-90af28127f3c",
-    "activeVersionId": null,
+    "versionId": "56d8b697-7eb8-4f4c-a4f6-719adecdfabd",
+    "activeVersionId": "56d8b697-7eb8-4f4c-a4f6-719adecdfabd",
     "versionCounter": 1,
     "triggerCount": 0,
     "sourceWorkflowId": null,
