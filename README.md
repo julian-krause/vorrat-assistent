@@ -240,3 +240,13 @@ Credentials sind **nicht** im Repo und müssen in einer neuen Instanz neu angele
 - OpenFoodFacts-Suche: max. ~10 Anfragen/min, daher 6,5 s Abstand und nur für neue Produkte (Cache in `vorrat_produkte`). Ohne Barcode wird über den Namen gesucht; unsichere Treffer werden verworfen und durch KI-Schätzwerte ersetzt.
 - Planer: Die KI liefert nur Rezepte mit Zutatenmengen, Packungsgrößen und Nährwerten pro 100 g. Der Node „Antwort auswerten“ berechnet kcal/Makros selbst (Vorrat: OpenFoodFacts-Werte), skaliert die Mengen pro Mahlzeit und Tag auf die Ziele und erstellt die Einkaufsliste in kaufbaren Einheiten. Ein neuer Wochenplan ersetzt die Grocy-Einkaufsposten derselben Kalenderwoche.
 - Modell: überall `MiniMax-M3` (Nodes „MiniMax liest Bon aus“, „MiniMax plant Rezepte“, „MiniMax Chat-Modell“). eBon-Import und Planer senden `thinking: {type: "disabled"}`, weil M3 mit Denkphase beim Wochenplan das gesamte Token-Budget fürs Nachdenken verbraucht; der Chat-Agent nutzt die Standardeinstellung.
+
+
+## Tests
+
+- `rewe-service/tests/`: pytest gegen eine Postgres-Testdatenbank (`DATABASE_URL=postgresql://…/postgres`, z. B. `docker run -p 55432:5432 -e POSTGRES_PASSWORD=test postgres:17`).
+- `rewe-service/tests/test_ebon_pdfs.py` (eBon-Prüfstand): verarbeitet automatisch alle PDFs in `eBon/` gegen die Soll-Datei `eBon/erwartet.yaml`, jeweils mit leerer und
+  gefüllter Lerntabelle, Buchungen nur als Dry-Run. Neue Bons als PDF nach `eBon/` legen, `scripts/ebon_text.sh` ausführen (PDF → Text mit n8ns eigener Funktion) und den Abschnitt in
+  `erwartet.yaml` ergänzen. Läufe protokolliert `eBon/testlaeufe.md`. Live-Extraktion (5× MiniMax): Zugang in `~/.config/vorrat/minimax.key` ablegen.
+  Der Katalog-Export für die Tests liegt in `rewe-service/tests/daten/` (read-only aus der Produktion).
+- `workflows/tests/run.sh`: Tests der n8n-Code-Knoten (Planer, eBon-Import, Bot) im n8n-Image; lokal `cd workflows/tests && npm i luxon`.

@@ -1,0 +1,7 @@
+[{"id":"EbonPdfText0001","name":"Test · eBon PDF → Text","active":false,"settings":{"executionOrder":"v1"},
+ "nodes":[
+  {"parameters":{},"id":"1","name":"Start","type":"n8n-nodes-base.manualTrigger","typeVersion":1,"position":[0,0]},
+  {"parameters":{"fileSelector":"/ebon/*.pdf","options":{}},"id":"2","name":"PDFs lesen","type":"n8n-nodes-base.readWriteFile","typeVersion":1.1,"position":[220,0]},
+  {"parameters":{"operation":"pdf","binaryPropertyName":"data","options":{"joinPages":true}},"id":"3","name":"Text aus PDF lesen","type":"n8n-nodes-base.extractFromFile","typeVersion":1,"position":[440,0]},
+  {"parameters":{"mode":"runOnceForAllItems","language":"javaScript","jsCode":"return $input.all().map((i, n) => ({ json: { datei: $('PDFs lesen').all()[n].binary.data.fileName, text: i.json.text } }));"},"id":"4","name":"Ausgabe","type":"n8n-nodes-base.code","typeVersion":2,"position":[660,0]}],
+ "connections":{"Start":{"main":[[{"node":"PDFs lesen","type":"main","index":0}]]},"PDFs lesen":{"main":[[{"node":"Text aus PDF lesen","type":"main","index":0}]]},"Text aus PDF lesen":{"main":[[{"node":"Ausgabe","type":"main","index":0}]]}}}]

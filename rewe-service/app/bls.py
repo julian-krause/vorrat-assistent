@@ -9,7 +9,11 @@ from __future__ import annotations
 import csv
 import gzip
 import logging
+import re
 from pathlib import Path
+
+from . import text
+from .text import normalisieren
 
 log = logging.getLogger("bls")
 DATEI = Path(__file__).parent.parent / "daten" / "bls_4_0.csv.gz"
@@ -43,35 +47,64 @@ def eintrag(con, code: str) -> dict | None:
     return _eintrag(z) if z else None
 
 
-_STOPP = {"stück", "stueck", "stk", "bio", "frisch", "vorgereift", "reif", "lose", "packung", "beutel", "schale", "netz",
-          "klasse", "größe", "groesse", "gramm", "ca", "und", "mit", "ohne", "der", "die", "das", "rewe", "ja", "beste", "wahl"}
-_SYNONYME = {"eier": "hühnerei", "ei": "hühnerei", "möhren": "möhre", "karotte": "möhre", "karotten": "möhre",
-             "kartoffeln": "kartoffel", "tomaten": "tomate", "zwiebeln": "zwiebel", "äpfel": "apfel", "bananen": "banane",
+_STOPP = {"stueck", "stk", "bio", "frisch", "vorgereift", "reif", "lose", "packung", "beutel", "schale", "netz",
+          "klasse", "groesse", "gramm", "ca", "und", "mit", "ohne", "der", "die", "das", "rewe", "ja", "beste", "wahl"}
+_SYNONYME = {"eier": "huehnerei", "ei": "huehnerei", "moehren": "moehre", "karotte": "moehre", "karotten": "moehre",
+             "kartoffeln": "kartoffel", "tomaten": "tomate", "zwiebeln": "zwiebel", "aepfel": "apfel", "bananen": "banane",
              "birnen": "birne", "zitronen": "zitrone", "orangen": "orange", "gurken": "gurke", "pflaumen": "pflaume",
-             "freilandeier": "hühnerei", "bioeier": "hühnerei"}
+             "freilandeier": "huehnerei", "bioeier": "huehnerei"}
 
 
 def suchwoerter(begriff: str) -> list[str]:
-    import re
+    """Suchwörter in gemeinsamer Normalisierung (ä -> ae, …), Mehrzahl auf BLS-Form, ohne Füllwörter."""
     woerter = []
-    for w in re.findall(r"[a-zäöüß]+", str(begriff or "").lower()):
+    for w in normalisieren(begriff).split():
         w = _SYNONYME.get(w, w)
-        if len(w) >= 3 and w not in _STOPP and w not in woerter:
+        if len(w) >= 3 and w not in _STOPP and not w.isdigit() and w not in woerter:
             woerter.append(w)
     return woerter
 
 
+def _wort_teile(wort: str) -> list[str]:
+    """Zusammengesetzte Wörter zerlegen („Romatomaten“ -> tomate): Endteile ab 5 Buchstaben ohne Mehrzahl-Endung, längste zuerst."""
+    stamm = re.sub(r"(en|n|e|s)$", "", wort)
+    return [stamm[i:] for i in range(1, len(stamm) - 4) if len(stamm[i:]) >= 5]
+
+
 def suche(con, begriff: str, anzahl: int = 8) -> list[dict]:
     """Kandidaten für die KI: meiste Wort-Treffer im BLS-Namen zuerst (Marke, Größe, „Bio“ usw. zählen nicht),
-    dann Rohware, dann Ähnlichkeit."""
-    woerter = suchwoerter(begriff)
-    if not woerter:
-        return []
-    zeilen = con.execute(f"""
-        SELECT code, name, {', '.join(_FELDER)} FROM (
-            SELECT b.*, (SELECT count(*) FROM unnest(%(w)s::text[]) w WHERE lower(b.name) LIKE '%%' || w || '%%') AS treffer
-            FROM bls b
-        ) x WHERE treffer > 0
-        ORDER BY treffer DESC, (lower(name) LIKE '%%roh%%') DESC, similarity(name, %(b)s) DESC, length(name)
-        LIMIT %(n)s""", {"w": woerter, "b": " ".join(woerter), "n": anzahl}).fetchall()
-    return [_eintrag(z) for z in zeilen]
+    dann Rohware, dann Ähnlichkeit. Schreibvarianten/Synonyme (Tabelle suchsynonyme) werden mitgesucht; findet sich nichts,
+    werden zusammengesetzte Wörter in ihre Endteile zerlegt."""
+    for zerlegen in (False, True):
+        treffer = _suche(con, begriff, anzahl, zerlegen)
+        if treffer:
+            return treffer
+    return []
+
+
+def _suche(con, begriff: str, anzahl: int, zerlegen: bool) -> list[dict]:
+    treffer: dict[str, tuple] = {}
+    for v in text.varianten(con, begriff) or [normalisieren(begriff)]:
+        woerter = suchwoerter(v)
+        if zerlegen:
+            # nur Wörter ohne eigenen Treffer und ab 8 Buchstaben zerlegen; andere unbekannte Wörter (Marken, „Cherry“) bleiben außen vor
+            def im_bls(w):
+                return con.execute("SELECT 1 FROM bls WHERE suchtext LIKE %s LIMIT 1", ("%" + w + "%",)).fetchone() is not None
+            def teil(w):
+                return next((t for t in _wort_teile(w) if im_bls(t)), None)
+            woerter = [w for w in woerter if im_bls(w)] + [t for t in (teil(w) for w in woerter if not im_bls(w) and len(w) >= 8) if t]
+        if not woerter:
+            continue
+        zeilen = con.execute(f"""
+            SELECT code, name, {', '.join(_FELDER)}, treffer, roh, aehnlich FROM (
+                SELECT b.*, (SELECT count(*) FROM unnest(%(w)s::text[]) w WHERE b.suchtext LIKE '%%' || w || '%%') AS treffer,
+                       (b.suchtext LIKE '%%roh%%') AS roh, similarity(b.suchtext, %(b)s) AS aehnlich
+                FROM bls b
+            ) x WHERE treffer > 0
+            ORDER BY treffer DESC, roh DESC, aehnlich DESC, length(name)
+            LIMIT %(n)s""", {"w": woerter, "b": " ".join(woerter), "n": anzahl}).fetchall()
+        for z in zeilen:
+            schluessel = (-(z[-3] / len(woerter)), not z[-2], -z[-1], len(z[1]))
+            if z[0] not in treffer or schluessel < treffer[z[0]][0]:
+                treffer[z[0]] = (schluessel, z[:-3])
+    return [_eintrag(z) for _, z in sorted(treffer.values(), key=lambda t: t[0])[:anzahl]]

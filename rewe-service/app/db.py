@@ -16,11 +16,24 @@ def verbinden() -> psycopg.Connection:
     return psycopg.connect(DATABASE_URL, autocommit=True)
 
 
+def _normalisierung_migrieren(con) -> None:
+    """Gelernte Kassentexte mit der gemeinsamen Normalisierung (ä -> ae statt ä -> a) neu schlüsseln; idempotent."""
+    con.execute("""UPDATE bon_zuordnung z SET bon_text_norm = norm_text(z.bon_text)
+                   WHERE z.bon_text_norm <> norm_text(z.bon_text)
+                     AND NOT EXISTS (SELECT 1 FROM bon_zuordnung o WHERE o.bon_text_norm = norm_text(z.bon_text))""")
+    con.execute("""UPDATE bon_zeilen z SET bon_text_norm = norm_text(z.bon_text)
+                   WHERE z.bon_text_norm <> norm_text(z.bon_text)
+                     AND NOT EXISTS (SELECT 1 FROM bon_zeilen o WHERE o.bon_id = z.bon_id AND o.bon_text_norm = norm_text(z.bon_text))""")
+
+
 def schema_anlegen() -> None:
     schema = (Path(__file__).parent / "schema.sql").read_text(encoding="utf-8")
-    from . import bls, stueckgewicht
+    from . import bls, stueckgewicht, text
     with verbinden() as con:
         con.execute(schema)
+        text.synonyme_laden(con)
+        text.oberbegriffe_laden(con)
+        _normalisierung_migrieren(con)
         bls.laden(con)
         stueckgewicht.referenz_laden(con)
         n8n_passwort = os.environ.get("REWE_DB_N8N_PASSWORD")

@@ -10,3 +10,7 @@ docker/rewe.env
 *.key
 __pycache__/
 .pytest_cache/
+node_modules/
+
+# Echte Kassenbons (persönlich), nie committen
+eBon/

@@ -10,7 +10,7 @@ from pathlib import Path
 from fastapi import Body, FastAPI, HTTPException, Query
 from fastapi.responses import HTMLResponse, JSONResponse
 
-from . import bls, bon, db, ermitteln, planer, rewe, stueckgewicht, verzehr, vorrat
+from . import bls, bon, db, ermitteln, planer, rewe, rueckfragen, stueckgewicht, text, verzehr, vorrat
 from .crawler import Crawler, kategorien_config, listen_produkt, produkt_aktualisieren
 from .parse import ean_aus_article_id, finde_ean, parse_naehrwerte
 
@@ -168,10 +168,72 @@ def bon_zuordnen(
 
 
 @app.post("/bon/antwort")
-def bon_antwort(zeile_id: int = Body(...), rewe_product_id: str | None = Body(None, description="leer = keins davon")):
+def bon_antwort(zeile_id: int = Body(...), rewe_product_id: str | None = Body(None, description="leer = keins davon, „s“ = anderes Produkt suchen"),
+                menge: float | None = Body(None, description="vom Nutzer genannte Menge (geht vor der Packungsgröße)"), einheit: str | None = Body(None)):
     """Antwort auf eine Rückfrage: Zuordnung lernen und Produktdaten zurückgeben."""
     with db.verbinden() as con:
-        return bon.antwort_speichern(con, zeile_id, rewe_product_id or None)
+        return bon.antwort_speichern(con, zeile_id, rewe_product_id or None, menge, einheit)
+
+
+@app.post("/rueckfragen")
+def rueckfrage_anlegen(chat_id: str = Body(...), art: str = Body(..., description="produkt | menge"), bon_zeile_id: int | None = Body(None),
+                       bon_text: str | None = Body(None), kandidaten: list | None = Body(None), payload: dict | None = Body(None)):
+    """Offene Rückfrage merken (Freitext des Nutzers wird danach zuerst als Antwort darauf ausgewertet)."""
+    with db.verbinden() as con:
+        return {"id": rueckfragen.anlegen(con, chat_id, art, bon_zeile_id, bon_text, kandidaten, payload)}
+
+
+@app.post("/rueckfragen/auswerten")
+def rueckfrage_auswerten(chat_id: str = Body(...), text: str = Body(...)):
+    """Freitext als Antwort auf eine offene Rückfrage auswerten; treffer=false -> Nachricht gehört dem Agenten."""
+    with db.verbinden() as con:
+        return rueckfragen.auswerten(con, chat_id, text)
+
+
+@app.post("/planer/vorgaben")
+def planer_vorgaben(profil: dict = Body(default_factory=dict), kcal_ziel: float | None = Body(None), mahlzeiten: str | int | list | None = Body(None),
+                    restlicher_tag: bool = Body(False), ausschluesse: str | list | None = Body(None), ziel_protein: float | None = Body(None),
+                    ziel_fett: float | None = Body(None), ziel_kh: float | None = Body(None), grocy_verbrauch: list | None = Body(None),
+                    jetzt: str | None = Body(None)):
+    """Effektive Tagesziele und Mahlzeiten für den Planer: übergebene Werte gewinnen, sonst das Profil. restlicher_tag zieht das schon Gegessene ab
+    (Verzehr-Protokoll + noch nicht übernommene Grocy-Ausbuchungen) und lässt vergangene Mahlzeiten entfallen."""
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    zeit = datetime.fromisoformat(jetzt).astimezone(ZoneInfo("Europe/Berlin")) if jetzt else None
+    with db.verbinden() as con:
+        return planer.vorgaben(con, profil, kcal_ziel, mahlzeiten, restlicher_tag, ausschluesse, ziel_protein, ziel_fett, ziel_kh, zeit, grocy_verbrauch)
+
+
+@app.post("/planer/ausschluss")
+def planer_ausschluss(ausschluesse: str | list = Body(...), zutaten: list[str] = Body(...)):
+    """Prüft Zutatennamen gegen die Ausschlussliste: {zutat: getroffener Begriff | null}."""
+    with db.verbinden() as con:
+        begriffe = planer.ausschluss_begriffe(con, ausschluesse)
+    return {"begriffe": begriffe, "treffer": {z: planer.ausschluss_treffer(begriffe, z) for z in zutaten}}
+
+
+@app.get("/synonyme")
+def synonyme_liste():
+    with db.verbinden() as con:
+        zeilen = con.execute("SELECT gruppe, array_agg(begriff ORDER BY begriff) FROM suchsynonyme GROUP BY gruppe ORDER BY gruppe").fetchall()
+    return {z[0]: z[1] for z in zeilen}
+
+
+@app.post("/synonyme")
+def synonym_anlegen(gruppe: str = Body(...), begriffe: list[str] = Body(...)):
+    """Schreibvarianten/Synonyme pflegen (Suche, eBon-Zuordnung, BLS): Begriffe einer Gruppe sind austauschbar."""
+    with db.verbinden() as con:
+        return {"neu": text.synonym_hinzufuegen(con, gruppe, begriffe)}
+
+
+@app.get("/katalog/suche")
+def katalog_suche(q: str = Query(..., min_length=2), anzahl: int = Query(10, ge=1, le=50), schwelle: float = Query(0.4, ge=0, le=1)):
+    """Katalogsuche nach Ähnlichkeit (Synonyme, ä/ae, Mindestschwelle) – dieselbe wie im Agenten-Werkzeug und in der eBon-Zuordnung."""
+    with db.verbinden() as con:
+        treffer = text.suche(con, q, schwelle, anzahl)
+        produkte = bon._kandidaten_laden(con, [t["rewe_product_id"] for t in treffer])
+    return [{**produkte[t["rewe_product_id"]], "score": t["score"], "anzeige": bon.produkt_anzeige(produkte[t["rewe_product_id"]])}
+            for t in treffer if t["rewe_product_id"] in produkte]
 
 
 @app.post("/planer/kandidaten")

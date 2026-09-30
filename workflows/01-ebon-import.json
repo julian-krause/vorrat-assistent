@@ -78,7 +78,7 @@
         "parameters": {
           "mode": "runOnceForEachItem",
           "language": "javaScript",
-          "jsCode": "const src = $('PDF-Anhang finden').item.json;\nconst text = String($json.text || '');\nconst kaufdatum = src.mail_datum ? DateTime.fromJSDate(new Date(src.mail_datum)).setZone('Europe/Berlin').toISODate() : DateTime.now().setZone('Europe/Berlin').toISODate();\n\nconst system = 'Du wandelst deutsche Supermarkt-Kassenbons (REWE eBon) in strukturierte Vorratsdaten um. Antworte ausschließlich mit gültigem JSON.';\nconst prompt = 'Kaufdatum laut Mail: ' + kaufdatum + '\\n'\n  + 'AUFGABE: Extrahiere alle LEBENSMITTEL-Positionen aus dem Bon.\\n'\n  + 'REGELN:\\n'\n  + '- Ignoriere Pfand, Leergut, Tüten, Rabatte, Coupons, Payback, Summen, Zahlungsinfos, Wasser (Mineral-, Tafel-, Sprudelwasser) und Non-Food (Drogerie, Haushalt, Tierbedarf).\\n'\n  + '- name: kurzer, generischer deutscher Produktname ohne Marke (z.B. \"BIO ZUCCHINI\" -> \"Zucchini\", \"JA H-MILCH 1,5%\" -> \"H-Milch 1,5 %\"). Gleiche Produkte sollen bei jedem Einkauf exakt gleich heißen.\\n'\n  + '- off_suche: bester Suchbegriff für OpenFoodFacts inkl. erkennbarer Marke (REWE-Eigenmarken: \"ja!\", \"REWE Beste Wahl\", \"REWE Bio\"), z.B. \"ja! H-Milch 1,5%\".\\n'\n  + '- frischware: true für loses Obst/Gemüse, Brot vom Bäcker, Fleisch/Käse von der Theke; sonst false.\\n'\n  + '- menge + einheit: nur \"g\", \"ml\" oder \"stk\" als Gesamtmenge. Packungsgrößen umrechnen (1 L -> 1000 ml, 0,512 kg -> 512 g). Zeilen wie \"2 Stk x 0,99\" multiplizieren. packungen = Anzahl Packungen.\\n'\n  + '- menge_geschaetzt: true, wenn keine Größe auf dem Bon steht und du die übliche Packungsgröße schätzt (Joghurt 500 g, Nudeln 500 g, Butter 250 g, Quark 500 g, Eier 10 stk). Obst/Gemüse ohne Gewicht als stk.\\n'\n  + '- gramm_pro_stk: ungefähres Gewicht eines Stücks (nur bei einheit stk, z.B. Zucchini 250, Ei 60, Apfel 150), sonst null.\\n'\n  + '- naehrwerte_100g: typische Nährwerte pro 100 g bzw. 100 ml (Schätzung): kcal, protein, fett, kh.\\n'\n  + '- kategorie: eine von Obst, Gemüse, Fleisch, Fisch, Milchprodukte, Käse, Eier, Brot & Backwaren, Getreide & Nudeln, Hülsenfrüchte, Konserven, Tiefkühl, Gewürze & Öle, Snacks & Süßes, Getränke, Sonstiges.\\n'\n  + '- lagerort: Kühlschrank, Tiefkühler oder Vorratsschrank.\\n'\n  + '- haltbarkeit_tage: realistische geschätzte Haltbarkeit ab Kauf bei richtiger Lagerung. Richtwerte: Hackfleisch 1, frischer Fisch 1, Hähnchen 2, Salat 3, Beeren 3, Brot 4, Tomaten 5, Brokkoli 5, Frischmilch 7, Zucchini 7, Paprika 7, Joghurt 14, Karotten 21, Eier 21, Hartkäse 28, Äpfel 30, Kartoffeln 30, H-Milch 90, Tiefkühl 180, Nudeln/Reis 365, Konserven 730.\\n'\n  + 'FORMAT: {\"kaufdatum\":\"YYYY-MM-DD\",\"summe\":23.45,\"artikel\":[{\"name\":\"Zucchini\",\"bon_text\":\"BIO ZUCCHINI\",\"off_suche\":\"Zucchini\",\"frischware\":true,\"kategorie\":\"Gemüse\",\"menge\":2,\"einheit\":\"stk\",\"packungen\":2,\"menge_geschaetzt\":false,\"gramm_pro_stk\":250,\"naehrwerte_100g\":{\"kcal\":17,\"protein\":1.2,\"fett\":0.3,\"kh\":2.2},\"lagerort\":\"Kühlschrank\",\"haltbarkeit_tage\":7}]}\\n\\n'\n  + 'BON-TEXT:\\n' + text;\n\nreturn { json: { message_id: src.message_id, kaufdatum, lesbar: text.replace(/\\s+/g, '').length > 40, system, prompt } };"
+          "jsCode": "const src = $('PDF-Anhang finden').item.json;\nconst text = String($json.text || '');\nconst kaufdatum = src.mail_datum ? DateTime.fromJSDate(new Date(src.mail_datum)).setZone('Europe/Berlin').toISODate() : DateTime.now().setZone('Europe/Berlin').toISODate();\n\nconst system = 'Du wandelst deutsche Supermarkt-Kassenbons (REWE eBon) in strukturierte Vorratsdaten um. Antworte ausschließlich mit gültigem JSON.';\nconst prompt = 'Kaufdatum laut Mail: ' + kaufdatum + '\\n'\n  + 'AUFGABE: Extrahiere alle LEBENSMITTEL-Positionen aus dem Bon.\\n'\n  + 'REGELN:\\n'\n  + '- Ignoriere Pfand, Leergut, Tüten, Rabatte, Coupons, Payback, Summen, Zahlungsinfos, Wasser (Mineral-, Tafel-, Sprudelwasser) und Non-Food (Drogerie, Haushalt, Tierbedarf).\\n'\n  + '- name: kurzer, generischer deutscher Produktname ohne Marke (z.B. \"BIO ZUCCHINI\" -> \"Zucchini\", \"JA H-MILCH 1,5%\" -> \"H-Milch 1,5 %\"). Gleiche Produkte sollen bei jedem Einkauf exakt gleich heißen.\\n'\n  + '- off_suche: bester Suchbegriff für OpenFoodFacts inkl. erkennbarer Marke (REWE-Eigenmarken: \"ja!\", \"REWE Beste Wahl\", \"REWE Bio\"), z.B. \"ja! H-Milch 1,5%\".\\n'\n  + '- frischware: true für loses Obst/Gemüse, Brot vom Bäcker, Fleisch/Käse von der Theke; sonst false.\\n'\n  + '- menge + einheit (\"g\", \"ml\" oder \"stk\"): NUR wenn auf dem Bon ein Gewicht oder eine Mengenangabe zur Position steht: Gewichtsware wie \"0,034 kg x 4,90 EUR/kg\" (= 34 g) oder eine explizite Gramm-/Milliliter-/Stückangabe im Kassentext (\"MILCH 1L\", \"2 Stk x 0,99\"). Der PREIS IST NIEMALS EINE MENGE (4,45 EUR sind nicht 445 g). Steht nichts davon auf dem Bon: menge null und einheit null. Keine üblichen Packungsgrößen schätzen, nicht raten. packungen = Anzahl Packungen (\"2 Stk x 0,99\" -> 2).\\n'\n  + '- menge_geschaetzt: true, wenn menge null ist (keine Mengenangabe auf dem Bon), sonst false.\\n'\n  + '- gramm_pro_stk: ungefähres Gewicht eines Stücks (nur bei einheit stk, z.B. Zucchini 250, Ei 60, Apfel 150), sonst null.\\n'\n  + '- naehrwerte_100g: typische Nährwerte pro 100 g bzw. 100 ml (Schätzung): kcal, protein, fett, kh.\\n'\n  + '- kategorie: eine von Obst, Gemüse, Fleisch, Fisch, Milchprodukte, Käse, Eier, Brot & Backwaren, Getreide & Nudeln, Hülsenfrüchte, Konserven, Tiefkühl, Gewürze & Öle, Snacks & Süßes, Getränke, Sonstiges.\\n'\n  + '- lagerort: Kühlschrank, Tiefkühler oder Vorratsschrank.\\n'\n  + '- haltbarkeit_tage: realistische geschätzte Haltbarkeit ab Kauf bei richtiger Lagerung. Richtwerte: Hackfleisch 1, frischer Fisch 1, Hähnchen 2, Salat 3, Beeren 3, Brot 4, Tomaten 5, Brokkoli 5, Frischmilch 7, Zucchini 7, Paprika 7, Joghurt 14, Karotten 21, Eier 21, Hartkäse 28, Äpfel 30, Kartoffeln 30, H-Milch 90, Tiefkühl 180, Nudeln/Reis 365, Konserven 730.\\n'\n  + 'FORMAT: {\"kaufdatum\":\"YYYY-MM-DD\",\"summe\":23.45,\"artikel\":[{\"name\":\"Zucchini\",\"bon_text\":\"BIO ZUCCHINI\",\"off_suche\":\"Zucchini\",\"frischware\":true,\"kategorie\":\"Gemüse\",\"menge\":null,\"einheit\":null,\"packungen\":2,\"menge_geschaetzt\":true,\"gramm_pro_stk\":250,\"naehrwerte_100g\":{\"kcal\":17,\"protein\":1.2,\"fett\":0.3,\"kh\":2.2},\"lagerort\":\"Kühlschrank\",\"haltbarkeit_tage\":7}]}\\n\\n'\n  + 'BON-TEXT:\\n' + text;\n\nreturn { json: { message_id: src.message_id, kaufdatum, lesbar: text.replace(/\\s+/g, '').length > 40, system, prompt } };"
         }
       },
       {
@@ -184,7 +184,7 @@
         "parameters": {
           "mode": "runOnceForAllItems",
           "language": "javaScript",
-          "jsCode": "const zone = 'Europe/Berlin';\nconst zahl = v => (v === null || v === undefined || v === '' || isNaN(Number(v))) ? null : Number(v);\nconst out = [];\n$input.all().forEach((item, i) => {\n  const bon = $('Bon vorbereiten').itemMatching(i).json;\n  const c = item.json.choices && item.json.choices[0] && item.json.choices[0].message ? String(item.json.choices[0].message.content || '') : '';\n  const s = c.includes('</think>') ? c.split('</think>').pop() : c;\n  const a = s.indexOf('{');\n  const b = s.lastIndexOf('}');\n  if (a < 0 || b < 0) throw new Error('KI-Antwort enthält kein JSON: ' + s.slice(0, 300));\n  const roh = s.slice(a, b + 1);\n  let data;\n  try { data = JSON.parse(roh); } catch (err) {\n    // typische KI-Formatfehler einmal reparieren\n    const repariert = roh.replace(/\\}\\s*,\\s*([A-Za-z_]+)\"\\s*:/g, '},{\"$1\":').replace(/,\\s*([A-Za-z_]+)\"\\s*:/g, ',\"$1\":').replace(/(\\d)\\.(?=\\s*[,}\\]])/g, '$1').replace(/(:\\s*-?\\d+),(\\d+)(?=\\s*[,}\\]])/g, '$1.$2').replace(/,(\\s*[}\\]])/g, '$1');\n    data = JSON.parse(repariert);\n  }\n  const kaufdatum = /^\\d{4}-\\d{2}-\\d{2}$/.test(String(data.kaufdatum || '')) ? data.kaufdatum : bon.kaufdatum;\n  const kauf = DateTime.fromISO(kaufdatum, { zone });\n  for (const art of (data.artikel || [])) {\n    const tage = Math.max(0, Math.round(Number(art.haltbarkeit_tage) || 7));\n    const einheit = ['g', 'ml', 'stk'].includes(String(art.einheit).toLowerCase()) ? String(art.einheit).toLowerCase() : 'stk';\n    const nw = art.naehrwerte_100g || {};\n    out.push({ json: {\n      name: String(art.name || art.bon_text || 'Unbekannt').trim(),\n      bon_text: String(art.bon_text || ''),\n      off_suche: String(art.off_suche || art.name || ''),\n      frischware: art.frischware === true,\n      kategorie: String(art.kategorie || 'Sonstiges'),\n      menge: Number(art.menge) || 1,\n      einheit,\n      packungen: Number(art.packungen) || 1,\n      menge_geschaetzt: art.menge_geschaetzt === true,\n      gramm_pro_stk: zahl(art.gramm_pro_stk),\n      ki_kcal_100: zahl(nw.kcal), ki_protein_100: zahl(nw.protein), ki_fett_100: zahl(nw.fett), ki_kh_100: zahl(nw.kh),\n      lagerort: String(art.lagerort || 'Vorratsschrank'),\n      haltbarkeit_tage: tage,\n      kaufdatum: kauf.toISODate(),\n      mhd: kauf.plus({ days: tage }).toISODate(),\n      bon_id: bon.message_id,\n      bon_summe: Number(data.summe) || 0\n    } });\n  }\n});\nreturn out;"
+          "jsCode": "const zone = 'Europe/Berlin';\nconst zahl = v => (v === null || v === undefined || v === '' || isNaN(Number(v))) ? null : Number(v);\nconst out = [];\n$input.all().forEach((item, i) => {\n  const bon = $('Bon vorbereiten').itemMatching(i).json;\n  const c = item.json.choices && item.json.choices[0] && item.json.choices[0].message ? String(item.json.choices[0].message.content || '') : '';\n  const s = c.includes('</think>') ? c.split('</think>').pop() : c;\n  const a = s.indexOf('{');\n  const b = s.lastIndexOf('}');\n  if (a < 0 || b < 0) throw new Error('KI-Antwort enthält kein JSON: ' + s.slice(0, 300));\n  const roh = s.slice(a, b + 1);\n  let data;\n  try { data = JSON.parse(roh); } catch (err) {\n    // typische KI-Formatfehler einmal reparieren\n    const repariert = roh.replace(/\\}\\s*,\\s*([A-Za-z_]+)\"\\s*:/g, '},{\"$1\":').replace(/,\\s*([A-Za-z_]+)\"\\s*:/g, ',\"$1\":').replace(/(\\d)\\.(?=\\s*[,}\\]])/g, '$1').replace(/(:\\s*-?\\d+),(\\d+)(?=\\s*[,}\\]])/g, '$1.$2').replace(/,(\\s*[}\\]])/g, '$1');\n    data = JSON.parse(repariert);\n  }\n  const kaufdatum = /^\\d{4}-\\d{2}-\\d{2}$/.test(String(data.kaufdatum || '')) ? data.kaufdatum : bon.kaufdatum;\n  const kauf = DateTime.fromISO(kaufdatum, { zone });\n  for (const art of (data.artikel || [])) {\n    const tage = Math.max(0, Math.round(Number(art.haltbarkeit_tage) || 7));\n    const einheit = ['g', 'ml', 'stk'].includes(String(art.einheit).toLowerCase()) ? String(art.einheit).toLowerCase() : 'stk';\n    const nw = art.naehrwerte_100g || {};\n    out.push({ json: {\n      name: String(art.name || art.bon_text || 'Unbekannt').trim(),\n      bon_text: String(art.bon_text || ''),\n      off_suche: String(art.off_suche || art.name || ''),\n      frischware: art.frischware === true,\n      kategorie: String(art.kategorie || 'Sonstiges'),\n      menge: zahl(art.menge) > 0 ? zahl(art.menge) : null,  // KI-Menge wird im REWE-Dienst gegen den Bon geprüft, nie geraten\n      einheit,\n      packungen: Number(art.packungen) || 1,\n      menge_geschaetzt: art.menge_geschaetzt === true || !(zahl(art.menge) > 0),\n      gramm_pro_stk: zahl(art.gramm_pro_stk),\n      ki_kcal_100: zahl(nw.kcal), ki_protein_100: zahl(nw.protein), ki_fett_100: zahl(nw.fett), ki_kh_100: zahl(nw.kh),\n      lagerort: String(art.lagerort || 'Vorratsschrank'),\n      haltbarkeit_tage: tage,\n      kaufdatum: kauf.toISODate(),\n      mhd: kauf.plus({ days: tage }).toISODate(),\n      bon_id: bon.message_id,\n      bon_summe: Number(data.summe) || 0\n    } });\n  }\n});\nreturn out;"
         }
       },
       {
@@ -303,7 +303,7 @@
         "parameters": {
           "mode": "runOnceForAllItems",
           "language": "javaScript",
-          "jsCode": "const norm = s => String(s || '').toLowerCase().replace(/[^a-z0-9äöüß%,.]+/g, ' ').trim();\nconst arts = $('REWE-Daten übernehmen').all().map(i => i.json);\nconst prods = $('Grocy-Produkte laden').all().map(i => i.json).filter(p => p && p.id);\nconst qus = $('Grocy-Einheiten laden').all().map(i => i.json).filter(p => p && p.id);\nconst locs = $('Grocy-Lagerorte laden').all().map(i => i.json).filter(p => p && p.id);\nconst quId = n => (qus.find(q => norm(q.name) === norm(n)) || {}).id;\nconst quIds = { g: quId('Gramm'), ml: quId('Milliliter'), stk: quId('Stück') };\nif (!quIds.g || !quIds.ml || !quIds.stk) throw new Error('In Grocy fehlen die Einheiten Gramm/Milliliter/Stück – bitte einmal den Workflow „Vorrat · Grocy einrichten“ ausführen.');\nconst quCode = { [quIds.g]: 'g', [quIds.ml]: 'ml', [quIds.stk]: 'stk' };\nconst locId = n => (locs.find(l => norm(l.name) === norm(n)) || locs[0] || {}).id;\nconst byName = {};\nfor (const p of prods) byName[norm(p.name)] = p;\n// Abgleich über die REWE-ID (vorrat_produkte), der Name ist nur Rückfall\nconst byId = {};\nfor (const p of prods) byId[p.id] = p;\nconst byRewe = {};\nfor (const v of $('Vorrat-Verknüpfungen laden').all().map(i => i.json)) if (v && v.rewe_product_id && byId[v.grocy_product_id]) byRewe[String(v.rewe_product_id)] = byId[v.grocy_product_id];\n\nreturn arts.map(a => {\n  const p = (a.rewe_product_id && byRewe[String(a.rewe_product_id)]) || byName[norm(a.name)];\n  let menge = a.menge;\n  let einheit = a.einheit;\n  if (p) {\n    const pe = quCode[p.qu_id_stock];\n    if (pe && pe !== einheit) {\n      if (pe === 'g' && einheit === 'stk' && a.gramm_pro_stk) menge = a.menge * a.gramm_pro_stk;\n      else if (pe === 'stk' && einheit === 'g' && a.gramm_pro_stk) menge = Math.max(1, Math.round(a.menge / a.gramm_pro_stk));\n      einheit = pe;\n    }\n  }\n  return { json: { ...a, product_id: p ? p.id : null, menge, einheit, qu_id: quIds[einheit], location_id: locId(a.lagerort) } };\n});"
+          "jsCode": "const norm = s => String(s || '').toLowerCase().replace(/[^a-z0-9äöüß%,.]+/g, ' ').trim();\nconst arts = $('REWE-Daten übernehmen').all().map(i => i.json);\nconst prods = $('Grocy-Produkte laden').all().map(i => i.json).filter(p => p && p.id);\nconst qus = $('Grocy-Einheiten laden').all().map(i => i.json).filter(p => p && p.id);\nconst locs = $('Grocy-Lagerorte laden').all().map(i => i.json).filter(p => p && p.id);\nconst quId = n => (qus.find(q => norm(q.name) === norm(n)) || {}).id;\nconst quIds = { g: quId('Gramm'), ml: quId('Milliliter'), stk: quId('Stück') };\nif (!quIds.g || !quIds.ml || !quIds.stk) throw new Error('In Grocy fehlen die Einheiten Gramm/Milliliter/Stück – bitte einmal den Workflow „Vorrat · Grocy einrichten“ ausführen.');\nconst quCode = { [quIds.g]: 'g', [quIds.ml]: 'ml', [quIds.stk]: 'stk' };\nconst locId = n => (locs.find(l => norm(l.name) === norm(n)) || locs[0] || {}).id;\nconst byName = {};\nfor (const p of prods) byName[norm(p.name)] = p;\n// Abgleich über die REWE-ID (vorrat_produkte), der Name ist nur Rückfall\nconst byId = {};\nfor (const p of prods) byId[p.id] = p;\nconst byRewe = {};\nfor (const v of $('Vorrat-Verknüpfungen laden').all().map(i => i.json)) if (v && v.rewe_product_id && byId[v.grocy_product_id]) byRewe[String(v.rewe_product_id)] = byId[v.grocy_product_id];\n\nreturn arts.map(a => {\n  const p = (a.rewe_product_id && byRewe[String(a.rewe_product_id)]) || byName[norm(a.name)];\n  let menge = a.menge;\n  let einheit = a.einheit;\n  if (p) {\n    const pe = quCode[p.qu_id_stock];\n    if (pe && pe !== einheit && menge !== null && menge !== undefined) {\n      if (pe === 'g' && einheit === 'stk' && a.gramm_pro_stk) menge = a.menge * a.gramm_pro_stk;\n      else if (pe === 'stk' && einheit === 'g' && a.gramm_pro_stk) menge = Math.max(1, Math.round(a.menge / a.gramm_pro_stk));\n      einheit = pe;\n    } else if (pe && (menge === null || menge === undefined)) einheit = pe;\n  }\n  return { json: { ...a, product_id: p ? p.id : null, menge, einheit, qu_id: quIds[einheit], location_id: locId(a.lagerort) } };\n});"
         }
       },
       {
@@ -466,8 +466,8 @@
         "type": "n8n-nodes-base.httpRequest",
         "typeVersion": 4.2,
         "position": [
-          4916,
-          0
+          5140,
+          -96
         ],
         "parameters": {
           "method": "POST",
@@ -503,13 +503,13 @@
         "type": "n8n-nodes-base.code",
         "typeVersion": 2,
         "position": [
-          5140,
+          5588,
           0
         ],
         "parameters": {
           "mode": "runOnceForAllItems",
           "language": "javaScript",
-          "jsCode": "const arts = $('Alle Artikel').all().map(i => i.json);\nconst esc = t => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nconst heute = DateTime.now().setZone('Europe/Berlin').startOf('day');\nconst byBon = {};\nfor (const a of arts) (byBon[a.bon_id] = byBon[a.bon_id] || []).push(a);\nreturn Object.keys(byBon).map(id => {\n  const l = byBon[id].sort((x, y) => String(x.mhd).localeCompare(String(y.mhd)));\n  const datum = DateTime.fromISO(l[0].kaufdatum).setLocale('de');\n  const zeilen = l.map(a => {\n    const m = DateTime.fromISO(a.mhd).setLocale('de');\n    const tage = Math.round(m.diff(heute, 'days').days);\n    return '• ' + esc(a.name) + ' – ' + a.menge + ' ' + a.einheit + ' · ca. bis ' + m.toFormat(m.year === heute.year ? 'ccc dd.LL.' : 'dd.LL.yyyy') + (tage <= 2 ? ' ⚠️' : '') + (a.nutriscore ? ' · NS ' + a.nutriscore : '');\n  });\n  const neu = l.filter(a => a.neu).length;\n  const text = '🧾 <b>REWE-Einkauf vom ' + datum.toFormat('dd.LL.yyyy') + ' in Grocy gebucht</b>\\n'\n    + l.length + ' Lebensmittel' + (l[0].bon_summe ? ' · ' + l[0].bon_summe.toFixed(2).replace('.', ',') + ' €' : '')\n    + (neu ? ' · ' + neu + ' neue Produkte' : '') + '\\n\\n'\n    + zeilen.join('\\n')\n    + '\\n\\n<i>Haltbarkeit ist geschätzt. Korrigieren z.B. mit: „Joghurt hält bis 15.10.“</i>\\nRezeptideen kommen gleich 🍳';\n  return { json: { message_id: id, datum: l[0].kaufdatum, summe: l[0].bon_summe || 0, anzahl_artikel: l.length, text } };\n});"
+          "jsCode": "const arts = $('Alle Artikel').all().map(i => i.json);\nconst esc = t => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nconst heute = DateTime.now().setZone('Europe/Berlin').startOf('day');\nconst byBon = {};\nfor (const a of arts) (byBon[a.bon_id] = byBon[a.bon_id] || []).push(a);\nreturn Object.keys(byBon).map(id => {\n  const l = byBon[id].sort((x, y) => String(x.mhd).localeCompare(String(y.mhd)));\n  const datum = DateTime.fromISO(l[0].kaufdatum).setLocale('de');\n  const gebucht = l.filter(a => a.menge !== null && a.menge !== undefined);\n  const offen = l.filter(a => a.menge === null || a.menge === undefined);\n  const zeilen = gebucht.map(a => {\n    const m = DateTime.fromISO(a.mhd).setLocale('de');\n    const tage = Math.round(m.diff(heute, 'days').days);\n    return '• ' + esc(a.name) + ' – ' + a.menge + ' ' + a.einheit + ' · ca. bis ' + m.toFormat(m.year === heute.year ? 'ccc dd.LL.' : 'dd.LL.yyyy') + (tage <= 2 ? ' ⚠️' : '') + (a.nutriscore ? ' · NS ' + a.nutriscore : '');\n  });\n  const neu = l.filter(a => a.neu).length;\n  const text = '🧾 <b>REWE-Einkauf vom ' + datum.toFormat('dd.LL.yyyy') + ' in Grocy gebucht</b>\\n'\n    + gebucht.length + ' Lebensmittel' + (l[0].bon_summe ? ' · ' + l[0].bon_summe.toFixed(2).replace('.', ',') + ' €' : '')\n    + (neu ? ' · ' + neu + ' neue Produkte' : '') + '\\n\\n'\n    + zeilen.join('\\n')\n    + (offen.length ? '\\n\\n❓ <b>Menge offen – noch nicht gebucht:</b>\\n' + offen.map(a => '• ' + esc(a.bon_text || a.name)).join('\\n') + '\\n<i>Antworte z.B. mit „' + esc(offen[0].name) + ' 500 g“ – ich buche es dann ein. Mit „abbrechen“ verwerfe ich die Fragen.</i>' : '')\n    + '\\n\\n<i>Haltbarkeit ist geschätzt. Korrigieren z.B. mit: „Joghurt hält bis 15.10.“</i>\\nRezeptideen kommen gleich 🍳';\n  return { json: { message_id: id, datum: l[0].kaufdatum, summe: l[0].bon_summe || 0, anzahl_artikel: l.length, text } };\n});"
         }
       },
       {
@@ -784,7 +784,7 @@
         "parameters": {
           "mode": "runOnceForAllItems",
           "language": "javaScript",
-          "jsCode": "// Sichere REWE-Treffer: exakter Produktname, Marke, Barcode, Packungsgröße und REWE-Nährwerte übernehmen.\n// Unsichere Zeilen behalten die KI-Werte und bekommen nach dem Einbuchen eine Rückfrage per Telegram.\n// Wasser wird nie erfasst\nconst istWasser = t => /wasser|sprudel/i.test(String(t || '')) && !/melone|kokos|rosen|orangenbl/i.test(String(t || ''));\nconst arts = $('Artikel aufbereiten').all().map(i => i.json);\nconst anfragen = $('REWE-Anfrage bauen').all().map(i => i.json);\nconst antworten = $input.all().map(i => i.json);\nconst nachBon = {};\nanfragen.forEach((a, i) => { nachBon[a.bon_id] = antworten[i] || {}; });\nconst zaehler = {};\nreturn arts.map(a => {\n  const erg = nachBon[a.bon_id] || {};\n  const idx = (zaehler[a.bon_id] = (zaehler[a.bon_id] ?? -1) + 1);\n  const z = Array.isArray(erg.artikel) ? erg.artikel[idx] : null;\n  if (z && z.ignorieren) return { json: { ...a, _wasser: true } };  // vom Dienst über das REWE-Produkt als Wasser erkannt\n  if (!z) return { json: { ...a, rewe_status: 'keine' } };\n  const basis = { ...a, rewe_status: z.status, rewe_zeile_id: z.zeile_id, rewe_kandidaten: z.kandidaten || [], einzelpreis: z.einzelpreis };\n  const p = z.produkt;\n  if (z.status !== 'sicher' || !p) return { json: basis };\n  const anzahl = z.gewicht_kg ? 1 : (z.anzahl || a.packungen || 1);\n  let menge = a.menge, einheit = a.einheit;\n  if (z.gewicht_kg) { menge = Math.round(z.gewicht_kg * 1000); einheit = 'g'; }\n  else if (p.size_value && ['g', 'ml'].includes(p.size_unit)) { menge = p.size_value * anzahl; einheit = p.size_unit; }\n  else if (p.size_unit === 'Stück' && p.size_value) { menge = p.size_value * anzahl; einheit = 'stk'; }\n  const nw = p.kcal_100 != null ? { kcal: p.kcal_100, protein: p.protein_100, fett: p.fett_100, kh: p.kh_100 } : null;\n  return { json: { ...basis, name: p.name, marke: p.brand || '', rewe_product_id: p.rewe_product_id, ean: p.ean || '',\n    menge, einheit, packungen: anzahl, menge_geschaetzt: false, rewe_naehrwerte: nw, rewe_preis: p.price } };\n}).filter(i => !i.json._wasser && !istWasser((i.json.bon_text || '') + ' ' + (i.json.name || '')));"
+          "jsCode": "// Sichere REWE-Treffer: exakter Produktname, Marke, Barcode, Packungsgröße und REWE-Nährwerte übernehmen.\n// Unsichere Zeilen behalten die KI-Werte und bekommen nach dem Einbuchen eine Rückfrage per Telegram.\n// Wasser wird nie erfasst\nconst istWasser = t => /wasser|sprudel/i.test(String(t || '')) && !/melone|kokos|rosen|orangenbl/i.test(String(t || ''));\nconst arts = $('Artikel aufbereiten').all().map(i => i.json);\nconst anfragen = $('REWE-Anfrage bauen').all().map(i => i.json);\nconst antworten = $input.all().map(i => i.json);\nconst nachBon = {};\nanfragen.forEach((a, i) => { nachBon[a.bon_id] = antworten[i] || {}; });\nconst zaehler = {};\nreturn arts.map(a => {\n  const erg = nachBon[a.bon_id] || {};\n  const idx = (zaehler[a.bon_id] = (zaehler[a.bon_id] ?? -1) + 1);\n  const z = Array.isArray(erg.artikel) ? erg.artikel[idx] : null;\n  if (z && z.ignorieren) return { json: { ...a, _wasser: true } };  // vom Dienst über das REWE-Produkt als Wasser erkannt\n  // Mengenrangfolge macht der Dienst (menge_info): 1. Gewicht/Angabe vom Bon, 2. Packungsgröße (sicher), 3. Packungsgröße (gelernt/bestätigt).\n  // Die KI-Menge wird nie übernommen. Ohne sichere Menge bleibt menge = null („Menge offen“, wird nicht gebucht, sondern nachgefragt).\n  if (!z) return { json: { ...a, rewe_status: 'keine', menge: null, menge_offen: true, menge_geschaetzt: true } };\n  const mi = z.menge_info || { offen: true };\n  const menge = mi.offen ? null : mi.menge;\n  const anzahl = z.gewicht_kg ? 1 : (z.anzahl || a.packungen || 1);\n  const basis = { ...a, rewe_status: z.status, rewe_zeile_id: z.zeile_id, rewe_kandidaten: z.kandidaten || [], einzelpreis: z.einzelpreis, zeile_text: z.zeile_text || '',\n    menge, einheit: mi.offen ? a.einheit : mi.einheit, menge_offen: menge === null, menge_quelle: mi.quelle || null, menge_geschaetzt: menge === null, packungen: anzahl };\n  const p = z.produkt;\n  if (z.status !== 'sicher' || !p) return { json: basis };\n  const nw = p.kcal_100 != null ? { kcal: p.kcal_100, protein: p.protein_100, fett: p.fett_100, kh: p.kh_100 } : null;\n  return { json: { ...basis, name: p.name, marke: p.brand || '', rewe_product_id: p.rewe_product_id, ean: p.ean || '',\n    rewe_naehrwerte: nw, rewe_preis: p.price } };\n}).filter(i => !i.json._wasser && !istWasser((i.json.bon_text || '') + ' ' + (i.json.name || '')));"
         }
       },
       {
@@ -874,7 +874,7 @@
         "parameters": {
           "mode": "runOnceForAllItems",
           "language": "javaScript",
-          "jsCode": "// Für unsichere Bonzeilen: „Welches Produkt war …?“ mit bis zu 3 Vorschlägen + „Keins davon“ als Buttons.\n// callback_data: bon:<zeile_id>:<rewe_product_id oder 0>:<grocy product_id>:<gebuchte Menge> (für die Mengenkorrektur)\nconst chat_id = String($('Profil laden').first().json.chat_id || '');\nif (!chat_id) return [];\nconst esc = t => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nconst euro = n => n == null ? '' : Number(n).toFixed(2).replace('.', ',') + ' €';\nconst kurz = (s, n) => s.length > n ? s.slice(0, n - 1) + '…' : s;\nconst offen = $('Alle Artikel').all().map(i => i.json).filter(a => a.rewe_status === 'unsicher' && a.rewe_zeile_id && (a.rewe_kandidaten || []).length);\nreturn offen.slice(0, 10).map(a => {\n  const k = a.rewe_kandidaten.slice(0, 3);\n  const item = { chat_id, anzahl: k.length, keins: `bon:${a.rewe_zeile_id}:0:${a.product_id || 0}:${a.menge}`,\n    text: `🤔 Welches Produkt war „<b>${esc(a.bon_text)}</b>“ (${euro(a.einzelpreis)})?\\nEingebucht ist es erst mal als „${esc(a.name)}“.` };\n  k.forEach((p, i) => {\n    item['k' + (i + 1) + '_text'] = kurz(`${p.name} · ${euro(p.price)}`, 60);\n    item['k' + (i + 1) + '_data'] = `bon:${a.rewe_zeile_id}:${p.rewe_product_id}:${a.product_id || 0}:${a.menge}`;\n  });\n  return { json: item };\n});"
+          "jsCode": "// Für unsichere Bonzeilen: „Welches Produkt war …?“ mit bis zu 3 Vorschlägen + „Keins davon“ als Buttons.\n// callback_data: bon:<zeile_id>:<rewe_product_id oder 0>:<grocy product_id>:<gebuchte Menge> (für die Mengenkorrektur)\nconst chat_id = String($('Profil laden').first().json.chat_id || '');\nif (!chat_id) return [];\nconst esc = t => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nconst euro = n => n == null ? '' : Number(n).toFixed(2).replace('.', ',') + ' €';\nconst kurz = (s, n) => s.length > n ? s.slice(0, n - 1) + '…' : s;\nconst offen = $('Alle Artikel').all().map(i => i.json).filter(a => a.rewe_status === 'unsicher' && a.rewe_zeile_id && (a.rewe_kandidaten || []).length);\nreturn offen.slice(0, 10).map(a => {\n  const k = a.rewe_kandidaten.slice(0, 3);\n  const gebucht = a.menge === null || a.menge === undefined ? 0 : a.menge;\n  const item = { chat_id, anzahl: k.length, keins: `bon:${a.rewe_zeile_id}:0:${a.product_id || 0}:${gebucht}`,\n    suche: `bon:${a.rewe_zeile_id}:s:${a.product_id || 0}:${gebucht}`,\n    text: `🤔 Welches Produkt war „<b>${esc(a.bon_text)}</b>“${a.zeile_text ? ' (' + esc(a.zeile_text) + ')' : ''}?\\n${gebucht === 0 ? 'Noch nicht eingebucht, die Menge klären wir nach deiner Wahl.' : 'Eingebucht ist es erst mal als „' + esc(a.name) + '“.'}\\n<i>Oder schreib mir den Produktnamen, dann suche ich weiter.</i>` };\n  k.forEach((p, i) => {\n    item['k' + (i + 1) + '_text'] = kurz(p.anzeige || `${p.name} · ${euro(p.price)}`, 60);\n    item['k' + (i + 1) + '_data'] = `bon:${a.rewe_zeile_id}:${p.rewe_product_id}:${a.product_id || 0}:${gebucht}`;\n  });\n  return { json: item };\n});"
         }
       },
       {
@@ -1009,6 +1009,18 @@
                     }
                   ]
                 }
+              },
+              {
+                "row": {
+                  "buttons": [
+                    {
+                      "text": "🔍 Anderes Produkt suchen",
+                      "additionalFields": {
+                        "callback_data": "={{ $json.suche }}"
+                      }
+                    }
+                  ]
+                }
               }
             ]
           },
@@ -1072,6 +1084,18 @@
                       "text": "❌ Keins davon",
                       "additionalFields": {
                         "callback_data": "={{ $json.keins }}"
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "row": {
+                  "buttons": [
+                    {
+                      "text": "🔍 Anderes Produkt suchen",
+                      "additionalFields": {
+                        "callback_data": "={{ $json.suche }}"
                       }
                     }
                   ]
@@ -1151,6 +1175,18 @@
                       "text": "❌ Keins davon",
                       "additionalFields": {
                         "callback_data": "={{ $json.keins }}"
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "row": {
+                  "buttons": [
+                    {
+                      "text": "🔍 Anderes Produkt suchen",
+                      "additionalFields": {
+                        "callback_data": "={{ $json.suche }}"
                       }
                     }
                   ]
@@ -1393,6 +1429,93 @@
           4912,
           220
         ]
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose"
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "menge-bekannt",
+                "leftValue": "={{ $json.menge !== null && $json.menge !== undefined && Number($json.menge) > 0 }}",
+                "rightValue": "",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                }
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "a27e0f27-afa9-45da-a4cf-82544c502c06",
+        "name": "Menge bekannt?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          4916,
+          0
+        ]
+      },
+      {
+        "parameters": {
+          "mode": "append"
+        },
+        "id": "8f58a4a1-47f4-4db2-b267-1705d3ab7c42",
+        "name": "Gebucht und offen",
+        "type": "n8n-nodes-base.merge",
+        "typeVersion": 3.2,
+        "position": [
+          5364,
+          0
+        ]
+      },
+      {
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "language": "javaScript",
+          "jsCode": "// Offene Rückfragen für den Bot merken: Produktwahl (unsichere Zeile mit Kandidaten) und „Menge offen“ (nicht gebucht).\n// Freitext des Nutzers wird danach zuerst als Antwort darauf ausgewertet (rewe-service /rueckfragen/auswerten).\nconst chat_id = String($('Profil laden').first().json.chat_id || '');\nif (!chat_id) return [];\nconst out = [];\nfor (const a of $('Alle Artikel').all().map(i => i.json)) {\n  const unbucht = a.menge === null || a.menge === undefined;\n  const kand = a.rewe_status === 'unsicher' && a.rewe_zeile_id && (a.rewe_kandidaten || []).length;\n  if (!kand && !unbucht) continue;\n  const payload = { name: a.name, einheit: a.einheit, product_id: a.product_id || null, unbucht, gebucht: unbucht ? 0 : a.menge,\n    neu: a.neu === true, gramm_pro_stk: a.gramm_pro_stk || null, mhd: a.mhd, kaufdatum: a.kaufdatum, location_id: a.location_id || null, bon_id: a.bon_id };\n  out.push({ json: { body: { chat_id, art: kand ? 'produkt' : 'menge', bon_zeile_id: a.rewe_zeile_id || null, bon_text: a.bon_text || a.name,\n    kandidaten: kand ? a.rewe_kandidaten.slice(0, 3) : [], payload } } });\n}\nreturn out;"
+        },
+        "id": "49dfe61a-5d2c-45e3-a020-c1208f2f119f",
+        "name": "Rückfragen sammeln",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          5140,
+          420
+        ]
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "http://rewe-service:8000/rueckfragen",
+          "sendBody": true,
+          "contentType": "json",
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify($json.body) }}",
+          "options": {
+            "timeout": 30000,
+            "response": {
+              "response": {
+                "neverError": true
+              }
+            }
+          }
+        },
+        "id": "45781438-0119-4970-aef0-786c98b4a723",
+        "name": "Rückfrage merken",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          5364,
+          420
+        ]
       }
     ],
     "connections": {
@@ -1568,12 +1691,12 @@
         "main": [
           [
             {
-              "node": "In Grocy einbuchen",
+              "node": "Nährwerte ermitteln",
               "type": "main",
               "index": 0
             },
             {
-              "node": "Nährwerte ermitteln",
+              "node": "Menge bekannt?",
               "type": "main",
               "index": 0
             }
@@ -1622,7 +1745,7 @@
         "main": [
           [
             {
-              "node": "Bons zusammenfassen",
+              "node": "Gebucht und offen",
               "type": "main",
               "index": 0
             }
@@ -1660,7 +1783,7 @@
               "index": 0
             },
             {
-              "node": "Rückfragen bauen",
+              "node": "Rückfragen sammeln",
               "type": "main",
               "index": 0
             }
@@ -1763,6 +1886,57 @@
           [
             {
               "node": "Grocy-Produkt anlegen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Menge bekannt?": {
+        "main": [
+          [
+            {
+              "node": "In Grocy einbuchen",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Gebucht und offen",
+              "type": "main",
+              "index": 1
+            }
+          ]
+        ]
+      },
+      "Gebucht und offen": {
+        "main": [
+          [
+            {
+              "node": "Bons zusammenfassen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Rückfragen sammeln": {
+        "main": [
+          [
+            {
+              "node": "Rückfrage merken",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Rückfrage merken": {
+        "main": [
+          [
+            {
+              "node": "Rückfragen bauen",
               "type": "main",
               "index": 0
             }

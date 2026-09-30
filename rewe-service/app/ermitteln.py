@@ -14,14 +14,14 @@ from psycopg.types.json import Jsonb
 
 from . import naehrwerte as nw
 from . import rewe, vorrat
+from .text import normalisieren
 
 log = logging.getLogger("ermitteln")
 DETAILS_MAX_ALTER = timedelta(days=7)
 
 
 def _norm(s) -> str:
-    s = str(s or "").lower().replace("ä", "a").replace("ö", "o").replace("ü", "u").replace("ß", "ss")
-    return re.sub(r"[^a-z0-9]+", " ", s).strip()
+    return normalisieren(s)                       # gemeinsame Normalisierung (ä -> ae, …)
 
 
 _GROESSE = re.compile(r"^\d+([.,]\d+)?(g|kg|ml|l|stuck|stk|er)?$")

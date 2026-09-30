@@ -1,0 +1,350 @@
+{
+  "data-tables/schema.json": {
+    "mtime": 1790522770.2184803,
+    "seen": 1790683295.778956,
+    "ast_hash": "b44b89b0a8021adc57b078177dc0ce1a",
+    "semantic_hash": "b44b89b0a8021adc57b078177dc0ce1a"
+  },
+  "rewe-service/app/__init__.py": {
+    "mtime": 1790543407.2344313,
+    "seen": 1790683295.778959,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "rewe-service/app/bon.py": {
+    "mtime": 1790769942.2599962,
+    "seen": 1790770332.265159,
+    "ast_hash": "7e5230b8d98e5f8bc73e1eb80ee5076a",
+    "semantic_hash": ""
+  },
+  "rewe-service/app/crawler.py": {
+    "mtime": 1790686994.904243,
+    "seen": 1790693528.808347,
+    "ast_hash": "2de0abc609e56fff8c824cca5f6e7ce9",
+    "semantic_hash": "2de0abc609e56fff8c824cca5f6e7ce9"
+  },
+  "rewe-service/app/db.py": {
+    "mtime": 1790769265.5862432,
+    "seen": 1790770332.265179,
+    "ast_hash": "9e4af4af9dd4b98ac7574810e6119e5d",
+    "semantic_hash": ""
+  },
+  "rewe-service/app/main.py": {
+    "mtime": 1790769334.2356431,
+    "seen": 1790770332.2651992,
+    "ast_hash": "b66fce424628445cd66653fd6bc05349",
+    "semantic_hash": ""
+  },
+  "rewe-service/app/parse.py": {
+    "mtime": 1790684518.801359,
+    "seen": 1790693528.8083498,
+    "ast_hash": "e92e390309ffd2d1d93a93dfc414270b",
+    "semantic_hash": "e92e390309ffd2d1d93a93dfc414270b"
+  },
+  "rewe-service/app/planer.py": {
+    "mtime": 1790769308.074575,
+    "seen": 1790770332.265237,
+    "ast_hash": "ac395dfc82876988e81d10b8c0138b07",
+    "semantic_hash": ""
+  },
+  "rewe-service/app/rewe.py": {
+    "mtime": 1790690486.8192368,
+    "seen": 1790693528.808352,
+    "ast_hash": "a3492f7f7aa67e74f9cfd21c61b2357c",
+    "semantic_hash": "a3492f7f7aa67e74f9cfd21c61b2357c"
+  },
+  "rewe-service/app/schema.sql": {
+    "mtime": 1790690911.8970637,
+    "seen": 1790693528.808352,
+    "ast_hash": "",
+    "semantic_hash": ""
+  },
+  "rewe-service/tests/conftest.py": {
+    "mtime": 1790543582.189831,
+    "seen": 1790683295.778965,
+    "ast_hash": "77005df2acbdac1d9eb08aa82da0ac1d",
+    "semantic_hash": "77005df2acbdac1d9eb08aa82da0ac1d"
+  },
+  "rewe-service/tests/test_bon.py": {
+    "mtime": 1790770365.5476406,
+    "seen": 1790770430.928273,
+    "ast_hash": "e6d3553990eaebaf210115c09a2436e7",
+    "semantic_hash": ""
+  },
+  "rewe-service/tests/test_crawler.py": {
+    "mtime": 1790684977.219793,
+    "seen": 1790693528.808356,
+    "ast_hash": "0bc115b3d20b325986b86249c3f85064",
+    "semantic_hash": "0bc115b3d20b325986b86249c3f85064"
+  },
+  "rewe-service/tests/test_parse.py": {
+    "mtime": 1790684695.3775127,
+    "seen": 1790693528.808358,
+    "ast_hash": "2885d99530d536af83108bba91763620",
+    "semantic_hash": "2885d99530d536af83108bba91763620"
+  },
+  "rewe-service/tests/test_verzehr.py": {
+    "mtime": 1790689118.9033828,
+    "seen": 1790693528.808359,
+    "ast_hash": "2975e5c5f3071698b7ca3b7e0875e496",
+    "semantic_hash": "2975e5c5f3071698b7ca3b7e0875e496"
+  },
+  "scripts/export.sh": {
+    "mtime": 1790687444.6268897,
+    "seen": 1790693528.808361,
+    "ast_hash": "2206163f0976fd96abf7d5d90c427b38",
+    "semantic_hash": "2206163f0976fd96abf7d5d90c427b38"
+  },
+  "scripts/import.sh": {
+    "mtime": 1790522741.6117103,
+    "seen": 1790683295.778968,
+    "ast_hash": "eac4cfd83fb3feffe8eb61124b008c64",
+    "semantic_hash": "eac4cfd83fb3feffe8eb61124b008c64"
+  },
+  "workflows/00-grocy-einrichten.json": {
+    "mtime": 1790767095.364585,
+    "seen": 1790768094.011858,
+    "ast_hash": "4afac965ca56db05d4bcab21f618aaf7",
+    "semantic_hash": "4afac965ca56db05d4bcab21f618aaf7"
+  },
+  "workflows/01-ebon-import.json": {
+    "mtime": 1790770125.5372722,
+    "seen": 1790770332.265482,
+    "ast_hash": "298d19c4a1fb5afe219500361b5f0271",
+    "semantic_hash": ""
+  },
+  "workflows/02-planer.json": {
+    "mtime": 1790769853.1022632,
+    "seen": 1790770332.265482,
+    "ast_hash": "1df3fd5f220169104991ad1cc8a44e39",
+    "semantic_hash": ""
+  },
+  "workflows/03-telegram-bot.json": {
+    "mtime": 1790770112.7471745,
+    "seen": 1790770332.265483,
+    "ast_hash": "2c50ee84a3ec5daa7ef5ad4f5aad1128",
+    "semantic_hash": ""
+  },
+  "workflows/04-mhd-waechter.json": {
+    "mtime": 1790767098.5745988,
+    "seen": 1790768094.011861,
+    "ast_hash": "59d0f444a9df84fea0e2d896b24def49",
+    "semantic_hash": ""
+  },
+  "workflows/05-fehlermeldung.json": {
+    "mtime": 1790767098.9747396,
+    "seen": 1790768094.011861,
+    "ast_hash": "398712293edb7a72e57143065ba3435b",
+    "semantic_hash": ""
+  },
+  "workflows/06-rewe-angebote.json": {
+    "mtime": 1790767099.3746252,
+    "seen": 1790768094.011862,
+    "ast_hash": "9a84a2fe919c8b0fcdd182feaf083e95",
+    "semantic_hash": "9a84a2fe919c8b0fcdd182feaf083e95"
+  },
+  "workflows/07-rewe-crawl.json": {
+    "mtime": 1790767099.8495283,
+    "seen": 1790768094.011863,
+    "ast_hash": "d9156224e89f4fdec2643af06f1cebf0",
+    "semantic_hash": "d9156224e89f4fdec2643af06f1cebf0"
+  },
+  "workflows/08-verzehr-erfassen.json": {
+    "mtime": 1790767100.2606664,
+    "seen": 1790768094.011863,
+    "ast_hash": "9a5f28fb38e2b0034459d25e4cbb140b",
+    "semantic_hash": "9a5f28fb38e2b0034459d25e4cbb140b"
+  },
+  "README.md": {
+    "mtime": 1790711888.782981,
+    "seen": 1790768094.0118651,
+    "ast_hash": "2cd53d9ff4f367981ee1ddd9b2dc8e34",
+    "semantic_hash": ""
+  },
+  "docker/grocy.compose.yml": {
+    "mtime": 1790522770.254134,
+    "seen": 1790683295.778974,
+    "ast_hash": "088b6cd2093e17dd2bf56e476aaba3e2",
+    "semantic_hash": "088b6cd2093e17dd2bf56e476aaba3e2"
+  },
+  "docker/rewe.compose.yml": {
+    "mtime": 1790620989.176712,
+    "seen": 1790683295.778974,
+    "ast_hash": "34b9cce4e3d71c3149f9c1bcfca243f1",
+    "semantic_hash": "34b9cce4e3d71c3149f9c1bcfca243f1"
+  },
+  "rewe-service/app/live.html": {
+    "mtime": 1790618569.5514827,
+    "seen": 1790683295.778975,
+    "ast_hash": "17a81668d9720a59fa12ecf721847861",
+    "semantic_hash": "17a81668d9720a59fa12ecf721847861"
+  },
+  "rewe-service/kategorien.yml": {
+    "mtime": 1790678362.801841,
+    "seen": 1790683295.778975,
+    "ast_hash": "c85774eac064ca1a537a4af2cbfe2a25",
+    "semantic_hash": "c85774eac064ca1a537a4af2cbfe2a25"
+  },
+  "rewe-service/requirements.txt": {
+    "mtime": 1790543392.3525345,
+    "seen": 1790683295.778976,
+    "ast_hash": "7253aea633ae1aae7970960d3a7c20fc",
+    "semantic_hash": "7253aea633ae1aae7970960d3a7c20fc"
+  },
+  "rewe-service/app/bls.py": {
+    "mtime": 1790768981.6853652,
+    "seen": 1790770332.2651572,
+    "ast_hash": "3086e1e13fa07d803a2f0b823e8721d5",
+    "semantic_hash": ""
+  },
+  "rewe-service/app/ermitteln.py": {
+    "mtime": 1790690486.8195715,
+    "seen": 1790693528.808348,
+    "ast_hash": "696827067b2187c205b5cfc1146b5540",
+    "semantic_hash": "696827067b2187c205b5cfc1146b5540"
+  },
+  "rewe-service/app/naehrwerte.py": {
+    "mtime": 1790684667.6414232,
+    "seen": 1790693528.8083498,
+    "ast_hash": "7fff3ca1638e5c6deb3b782a74558f57",
+    "semantic_hash": "7fff3ca1638e5c6deb3b782a74558f57"
+  },
+  "rewe-service/app/stueckgewicht.py": {
+    "mtime": 1790689498.3911204,
+    "seen": 1790693528.808353,
+    "ast_hash": "313e13162f897cd18254746428e2a8a5",
+    "semantic_hash": "313e13162f897cd18254746428e2a8a5"
+  },
+  "rewe-service/app/verzehr.py": {
+    "mtime": 1790689118.847071,
+    "seen": 1790693528.808353,
+    "ast_hash": "31a5246a1f28fd6a49b9e9a37d55223a",
+    "semantic_hash": "31a5246a1f28fd6a49b9e9a37d55223a"
+  },
+  "rewe-service/app/vorrat.py": {
+    "mtime": 1790690911.8962584,
+    "seen": 1790693528.8083541,
+    "ast_hash": "1cf6621d63e6479e29333d9a59b289f0",
+    "semantic_hash": "1cf6621d63e6479e29333d9a59b289f0"
+  },
+  "rewe-service/tests/test_ermitteln.py": {
+    "mtime": 1790690486.8201056,
+    "seen": 1790693528.8083572,
+    "ast_hash": "d69fea37c9e0afd95a622698cfda24ec",
+    "semantic_hash": "d69fea37c9e0afd95a622698cfda24ec"
+  },
+  "rewe-service/tests/test_naehrwerte.py": {
+    "mtime": 1790686994.9046793,
+    "seen": 1790693528.808358,
+    "ast_hash": "18bb78495d7271ffd98935ce52f72471",
+    "semantic_hash": "18bb78495d7271ffd98935ce52f72471"
+  },
+  "rewe-service/tests/test_stueckgewicht.py": {
+    "mtime": 1790688600.3382132,
+    "seen": 1790693528.808359,
+    "ast_hash": "30e89835d49ccaf51b1b44dde480760a",
+    "semantic_hash": "30e89835d49ccaf51b1b44dde480760a"
+  },
+  "rewe-service/tests/test_vorrat.py": {
+    "mtime": 1790690911.8974047,
+    "seen": 1790693528.8083599,
+    "ast_hash": "234a789fbb4eb4ebf5df4623a2bb2c74",
+    "semantic_hash": "234a789fbb4eb4ebf5df4623a2bb2c74"
+  },
+  "workflows/09-naehrwerte-nachts.json": {
+    "mtime": 1790767100.6808825,
+    "seen": 1790768094.011864,
+    "ast_hash": "fbb67fcba8a5b70fc35b2027dfeda198",
+    "semantic_hash": "fbb67fcba8a5b70fc35b2027dfeda198"
+  },
+  "workflows/10-naehrwerte-ermitteln.json": {
+    "mtime": 1790767101.1223562,
+    "seen": 1790768094.011864,
+    "ast_hash": "60c5df10d80d39df3e5cbfbbbb6669de",
+    "semantic_hash": "60c5df10d80d39df3e5cbfbbbb6669de"
+  },
+  "rewe-service/daten/QUELLEN.md": {
+    "mtime": 1790688944.1087182,
+    "seen": 1790693528.808369,
+    "ast_hash": "acf63bf187899f89c04a0c7790858ce0",
+    "semantic_hash": "acf63bf187899f89c04a0c7790858ce0"
+  },
+  "rewe-service/app/rueckfragen.py": {
+    "mtime": 1790770011.7199142,
+    "seen": 1790770332.265256,
+    "ast_hash": "467c6f22117791522732a886e5e223d2",
+    "semantic_hash": ""
+  },
+  "rewe-service/app/text.py": {
+    "mtime": 1790769265.5857594,
+    "seen": 1790770332.265276,
+    "ast_hash": "8890da8e094eb51debec600dba9e601e",
+    "semantic_hash": ""
+  },
+  "rewe-service/tests/test_planer_vorgaben.py": {
+    "mtime": 1790769335.4074857,
+    "seen": 1790770332.265389,
+    "ast_hash": "dab89ce180239d532799882f44b1ca09",
+    "semantic_hash": ""
+  },
+  "rewe-service/tests/test_rueckfragen.py": {
+    "mtime": 1790769942.2665522,
+    "seen": 1790770332.2653902,
+    "ast_hash": "081a62e12d9014b17c120e5dd32f2ea8",
+    "semantic_hash": ""
+  },
+  "rewe-service/tests/test_suche.py": {
+    "mtime": 1790770424.4617324,
+    "seen": 1790770430.928381,
+    "ast_hash": "5d081b2cb22d57618bbc81a19bf41adf",
+    "semantic_hash": ""
+  },
+  "workflows/tests/bot.test.cjs": {
+    "mtime": 1790770175.067523,
+    "seen": 1790770332.265579,
+    "ast_hash": "6461c4efcde0a3c850cc3de2594d4f68",
+    "semantic_hash": ""
+  },
+  "workflows/tests/ebon.test.cjs": {
+    "mtime": 1790770376.2116568,
+    "seen": 1790770430.928607,
+    "ast_hash": "3d80f245fac69fc9a60bbea01c875f41",
+    "semantic_hash": ""
+  },
+  "workflows/tests/harness.cjs": {
+    "mtime": 1790769829.4433343,
+    "seen": 1790770332.26558,
+    "ast_hash": "7ed694754a411563e05f553808192134",
+    "semantic_hash": ""
+  },
+  "workflows/tests/planer.test.cjs": {
+    "mtime": 1790769843.6975753,
+    "seen": 1790770332.2655811,
+    "ast_hash": "8f02199c1a1e65bd5255680bb61c21ba",
+    "semantic_hash": ""
+  },
+  "workflows/tests/run.sh": {
+    "mtime": 1790769824.6624188,
+    "seen": 1790770332.2655811,
+    "ast_hash": "bfcf847dcc21ef2a259da889c7ba3034",
+    "semantic_hash": ""
+  },
+  "workflows/tests/vorgaben_restlicher_tag.json": {
+    "mtime": 1790769795.151995,
+    "seen": 1790770332.265582,
+    "ast_hash": "0d4727aa7d04e95b8476f0e5dbb2d130",
+    "semantic_hash": ""
+  },
+  "eBon/REWE-ebon-1.pdf": {
+    "mtime": 1790766641.211404,
+    "seen": 1790770332.2656808,
+    "ast_hash": "e5a282e09a526a819137404589911f34",
+    "semantic_hash": ""
+  },
+  "eBon/REWE-ebon-2.pdf": {
+    "mtime": 1790616672.67727,
+    "seen": 1790770332.265682,
+    "ast_hash": "7093cedbddc05c4212f0a9b82befc11a",
+    "semantic_hash": ""
+  }
+}

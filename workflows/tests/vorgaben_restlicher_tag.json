@@ -1,0 +1,48 @@
+{
+ "ziel": {
+  "kcal": 2800,
+  "p": 210,
+  "f": 82,
+  "kh": 315
+ },
+ "bereits": {
+  "kcal": 900.0,
+  "p": 40.0,
+  "f": 30.0,
+  "kh": 100.0,
+  "eintraege": 1,
+  "grocy_offen": 0,
+  "ohne_werte": 0
+ },
+ "rest": {
+  "kcal": 1900,
+  "p": 170,
+  "f": 52,
+  "kh": 215
+ },
+ "slots": [
+  {
+   "name": "Mittag",
+   "anteil": 0.5,
+   "kcal": 950,
+   "p": 85,
+   "f": 26,
+   "kh": 108
+  },
+  {
+   "name": "Abend",
+   "anteil": 0.5,
+   "kcal": 950,
+   "p": 85,
+   "f": 26,
+   "kh": 108
+  }
+ ],
+ "restlicher_tag": true,
+ "ausschluesse": [
+  "avocado",
+  "walnuesse"
+ ],
+ "hinweise": [],
+ "ziel_text": "Ziel für den Rest des Tages: 1900 kcal · P 170 g · F 52 g · KH 215 g (Tagesziel 2800 kcal, schon gegessen 900 kcal)"
+}

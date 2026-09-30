@@ -45,7 +45,7 @@ def test_bon_lesen():
 
 
 def test_textwert():
-    assert normalisieren("Hähnchen-Lyoner") == "hahnchen lyoner"
+    assert normalisieren("Hähnchen-Lyoner") == "haehnchen lyoner"
     assert textwert("HAHN.LYONER", "Hähnchen-Lyoner 200g", "REWE Beste Wahl") == 1.0
     assert textwert("STREICHGUT UNGES", "Streichgut ungesalzen 250g", "ja!") == 1.0
     assert textwert("AVOCADO VORGER.", "Avocado vorgereift 1 Stück", None) == 1.0
@@ -160,3 +160,85 @@ def test_wasser_ueber_rewe_produkt(test_db):
         assert erg["artikel"][0] == {"bon_text": "RHEINFELS KLASSI", "ignorieren": True, "grund": "Wasser"}
         assert erg["artikel"][1]["produkt"]["rewe_product_id"] == "7814109"     # „in Wasser“ in der Beschreibung zählt nicht
         assert [z["bon_text"] for z in erg["zeilen"]] == ["KICHERERBSEN"]
+
+
+# --- Mengen (Punkt 1) --------------------------------------------------------------------------------------------
+# Echter eBon vom 30.09.2026 (eBon/REWE-ebon-1.pdf; 13 Lebensmittelpositionen, Summe 22,45 € inkl. Pfand/Leergut), ohne Zahlungsdaten
+BON_0930 = """ EUR
+HAEHNCHENBRUST 4,45 B
+PARMIGIANO REG. 1,99 B
+KIWI GOLD 1,78 B
+ 2 Stk x 0,89
+INGWER BIO 0,17 B
+ 0,034 kg x 4,90 EUR/kg
+DIE FEINEN KART. 2,79 B
+ZWIEBEL BRAVOS 1,19 B
+CHERRYROMATOMATE 1,19 B
+PAPRIKA ROT SP. 2,49 B
+BIO EIER HAHN 3,19 B
+BIO KEFIR 1,49 B
+BIO KOKOSMILCH 1,59 B
+KICHERERBSEN 0,59 B
+RHEINFELS KLASSI 0,79 A
+PFAND 0,25 EURO 0,25 A *
+LEERGUT EINWEG -0,25 A *
+LEERGUT EINWEG -1,25 A *
+ 5 Stk x 0,25
+ --------------------------------------
+ SUMME EUR 22,45
+Datum: 30.09.2026
+ Markt:0430 Kasse:6 Bed.:432106
+"""
+
+
+def test_bon_0930_mengen_nie_aus_dem_preis():
+    from app.bon import ki_menge_pruefen, menge_bestimmen
+    b = bon_lesen(BON_0930)
+    assert sum(z["betrag"] for z in b["zeilen"]) == Decimal("22.45")
+    essen = [z for z in b["zeilen"] if not z["ignorieren"]]
+    assert len(essen) == 13 and len(b["zeilen"]) == 16          # 13 Positionen + Pfand + 2× Leergut
+    for z in essen:
+        info = menge_bestimmen(z)  # ohne Produkttreffer
+        preis = str(z["betrag"]).replace(".", "").lstrip("0")
+        if z["gewicht_kg"] is None and z["anzahl"] == 1:
+            assert info["offen"] and info["menge"] is None, z["bon_text"]  # nicht raten
+        else:
+            assert not info["offen"] and str(int(info["menge"])) != preis, z["bon_text"]
+    z = {x["bon_text"]: x for x in essen}
+    assert menge_bestimmen(z["INGWER BIO"])["menge"] == 34 and menge_bestimmen(z["INGWER BIO"])["quelle"] == "bon_gewicht"
+    assert menge_bestimmen(z["KIWI GOLD"]) == {"menge": 2.0, "einheit": "stk", "quelle": "bon_stueck", "offen": False}
+    # KI sagt 445 g bei 4,45 € und ohne Gewicht auf dem Bon -> verworfen
+    assert ki_menge_pruefen(z["HAEHNCHENBRUST"], 445, "g") == (None, "Ziffern entsprechen dem Preis")
+    assert ki_menge_pruefen(z["HAEHNCHENBRUST"], 500, "g") == (None, "kein Gewicht auf dem Bon")
+    assert ki_menge_pruefen(z["BIO KEFIR"], 149, "g")[0] is None and ki_menge_pruefen(z["BIO KEFIR"], 500, "g")[0] is None
+    assert ki_menge_pruefen(z["INGWER BIO"], 17, "g") == (None, "Ziffern entsprechen dem Preis")   # 0,17 €
+    assert ki_menge_pruefen(z["INGWER BIO"], 34, "g") == (34.0, "ok")
+
+
+def test_menge_rangfolge():
+    from app.bon import menge_bestimmen
+    packung = {"size_value": 500.0, "size_unit": "g"}
+    zeile = {"bon_text": "BIO KEFIR", "anzahl": 2, "einzelpreis": Decimal("1.29"), "betrag": Decimal("2.58"), "gewicht_kg": None, "kilopreis": None}
+    assert menge_bestimmen(zeile, packung, "sicher") == {"menge": 1000.0, "einheit": "g", "quelle": "packung_sicher", "offen": False}
+    assert menge_bestimmen(zeile, packung, "bestaetigt")["quelle"] == "packung_bestaetigt"  # greift auch nach der Rückfrage
+    assert menge_bestimmen(zeile, {"size_value": 1, "size_unit": "Stück"})["einheit"] == "stk"
+    gewogen = dict(zeile, anzahl=1, gewicht_kg=Decimal("0.106"), kilopreis=Decimal("3.99"))
+    assert menge_bestimmen(gewogen, packung)["menge"] == 106  # Gewicht vom Bon schlägt Packungsgröße
+    assert menge_bestimmen(dict(zeile, bon_text="MILCH 1L", anzahl=1))["menge"] == 1000  # explizite Angabe im Kassentext
+    assert menge_bestimmen(zeile) == {"menge": 2.0, "einheit": "stk", "quelle": "bon_stueck", "offen": False}
+    assert menge_bestimmen(dict(zeile, anzahl=1))["offen"]
+
+
+def test_menge_info_im_ergebnis(produkte):
+    from app import bon
+    with produkte.verbinden() as con:
+        con.execute("UPDATE rewe_products SET size_value = 200, size_unit = 'g' WHERE rewe_product_id = '1001'")
+        con.execute("UPDATE rewe_products SET size_value = 100, size_unit = 'g' WHERE rewe_product_id = '1003'")
+        erg = bon.zuordnen(con, BON, "bon-m")
+        z = {e["bon_text"]: e for e in erg["zeilen"]}
+        assert z["HAHN.LYONER"]["menge_info"]["quelle"] == "packung_sicher" and z["HAHN.LYONER"]["menge_info"]["menge"] == 200
+        assert z["EDELSALAMI"]["status"] == "unsicher" and z["EDELSALAMI"]["menge_info"]["offen"]  # nicht raten
+        assert z["BANANE"]["menge_info"] == {"menge": 524.0, "einheit": "g", "quelle": "bon_gewicht", "offen": False}
+        antwort = bon.antwort_speichern(con, z["EDELSALAMI"]["zeile_id"], "1003")
+        assert antwort["menge_info"]["quelle"] == "packung_bestaetigt" and antwort["menge_info"]["menge"] == 100
+        assert bon.zuordnen(con, BON, "bon-m2")["zeilen"][1]["menge_info"]["quelle"] == "packung_gelernt"

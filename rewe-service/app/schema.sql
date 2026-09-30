@@ -356,3 +356,135 @@ CREATE TABLE IF NOT EXISTS verzehr_korrektur (
 
 -- Etikett-Foto wurde wieder entfernt
 DROP TABLE IF EXISTS naehrwert_vorschlaege;
+
+-- Offene Rückfragen des Bots (Produktwahl, Menge offen): Freitext des Nutzers wird zuerst als Antwort darauf ausgewertet
+CREATE TABLE IF NOT EXISTS offene_rueckfragen (
+    id              serial PRIMARY KEY,
+    chat_id         text NOT NULL,
+    art             text NOT NULL CHECK (art IN ('produkt', 'menge')),
+    bon_zeile_id    integer,
+    bon_text        text,
+    kandidaten      jsonb NOT NULL DEFAULT '[]',   -- Produktwahl: [{rewe_product_id, name, price, ...}]
+    payload         jsonb NOT NULL DEFAULT '{}',   -- was n8n zum Ausführen der Antwort braucht (Grocy-Produkt, Lagerort, MHD, ...)
+    status          text NOT NULL DEFAULT 'offen' CHECK (status IN ('offen', 'beantwortet', 'abgebrochen', 'abgelaufen')),
+    erstellt_at     timestamptz NOT NULL DEFAULT now(),
+    laeuft_ab_at    timestamptz NOT NULL DEFAULT now() + interval '48 hours'
+);
+CREATE INDEX IF NOT EXISTS offene_rueckfragen_chat ON offene_rueckfragen (chat_id, status);
+
+
+-- Gemeinsame Textnormalisierung (muss mit app/text.py:normalisieren übereinstimmen)
+CREATE OR REPLACE FUNCTION norm_text(t text) RETURNS text LANGUAGE sql IMMUTABLE PARALLEL SAFE AS $$
+    SELECT btrim(regexp_replace(
+        translate(replace(replace(replace(replace(lower(coalesce(t, '')), 'ä', 'ae'), 'ö', 'oe'), 'ü', 'ue'), 'ß', 'ss'),
+                  'àáâãåçèéêëìíîïñòóôõùúûýÿ', 'aaaaaceeeeiiiinoooouuuyy'),
+        '[^a-z0-9]+', ' ', 'g'))
+$$;
+
+-- Schreibvarianten/Synonyme: Begriffe derselben Gruppe sind austauschbar (pflegbar per Tabelle oder POST /synonyme)
+CREATE TABLE IF NOT EXISTS suchsynonyme (
+    gruppe  text NOT NULL,
+    begriff text NOT NULL,           -- normalisiert (norm_text), auch mehrere Wörter
+    quelle  text NOT NULL DEFAULT 'manuell',
+    PRIMARY KEY (gruppe, begriff)
+);
+CREATE INDEX IF NOT EXISTS suchsynonyme_begriff_idx ON suchsynonyme (begriff);
+
+ALTER TABLE rewe_products
+    ADD COLUMN IF NOT EXISTS suchtext text GENERATED ALWAYS AS (norm_text(coalesce(brand, '') || ' ' || name)) STORED;
+CREATE INDEX IF NOT EXISTS rewe_products_suchtext_idx ON rewe_products USING gin (suchtext gin_trgm_ops);
+
+-- Anfrage + alle Synonym-Ersetzungen (Wortanfang bzw. ganzes Wort bei kurzen Begriffen; auch in Komposita: haehnchenbrust -> huhnbrust)
+CREATE OR REPLACE FUNCTION suchvarianten(q text) RETURNS text[] LANGUAGE plpgsql STABLE AS $$
+DECLARE
+    n text := norm_text(q);
+    res text[] := ARRAY[n];
+    r record;
+    alt text;
+BEGIN
+    IF n = '' THEN RETURN ARRAY[]::text[]; END IF;
+    FOR r IN SELECT s.gruppe, s.begriff FROM suchsynonyme s
+             WHERE CASE WHEN length(s.begriff) > 3 THEN (' ' || n) LIKE '% ' || s.begriff || '%'
+                        ELSE (' ' || n || ' ') LIKE '% ' || s.begriff || ' %' END
+    LOOP
+        FOR alt IN SELECT s2.begriff FROM suchsynonyme s2 WHERE s2.gruppe = r.gruppe AND s2.begriff <> r.begriff LOOP
+            res := array_append(res, btrim(regexp_replace(' ' || n, ' ' || r.begriff || CASE WHEN length(r.begriff) > 3 THEN '' ELSE '(?= |$)' END,
+                                                          ' ' || alt, 'g')));
+        END LOOP;
+    END LOOP;
+    RETURN ARRAY(SELECT DISTINCT x FROM unnest(res) x WHERE x <> '');
+END $$;
+
+-- Anteil der Anfragewörter, die (als Teil eines Wortes, Präfix oder ähnlich) im Text vorkommen
+CREATE OR REPLACE FUNCTION token_abdeckung(anfrage text, text_norm text) RETURNS real LANGUAGE sql IMMUTABLE PARALLEL SAFE AS $$
+    SELECT coalesce(avg(CASE WHEN EXISTS (
+               SELECT 1 FROM unnest(string_to_array(text_norm, ' ')) w
+               WHERE w <> '' AND (w = t
+                   OR (length(t) >= 4 AND (position(t IN w) > 0 OR (length(w) >= 4 AND position(w IN t) > 0)))
+                   OR similarity(t, w) >= 0.6)) THEN 1.0 ELSE 0.0 END), 0)::real
+    FROM unnest(string_to_array(anfrage, ' ')) t
+    WHERE t <> '' AND t !~ '^[0-9]+$'
+$$;
+
+-- Katalogsuche: Ähnlichkeit (Trigramme, word_similarity) und Wortabdeckung über alle Synonym-Varianten, mit Mindestschwelle
+CREATE OR REPLACE FUNCTION katalog_treffer(q text, schwelle real DEFAULT 0.45, max_treffer integer DEFAULT 30)
+RETURNS TABLE (rewe_product_id text, score real, abdeckung real) LANGUAGE sql STABLE
+SET pg_trgm.word_similarity_threshold = '0.3' AS $$
+    WITH v AS (SELECT unnest(suchvarianten(q)) AS v),
+    bewertet AS (
+        SELECT p.rewe_product_id AS id, v.v,
+               word_similarity(v.v, p.suchtext) AS ws, token_abdeckung(v.v, p.suchtext) AS ab
+        FROM v JOIN rewe_products p ON v.v <% p.suchtext
+    )
+    SELECT id, max(0.5 * ws + 0.5 * ab)::real AS score, max(ab)::real
+    FROM bewertet GROUP BY id
+    HAVING max(0.5 * ws + 0.5 * ab) >= schwelle
+    ORDER BY 2 DESC, 1
+    LIMIT max_treffer
+$$;
+
+-- Suche für den n8n-Agenten (rewe_produkt_suchen): Ähnlichkeit statt „jedes Wort wörtlich“, mit Synonymen und Mindestschwelle
+CREATE OR REPLACE FUNCTION produkt_suche(suchbegriff text, max_treffer integer DEFAULT 12)
+RETURNS TABLE (
+    rewe_product_id text, name text, brand text, category text,
+    size_value numeric, size_unit text, price numeric, price_per_kg_or_l numeric,
+    angebotspreis numeric, angebot_bis date, preis_aktuell numeric,
+    kcal_100 numeric, protein_100 numeric, kh_100 numeric, fett_100 numeric,
+    preis_pro_100g_protein numeric, ean text, last_seen date
+) LANGUAGE sql STABLE AS $$
+    SELECT p.rewe_product_id, p.name, p.brand, p.category, p.size_value, p.size_unit, p.price, p.price_per_kg_or_l,
+           CASE WHEN p.angebot_bis >= current_date THEN p.angebotspreis END,
+           CASE WHEN p.angebot_bis >= current_date THEN p.angebot_bis END,
+           CASE WHEN p.angebot_bis >= current_date AND p.angebotspreis IS NOT NULL THEN p.angebotspreis ELSE p.price END,
+           p.kcal_100, p.protein_100, p.kh_100, p.fett_100,
+           CASE WHEN p.protein_100 > 0 AND p.size_unit IN ('g', 'ml') AND p.size_value > 0
+                THEN round((CASE WHEN p.angebot_bis >= current_date AND p.angebotspreis IS NOT NULL THEN p.angebotspreis ELSE p.price END)
+                           / (p.size_value * p.protein_100 / 100) * 100, 2) END,
+           p.ean, p.last_seen::date
+    FROM katalog_treffer(suchbegriff, 0.4, greatest(max_treffer, 1) * 3) t
+    JOIN rewe_products p ON p.rewe_product_id = t.rewe_product_id
+    ORDER BY t.score DESC,
+             CASE WHEN p.angebot_bis >= current_date AND p.angebotspreis IS NOT NULL THEN p.angebotspreis ELSE p.price END
+    LIMIT max_treffer;
+$$;
+
+-- Bestätigte Bonpreise pro Markt (Einkaufsmarkt weicht vom Katalogmarkt ab): greift bei der Preiszuordnung des nächsten Einkaufs
+CREATE TABLE IF NOT EXISTS bon_preise (
+    rewe_product_id text NOT NULL REFERENCES rewe_products (rewe_product_id),
+    markt           text NOT NULL,
+    preis           numeric(10, 2),
+    kilopreis       numeric(10, 2),
+    datum           date NOT NULL DEFAULT current_date,
+    PRIMARY KEY (rewe_product_id, markt)
+);
+ALTER TABLE bon_zeilen ADD COLUMN IF NOT EXISTS markt text;
+
+ALTER TABLE bls ADD COLUMN IF NOT EXISTS suchtext text GENERATED ALWAYS AS (norm_text(name)) STORED;
+CREATE INDEX IF NOT EXISTS bls_suchtext_idx ON bls USING gin (suchtext gin_trgm_ops);
+
+-- Ausschlüsse im Planer: „ohne Nüsse“ schließt auch Walnüsse, Mandeln usw. aus (einseitig, anders als Synonyme)
+CREATE TABLE IF NOT EXISTS ausschluss_oberbegriffe (
+    oberbegriff text NOT NULL,
+    mitglied    text NOT NULL,       -- normalisiert
+    PRIMARY KEY (oberbegriff, mitglied)
+);

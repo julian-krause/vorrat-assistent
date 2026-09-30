@@ -12,10 +12,10 @@
     "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
   },
   "rewe-service/app/bon.py": {
-    "mtime": 1790689077.9906082,
-    "seen": 1790693528.808346,
-    "ast_hash": "0a974c75a5aeae4722858c31a9ea144c",
-    "semantic_hash": "0a974c75a5aeae4722858c31a9ea144c"
+    "mtime": 1790774176.3586726,
+    "seen": 1790774354.3933592,
+    "ast_hash": "af41b800a8f51173a722e138561e52b6",
+    "semantic_hash": ""
   },
   "rewe-service/app/crawler.py": {
     "mtime": 1790686994.904243,
@@ -24,16 +24,16 @@
     "semantic_hash": "2de0abc609e56fff8c824cca5f6e7ce9"
   },
   "rewe-service/app/db.py": {
-    "mtime": 1790688102.2704785,
-    "seen": 1790693528.808348,
-    "ast_hash": "29c35ae6c00d3dff1e20ea26213b4680",
-    "semantic_hash": "29c35ae6c00d3dff1e20ea26213b4680"
+    "mtime": 1790769265.5862432,
+    "seen": 1790770332.265179,
+    "ast_hash": "9e4af4af9dd4b98ac7574810e6119e5d",
+    "semantic_hash": ""
   },
   "rewe-service/app/main.py": {
-    "mtime": 1790690911.8965917,
-    "seen": 1790693528.808349,
-    "ast_hash": "ab78340eabc906c9088f0974ad381b1b",
-    "semantic_hash": "ab78340eabc906c9088f0974ad381b1b"
+    "mtime": 1790772537.869216,
+    "seen": 1790774354.393399,
+    "ast_hash": "1b955b7202c6a06f6802919aa900c046",
+    "semantic_hash": ""
   },
   "rewe-service/app/parse.py": {
     "mtime": 1790684518.801359,
@@ -42,10 +42,10 @@
     "semantic_hash": "e92e390309ffd2d1d93a93dfc414270b"
   },
   "rewe-service/app/planer.py": {
-    "mtime": 1790689077.9919522,
-    "seen": 1790693528.808351,
-    "ast_hash": "00942c4273f24c255d4d30d472862429",
-    "semantic_hash": "00942c4273f24c255d4d30d472862429"
+    "mtime": 1790769308.074575,
+    "seen": 1790770332.265237,
+    "ast_hash": "ac395dfc82876988e81d10b8c0138b07",
+    "semantic_hash": ""
   },
   "rewe-service/app/rewe.py": {
     "mtime": 1790690486.8192368,
@@ -56,20 +56,20 @@
   "rewe-service/app/schema.sql": {
     "mtime": 1790690911.8970637,
     "seen": 1790693528.808352,
-    "ast_hash": "f4c22b6145567aad05cc648c724c9025",
-    "semantic_hash": "f4c22b6145567aad05cc648c724c9025"
+    "ast_hash": "",
+    "semantic_hash": ""
   },
   "rewe-service/tests/conftest.py": {
-    "mtime": 1790543582.189831,
-    "seen": 1790683295.778965,
-    "ast_hash": "77005df2acbdac1d9eb08aa82da0ac1d",
-    "semantic_hash": "77005df2acbdac1d9eb08aa82da0ac1d"
+    "mtime": 1790772082.8795035,
+    "seen": 1790774354.3935401,
+    "ast_hash": "b1d429cda7b7aaf98df4505d9932b31b",
+    "semantic_hash": ""
   },
   "rewe-service/tests/test_bon.py": {
-    "mtime": 1790681516.7870388,
-    "seen": 1790683295.778965,
-    "ast_hash": "77fbfff0a627018d07a889b23e5a2b11",
-    "semantic_hash": "77fbfff0a627018d07a889b23e5a2b11"
+    "mtime": 1790770365.5476406,
+    "seen": 1790770430.928273,
+    "ast_hash": "e6d3553990eaebaf210115c09a2436e7",
+    "semantic_hash": ""
   },
   "rewe-service/tests/test_crawler.py": {
     "mtime": 1790684977.219793,
@@ -102,64 +102,64 @@
     "semantic_hash": "eac4cfd83fb3feffe8eb61124b008c64"
   },
   "workflows/00-grocy-einrichten.json": {
-    "mtime": 1790693256.5479398,
-    "seen": 1790693528.808362,
+    "mtime": 1790767095.364585,
+    "seen": 1790768094.011858,
     "ast_hash": "4afac965ca56db05d4bcab21f618aaf7",
     "semantic_hash": "4afac965ca56db05d4bcab21f618aaf7"
   },
   "workflows/01-ebon-import.json": {
-    "mtime": 1790693256.9936578,
-    "seen": 1790693528.808363,
-    "ast_hash": "c9343570f187fde7f60645afceb19856",
-    "semantic_hash": "c9343570f187fde7f60645afceb19856"
+    "mtime": 1790772928.449156,
+    "seen": 1790774354.393735,
+    "ast_hash": "7ef8789e4d08990c325fa3d08aaf324a",
+    "semantic_hash": ""
   },
   "workflows/02-planer.json": {
-    "mtime": 1790693257.468186,
-    "seen": 1790693528.808363,
-    "ast_hash": "36beb7a7f99141f7b89d698bba6c4ceb",
-    "semantic_hash": "36beb7a7f99141f7b89d698bba6c4ceb"
+    "mtime": 1790769853.1022632,
+    "seen": 1790770332.265482,
+    "ast_hash": "1df3fd5f220169104991ad1cc8a44e39",
+    "semantic_hash": ""
   },
   "workflows/03-telegram-bot.json": {
-    "mtime": 1790693258.0035305,
-    "seen": 1790693528.808364,
-    "ast_hash": "7a369cc276b4a7782df76e02a6ea2071",
-    "semantic_hash": "7a369cc276b4a7782df76e02a6ea2071"
+    "mtime": 1790772928.4519892,
+    "seen": 1790774354.3937511,
+    "ast_hash": "7712252511adbed859670302739fc589",
+    "semantic_hash": ""
   },
   "workflows/04-mhd-waechter.json": {
-    "mtime": 1790693258.4862611,
-    "seen": 1790693528.808364,
-    "ast_hash": "62b65d5901f529baff209a30e9387195",
-    "semantic_hash": "62b65d5901f529baff209a30e9387195"
+    "mtime": 1790767098.5745988,
+    "seen": 1790768094.011861,
+    "ast_hash": "59d0f444a9df84fea0e2d896b24def49",
+    "semantic_hash": ""
   },
   "workflows/05-fehlermeldung.json": {
-    "mtime": 1790693258.8877647,
-    "seen": 1790693528.808365,
-    "ast_hash": "ae2898410f80f15a4c0535d1c985f3c5",
-    "semantic_hash": "ae2898410f80f15a4c0535d1c985f3c5"
+    "mtime": 1790767098.9747396,
+    "seen": 1790768094.011861,
+    "ast_hash": "398712293edb7a72e57143065ba3435b",
+    "semantic_hash": ""
   },
   "workflows/06-rewe-angebote.json": {
-    "mtime": 1790693259.255799,
-    "seen": 1790693528.808365,
+    "mtime": 1790767099.3746252,
+    "seen": 1790768094.011862,
     "ast_hash": "9a84a2fe919c8b0fcdd182feaf083e95",
     "semantic_hash": "9a84a2fe919c8b0fcdd182feaf083e95"
   },
   "workflows/07-rewe-crawl.json": {
-    "mtime": 1790693259.6434891,
-    "seen": 1790693528.808366,
+    "mtime": 1790767099.8495283,
+    "seen": 1790768094.011863,
     "ast_hash": "d9156224e89f4fdec2643af06f1cebf0",
     "semantic_hash": "d9156224e89f4fdec2643af06f1cebf0"
   },
   "workflows/08-verzehr-erfassen.json": {
-    "mtime": 1790693260.0375373,
-    "seen": 1790693528.808366,
+    "mtime": 1790767100.2606664,
+    "seen": 1790768094.011863,
     "ast_hash": "9a5f28fb38e2b0034459d25e4cbb140b",
     "semantic_hash": "9a5f28fb38e2b0034459d25e4cbb140b"
   },
   "README.md": {
-    "mtime": 1790690986.882886,
-    "seen": 1790693528.808369,
-    "ast_hash": "484cb28d8846742fe3de1c29f19d0e9c",
-    "semantic_hash": "484cb28d8846742fe3de1c29f19d0e9c"
+    "mtime": 1790774352.1198552,
+    "seen": 1790774354.393926,
+    "ast_hash": "b998ce925a3de41c6322f1d5034b6a13",
+    "semantic_hash": ""
   },
   "docker/grocy.compose.yml": {
     "mtime": 1790522770.254134,
@@ -192,16 +192,16 @@
     "semantic_hash": "7253aea633ae1aae7970960d3a7c20fc"
   },
   "rewe-service/app/bls.py": {
-    "mtime": 1790688600.3320181,
-    "seen": 1790693528.808345,
-    "ast_hash": "967f31bdaa348eaced046a9c29cfb82d",
-    "semantic_hash": "967f31bdaa348eaced046a9c29cfb82d"
+    "mtime": 1790774212.1183472,
+    "seen": 1790774354.393357,
+    "ast_hash": "db64cf560210f5f1fc83d6d4d1af6541",
+    "semantic_hash": ""
   },
   "rewe-service/app/ermitteln.py": {
-    "mtime": 1790690486.8195715,
-    "seen": 1790693528.808348,
-    "ast_hash": "696827067b2187c205b5cfc1146b5540",
-    "semantic_hash": "696827067b2187c205b5cfc1146b5540"
+    "mtime": 1790772367.2193623,
+    "seen": 1790774354.393398,
+    "ast_hash": "13a0790e3169e30b8a3e9b6e1ec8b577",
+    "semantic_hash": ""
   },
   "rewe-service/app/naehrwerte.py": {
     "mtime": 1790684667.6414232,
@@ -252,14 +252,14 @@
     "semantic_hash": "234a789fbb4eb4ebf5df4623a2bb2c74"
   },
   "workflows/09-naehrwerte-nachts.json": {
-    "mtime": 1790693260.5168786,
-    "seen": 1790693528.808367,
+    "mtime": 1790767100.6808825,
+    "seen": 1790768094.011864,
     "ast_hash": "fbb67fcba8a5b70fc35b2027dfeda198",
     "semantic_hash": "fbb67fcba8a5b70fc35b2027dfeda198"
   },
   "workflows/10-naehrwerte-ermitteln.json": {
-    "mtime": 1790693260.8816223,
-    "seen": 1790693528.8083682,
+    "mtime": 1790767101.1223562,
+    "seen": 1790768094.011864,
     "ast_hash": "60c5df10d80d39df3e5cbfbbbb6669de",
     "semantic_hash": "60c5df10d80d39df3e5cbfbbbb6669de"
   },
@@ -268,5 +268,143 @@
     "seen": 1790693528.808369,
     "ast_hash": "acf63bf187899f89c04a0c7790858ce0",
     "semantic_hash": "acf63bf187899f89c04a0c7790858ce0"
+  },
+  "rewe-service/app/rueckfragen.py": {
+    "mtime": 1790773974.1962304,
+    "seen": 1790774354.39347,
+    "ast_hash": "9dd0bcc79841e7645af59b648622b120",
+    "semantic_hash": ""
+  },
+  "rewe-service/app/text.py": {
+    "mtime": 1790769265.5857594,
+    "seen": 1790770332.265276,
+    "ast_hash": "8890da8e094eb51debec600dba9e601e",
+    "semantic_hash": ""
+  },
+  "rewe-service/tests/test_planer_vorgaben.py": {
+    "mtime": 1790769335.4074857,
+    "seen": 1790770332.265389,
+    "ast_hash": "dab89ce180239d532799882f44b1ca09",
+    "semantic_hash": ""
+  },
+  "rewe-service/tests/test_rueckfragen.py": {
+    "mtime": 1790772897.8665478,
+    "seen": 1790774354.393643,
+    "ast_hash": "b427a6ec98f3b2f3696acee4f9a3c3a2",
+    "semantic_hash": ""
+  },
+  "rewe-service/tests/test_suche.py": {
+    "mtime": 1790774176.3746688,
+    "seen": 1790774354.3936589,
+    "ast_hash": "e0ac6603a475b81296abb539e27b5bd1",
+    "semantic_hash": ""
+  },
+  "workflows/tests/bot.test.cjs": {
+    "mtime": 1790770175.067523,
+    "seen": 1790770332.265579,
+    "ast_hash": "6461c4efcde0a3c850cc3de2594d4f68",
+    "semantic_hash": ""
+  },
+  "workflows/tests/ebon.test.cjs": {
+    "mtime": 1790770376.2116568,
+    "seen": 1790770430.928607,
+    "ast_hash": "3d80f245fac69fc9a60bbea01c875f41",
+    "semantic_hash": ""
+  },
+  "workflows/tests/harness.cjs": {
+    "mtime": 1790772367.2480574,
+    "seen": 1790774354.393876,
+    "ast_hash": "d5c0b4a901d9834c4fb7f79dd2e912b9",
+    "semantic_hash": ""
+  },
+  "workflows/tests/planer.test.cjs": {
+    "mtime": 1790769843.6975753,
+    "seen": 1790770332.2655811,
+    "ast_hash": "8f02199c1a1e65bd5255680bb61c21ba",
+    "semantic_hash": ""
+  },
+  "workflows/tests/run.sh": {
+    "mtime": 1790769824.6624188,
+    "seen": 1790770332.2655811,
+    "ast_hash": "bfcf847dcc21ef2a259da889c7ba3034",
+    "semantic_hash": ""
+  },
+  "workflows/tests/vorgaben_restlicher_tag.json": {
+    "mtime": 1790769795.151995,
+    "seen": 1790770332.265582,
+    "ast_hash": "0d4727aa7d04e95b8476f0e5dbb2d130",
+    "semantic_hash": ""
+  },
+  "eBon/REWE-ebon-1.pdf": {
+    "mtime": 1790766641.211404,
+    "seen": 1790770332.2656808,
+    "ast_hash": "e5a282e09a526a819137404589911f34",
+    "semantic_hash": ""
+  },
+  "eBon/REWE-ebon-2.pdf": {
+    "mtime": 1790616672.67727,
+    "seen": 1790770332.265682,
+    "ast_hash": "7093cedbddc05c4212f0a9b82befc11a",
+    "semantic_hash": ""
+  },
+  "rewe-service/tests/ebon_pruefstand.py": {
+    "mtime": 1790774018.42515,
+    "seen": 1790774354.393541,
+    "ast_hash": "61ab8928248a5eedf500c0ba4d24aaf8",
+    "semantic_hash": ""
+  },
+  "rewe-service/tests/test_ebon_pdfs.py": {
+    "mtime": 1790774230.262249,
+    "seen": 1790774354.3935769,
+    "ast_hash": "ac4f128c80e2e7054b3f02ec98541b41",
+    "semantic_hash": ""
+  },
+  "scripts/ebon_text.sh": {
+    "mtime": 1790772280.967073,
+    "seen": 1790774354.3936908,
+    "ast_hash": "953aebc2e205893f300957729c9923f8",
+    "semantic_hash": ""
+  },
+  "workflows/tests/node_cli.cjs": {
+    "mtime": 1790772653.4417484,
+    "seen": 1790774354.393877,
+    "ast_hash": "49e792e848a800ca55549531934c5caf",
+    "semantic_hash": ""
+  },
+  "workflows/tests/package.json": {
+    "mtime": 1790772299.6385565,
+    "seen": 1790774354.393878,
+    "ast_hash": "ab779e35ab41882e36fe2c5fdf0a8fbc",
+    "semantic_hash": ""
+  },
+  "workflows/tests/pdf_text.workflow.json": {
+    "mtime": 1790772253.4844615,
+    "seen": 1790774354.393879,
+    "ast_hash": "8ad45c87e7916399be46a4d15f4d6ce4",
+    "semantic_hash": ""
+  },
+  "eBon/.text/REWE-ebon-1.txt": {
+    "mtime": 1790772289.531257,
+    "seen": 1790774354.393955,
+    "ast_hash": "a63a979f72662a74362d823ccf17a9d1",
+    "semantic_hash": ""
+  },
+  "eBon/.text/REWE-ebon-2.txt": {
+    "mtime": 1790772289.5313988,
+    "seen": 1790774354.3939562,
+    "ast_hash": "42f9e5d13b0bf1271e2912d6bce82dbd",
+    "semantic_hash": ""
+  },
+  "eBon/erwartet.yaml": {
+    "mtime": 1790773974.1965818,
+    "seen": 1790774354.3939562,
+    "ast_hash": "55abfb8895f096034ea141ec08b2faee",
+    "semantic_hash": ""
+  },
+  "eBon/testlaeufe.md": {
+    "mtime": 1790774352.063011,
+    "seen": 1790774354.3939571,
+    "ast_hash": "a8dff3026a5a50bf6f40f29676e1e308",
+    "semantic_hash": ""
   }
 }
