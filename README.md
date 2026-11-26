@@ -83,20 +83,17 @@ Der Node „Vorrats-Assistent“ (MiniMax-M3, Gedächtnis: letzte 10 Nachrichten
 
 ## REWE-Dienst (rewerse)
 
-Ein eigener Container (`rewe-service/`, FastAPI) kapselt die inoffizielle REWE-App-API über [rewerse](https://github.com/ByteSizedMarius/rewerse-engineering) und schreibt in eine eigene Postgres-Instanz (`rewe-db`). Beide laufen nur im Docker-Netz `n8n_default`, ohne veröffentlichte Ports. Die API ist inoffiziell und kann jederzeit brechen; die Nutzung erfolgt auf eigenes Risiko gegenüber den REWE-Nutzungsbedingungen.
+Ein eigener Container (`rewe-service/`, FastAPI) holt Produkte, Preise, Nährwerte und Angebote aus dem REWE-Sortiment und schreibt sie in eine eigene Postgres-Instanz (`rewe-db`). Beide laufen nur im Docker-Netz `n8n_default`, ohne veröffentlichte Ports.
 
-### Zertifikate einrichten
+Die REWE-Schnittstelle selbst ist **nicht Teil dieses Projekts**. Sie wurde im Projekt [rewerse-engineering](https://github.com/ByteSizedMarius/rewerse-engineering) untersucht und dokumentiert. Dieser Dienst nutzt ausschließlich dessen Python-Paket [`rewerse`](https://pypi.org/project/rewerse/) und schickt keine eigenen Anfragen an REWE. Die Schnittstelle ist inoffiziell und kann jederzeit brechen; die Nutzung erfolgt auf eigenes Risiko gegenüber den REWE-Nutzungsbedingungen.
 
-Die REWE-API verlangt mTLS-Zertifikate aus der REWE-Android-App. Sie sind nicht im Repo und dürfen nicht committet werden (`.gitignore`: `docker/rewe-certs/`, `*.pem`, `*.key`, `*.pfx`).
+### Zertifikate
 
-1. REWE-APK herunterladen (z. B. über apkpure), in `.zip` umbenennen und öffnen. Bei einer `.xapk` zuerst `de.rewe.app.mobile.apk` herauskopieren und diese wieder als ZIP öffnen.
-2. `res/raw/mtls_prod.pfx` herauskopieren.
-3. Zertifikat und Schlüssel extrahieren (das PFX-Passwort steht in Schritt 5 dieser [Anleitung](https://github.com/torbenpfohl/rewe-discounts/blob/main/how%20to%20get%20private.pem%20and%20private.key.txt)):
-   ```bash
-   openssl pkcs12 -in mtls_prod.pfx -out rewe.pem -legacy -nokeys
-   openssl pkcs12 -in mtls_prod.pfx -out rewe.key -legacy -nocerts -nodes
-   ```
-4. Beide Dateien auf der VM ablegen: `~/vorrat-assistent/docker/rewe-certs/rewe.pem` und `…/rewe.key` (z. B. `scp rewe.pem rewe.key vorrat-azure:vorrat-assistent/docker/rewe-certs/`, danach `chmod 600`). Der Container liest sie über `REWE_CERT_PATH=/certs/rewe.pem` und `REWE_KEY_PATH=/certs/rewe.key` (Volume, nur lesend).
+`rewerse` braucht ein Client-Zertifikat. Wie man es bekommt, steht in der README von [rewerse-engineering](https://github.com/ByteSizedMarius/rewerse-engineering). Zertifikat und Schlüssel gehören nie ins Repo (`.gitignore`: `docker/rewe-certs/`, `*.pem`, `*.key`, `*.pfx`).
+
+Abgelegt werden sie auf der VM unter `~/vorrat-assistent/docker/rewe-certs/rewe.pem` und `…/rewe.key` (danach `chmod 600`). Der Container liest sie über `REWE_CERT_PATH=/certs/rewe.pem` und `REWE_KEY_PATH=/certs/rewe.key` (Volume, nur lesend).
+
+`REWE_MARKET_ID` sollte ein Markt mit Abholservice sein: Produktdetails fragt `rewerse` immer für die Abholung an.
 
 ### Starten und Markt-ID ermitteln
 

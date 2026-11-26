@@ -1,11 +1,13 @@
-"""Zugriff auf die REWE-App-API: rewerse für Suche/Listen/Kategorien/Angebote, eigener Abruf für Produktdetails.
+"""Zugriff auf die REWE-App-API, ausschließlich über die Bibliothek rewerse.
 
-Viele Märkte (auch 1940430) bieten keine Abholung an. rewerse sendet bei Produktdetails und Kategorien fest
-den Service „PICKUP“, den die API für solche Märkte mit „Invalid market selection“ ablehnt. Deshalb:
-- Service-Typ wird aus den Marktdetails ermittelt (hasPickup), überschreibbar per REWE_SERVICE_TYPE,
-- Listen/Suche/Kategorien laufen über rewerse mit diesem Service-Typ,
-- Produktdetails laufen über eine eigene Anfrage (Nachbau aus rewerse pkg/products.go, pkg/util.go),
-  die zugleich die ungefilterte Antwort liefert.
+Die Schnittstelle selbst hat das Projekt rewerse-engineering untersucht und dokumentiert
+(https://github.com/ByteSizedMarius/rewerse-engineering). Dieses Modul baut darauf auf und
+sendet keine eigenen Anfragen an REWE.
+
+Viele Märkte bieten keine Abholung an. Der Service-Typ wird deshalb aus den Marktdetails ermittelt
+(hasPickup), überschreibbar per REWE_SERVICE_TYPE, und an Listen, Suche und Kategorien übergeben.
+Produktdetails fragt rewerse mit dem Service „PICKUP“ an: REWE_MARKET_ID sollte daher ein Markt
+mit Abholservice sein (dort gibt es ohnehin Ladenpreise und das volle Sortiment).
 """
 
 from __future__ import annotations
@@ -13,10 +15,8 @@ from __future__ import annotations
 import json
 import os
 import random
-import ssl
 import threading
 import time
-import uuid
 from pathlib import Path
 
 import httpx
@@ -33,11 +33,9 @@ SERVICE_TYPE = os.environ.get("REWE_SERVICE_TYPE", "").strip().upper()  # leer =
 ZIP = os.environ.get("REWE_ZIP", "67065").strip()
 PAUSE_MIN = float(os.environ.get("REWE_PAUSE_MIN", "2"))
 PAUSE_MAX = float(os.environ.get("REWE_PAUSE_MAX", "3"))
-HOST = "https://mobile-clients-api.rewe.de"
 
 _lock = threading.Lock()
 _client = None
-_http: httpx.Client | None = None
 _service_type: str | None = None
 _letzter_aufruf = 0.0
 
@@ -130,40 +128,15 @@ def _maerkte_suchen(suche: str) -> list:
     return client().market_search(suche)
 
 
-def _http_client() -> httpx.Client:
-    global _http
-    if _http is None:
-        if not zertifikate_vorhanden():
-            raise NichtBereit("Zertifikate fehlen")
-        ctx = ssl.create_default_context()
-        ctx.load_cert_chain(CERT_PATH, KEY_PATH)
-        _http = httpx.Client(verify=ctx, timeout=30, base_url=HOST)
-    return _http
-
-
 def _produkt_roh(product_id: str) -> dict:
-    st, mid = service_type(), markt_id()
-    headers = {
-        "x-instana-android": str(uuid.uuid4()),
-        "user-agent": "REWE-Mobile-Client/5.17.2.53406 Android/14 Phone/Google_Pixel_8",
-        "rdfa": str(uuid.uuid4()),
-        "rdtga": "payment-enable-google-pay,productlist-citrusad",
-        "correlation-id": str(uuid.uuid4()),
-        "rd-service-types": st, "x-rd-service-types": st,
-        "rd-customer-zip": ZIP, "x-rd-customer-zip": ZIP,
-        "rd-market-id": mid, "x-rd-market-id": mid,
-        "rd-postcode": ZIP, "rd-is-lsfk": "false",
-    }
-    r = _http_client().get(f"/api/products/{product_id}", headers=headers)
-    if r.status_code >= 400:
-        raise RuntimeError(f"HTTP {r.status_code}: {r.text[:200]}")
-    if r.text.lstrip().startswith("<!DOCTYPE html>"):
-        raise RuntimeError("Antwort ist HTML (Cloudflare)")
-    return r.json()
+    """Ungefilterte Produktdetails über rewerse (GetProductByID), in der Form {"data": {...}}."""
+    return {"data": client().get_product_by_id(markt_id(), product_id) or {}}
 
 
 def _produkt_detail(product_id: str) -> dict:
-    produkte = ((_produkt_roh(product_id).get("data") or {}).get("product")) or []
+    produkte = (_produkt_roh(product_id).get("data") or {}).get("product") or []
+    if isinstance(produkte, dict):
+        produkte = [produkte]
     if not produkte:
         raise RuntimeError(f"Produkt {product_id} nicht gefunden")
     return produkte[0]

@@ -101,8 +101,9 @@ def product_aktualisieren(product_id: str):
 def debug_raw_product(product_id: str):
     """Ungefilterte API-Antwort + gefundene Barcode-Felder (Prüfung, ob REWE eine EAN/GTIN liefert)."""
     roh = _live("produkt_roh", product_id)
-    return {"ean_feld": finde_ean(roh), "ean_aus_article_id": ean_aus_article_id(
-        (((roh.get("data") or {}).get("product") or [{}])[0]).get("articleId")), "roh": roh}
+    produkt = (roh.get("data") or {}).get("product") or [{}]
+    produkt = produkt[0] if isinstance(produkt, list) else produkt
+    return {"ean_feld": finde_ean(roh), "ean_aus_article_id": ean_aus_article_id(produkt.get("articleId")), "roh": roh}
 
 
 @app.get("/discounts")
